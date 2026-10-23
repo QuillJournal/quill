@@ -15,10 +15,13 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ViewType } from "../types/diary";
 import { isSameDay } from "../utils/dates";
 import Calendar from "./calendar/Calendar";
 import EmptyState from "./entries/EmptyState";
+import FeedView from "./entries/FeedView";
 import ListView from "./entries/ListView";
+import TimelineView from "./entries/TimelineView";
 import SegmentedControl from "./SegmentedControl";
 
 interface EntriesListProps {
@@ -46,12 +49,23 @@ export default function EntriesList({
 }: EntriesListProps) {
   const { colors } = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedView, setSelectedView] = useState("list");
+  const [selectedView, setSelectedView] = useState<ViewType>("list");
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const diaryAccent = resolveDiaryColor(diaryColor, scheme);
   const isSyncing = useSyncStatus();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, diaryAccent, insets.top);
+
+  const VIEW_OPTIONS = [
+    { label: "Feed", value: "feed" },
+    { label: "Timeline", value: "timeline" },
+    { label: "List", value: "list" },
+  ] as const;
+  const VIEW_COMPONENTS = {
+    feed: FeedView,
+    list: ListView,
+    timeline: TimelineView,
+  };
 
   const handleDayPress = (date: Date) => {
     haptic.press();
@@ -64,6 +78,15 @@ export default function EntriesList({
   const handleDayLongPress = (date: Date) => {
     onNewEntry(date);
   };
+
+  const ViewProps = {
+    entries,
+    selectedDate,
+    onDeleteEntry,
+    onSelectEntry,
+    diaryAccent,
+  };
+  const SelectedComponent = VIEW_COMPONENTS[selectedView];
 
   return (
     <View style={styles.container}>
@@ -111,11 +134,7 @@ export default function EntriesList({
         )}
       </View>
       <SegmentedControl
-        options={[
-          { label: "Feed", value: "feed" },
-          { label: "Timeline", value: "timeline" },
-          { label: "List", value: "list" },
-        ]}
+        options={VIEW_OPTIONS}
         selectedValue={selectedView}
         onSelect={setSelectedView}
       />
@@ -128,13 +147,7 @@ export default function EntriesList({
         />
       </View>
       {entries.length > 0 ? (
-        <ListView
-          entries={entries}
-          selectedDate={selectedDate}
-          onDeleteEntry={onDeleteEntry}
-          onSelectEntry={onSelectEntry}
-          diaryAccent={diaryAccent}
-        />
+        <SelectedComponent {...ViewProps} />
       ) : (
         <EmptyState accentColor={diaryAccent} />
       )}
