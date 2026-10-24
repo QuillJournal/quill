@@ -138,14 +138,16 @@ export default function EntriesList({
         selectedValue={selectedView}
         onSelect={setSelectedView}
       />
-      <View style={styles.calendarWrap}>
-        <Calendar
-          entries={entries}
-          selectedDate={selectedDate}
-          onDayPress={handleDayPress}
-          onDayLongPress={handleDayLongPress}
-        />
-      </View>
+      {selectedView != "feed" && (
+        <View style={styles.calendarWrap}>
+          <Calendar
+            entries={entries}
+            selectedDate={selectedDate}
+            onDayPress={handleDayPress}
+            onDayLongPress={handleDayLongPress}
+          />
+        </View>
+      )}
       {entries.length > 0 ? (
         <SelectedComponent {...ViewProps} />
       ) : (
