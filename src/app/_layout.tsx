@@ -9,27 +9,29 @@ import "expo-blob";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, useColorScheme } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, useColorScheme, View } from "react-native";
 import "react-native-reanimated";
+import DecryptingScreen from "../components/DecryptingScreen";
 import { dialog } from "../components/Dialog/DialogProvider";
 import LockedDatabaseScreen from "../components/LockedDatabaseScreen";
 import { DiaryTransitionProvider } from "../context/DiaryTransitionContext";
-import { dbStatus } from "../db";
+import { db, dbStatus } from "../db";
 import { getResumeDiaryId } from "../db/appState";
+import { getLocalProfile, saveLocalProfile } from "../db/localProfile";
 import { protectLocalStorage } from "../services/localProtection";
 import { finishPendingWipe } from "../services/localWipe";
 import { initKeysRpc } from "../utils/auth";
 import {
   bytesToHex,
   decryptKeyBundle,
-  encryptKeyBundle,
   generateDualSignKeyPair,
   generateHybridKemKeyPair,
   generateRecoveryKey,
   hexToBytes,
   signPublicBundle,
-  type UserSecretKeyBundle,
+  wrapKeyBundles,
+  type UserSecretKeyBundle
 } from "../utils/crypto";
 
 export {
@@ -46,13 +48,14 @@ import {
   useSyncLifecycle,
   useUserSession,
 } from "../context/UserSessionContext";
-import { getLocalProfile, saveLocalProfile } from "../db/localProfile";
+import { diariesTable } from "../db/schema";
 import useTheme from "../hooks/useTheme";
 import {
   clearDerivedKey,
   getStoredDerivedKey,
 } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
+import { getSyncRuns, useSyncProgress } from "../services/syncEngine";
 import { getUserProfileRecord, subscribeToAuthState } from "../utils/auth";
 import { decryptUserProfile } from "../utils/crypto";
 import {
@@ -92,6 +95,10 @@ function AppNavigator() {
 
   const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const { runs: syncRuns } = useSyncProgress();
+  const [decryptBaseline, setDecryptBaseline] = useState<number | null>(null);
+  const decryptGateDone = useRef(false);
+
   let cachedPhotoUri: string | null = null;
 
   useEffect(() => {
@@ -113,6 +120,8 @@ function AppNavigator() {
       setSupabaseSession(newSession);
 
       if (!newSession) {
+        decryptGateDone.current = false;
+        setDecryptBaseline(null);
         setIsAuthLoading(false);
         return;
       }
@@ -181,12 +190,13 @@ function AppNavigator() {
               signEd25519Priv: bytesToHex(signPair.ed25519Priv),
               signMldsa65Priv: bytesToHex(signPair.mldsa65Priv),
             };
+            const wrappedBundles = wrapKeyBundles(secretBundle, derivedKey, recKeyBytes);
             await initKeysRpc({
               kemPublicKey: kemPubHex,
               signPublicKey: signPubHex,
               bundleSignature: bundleSigHex,
-              encryptedKeyBundle: encryptKeyBundle(secretBundle, derivedKey),
-              recoveryKeyBundle: encryptKeyBundle(secretBundle, recKeyBytes),
+              encryptedKeyBundle: wrappedBundles.encryptedKeyBundle,
+              recoveryKeyBundle: wrappedBundles.recoveryKeyBundle,
             });
 
             setTimeout(() => {
@@ -221,7 +231,7 @@ function AppNavigator() {
             kemKeys = {
               x25519Priv: hexToBytes(bundle.kemX25519Priv),
               mlkem768Priv: hexToBytes(bundle.kemMlkem768Priv),
-              publicKeyHex: profileRecord.sign_public_key,
+              publicKeyHex: profileRecord.kem_public_key,
             };
             signKeys = {
               ed25519Priv: hexToBytes(bundle.signEd25519Priv),
@@ -251,7 +261,12 @@ function AppNavigator() {
             decryptedPhotoUri,
             kemKeys?.publicKeyHex ?? "",
           );
-
+          const hasLocalDiaries = 
+          (await db.select({ id: diariesTable.id }).from(diariesTable).limit(1))
+          .length > 0;
+          if (!hasLocalDiaries && !decryptGateDone.current) {
+            setDecryptBaseline((prev) => prev ?? getSyncRuns());
+          }
           setSession({
             userId: newSession.user.id,
             username: profileRecord.username,
@@ -271,6 +286,14 @@ function AppNavigator() {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (decryptBaseline !== null && syncRuns > decryptBaseline) {
+      decryptGateDone.current = true;
+      setDecryptBaseline(null);
+    }
+  }, [syncRuns, decryptBaseline]);
+
   const isSignedIn = supabaseSession !== null;
   const isNavReady = isFontsLoaded && isDbMigrated && !isAuthLoading;
   useEffect(() => {
@@ -309,6 +332,7 @@ function AppNavigator() {
     <SafeAreaProvider>
       <DialogProvider>
         <DiaryTransitionProvider>
+          <View style={{ flex: 1 }}>
           <Stack
             screenOptions={{
               contentStyle: { backgroundColor: colors.background },
@@ -318,6 +342,10 @@ function AppNavigator() {
             <Stack.Screen name="(app)" />
             <Stack.Screen name="(auth)" />
           </Stack>
+          {decryptBaseline !== null && userSession?.kemKeys && (
+            <DecryptingScreen />
+          )}
+          </View>
         </DiaryTransitionProvider>
       </DialogProvider>
     </SafeAreaProvider>

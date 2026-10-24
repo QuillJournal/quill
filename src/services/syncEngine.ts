@@ -11,9 +11,12 @@ import {
   hexToBytes,
   signWrappedKey,
   unwrapDiaryKey,
+  verifyPublicBundle,
+  verifyWrappedKeySig,
   wrapDiaryKey,
 } from "../utils/crypto";
 import { supabase } from "../utils/supabase";
+import { checkAndPinBundle } from "./keyPins";
 
 let isSyncRunning = false;
 const syncListeners = new Set<(syncing: boolean) => void>();
@@ -34,6 +37,35 @@ export function useSyncStatus(): boolean {
   return syncing;
 }
 
+type SyncProgressState = { runs: number; label: string; fraction: number };
+let progressState: SyncProgressState = {
+  runs: 0,
+  label: "Decrypting",
+  fraction: 0,
+};
+const progressListeners = new Set<(s: SyncProgressState) => void>();
+
+function updateProgress(patch: Partial<SyncProgressState>) {
+  progressState = { ...progressState, ...patch };
+  progressListeners.forEach((fn) => fn(progressState));
+}
+
+export function getSyncRuns(): number {
+  return progressState.runs;
+}
+
+export function useSyncProgress(): SyncProgressState {
+  const [state, setState] = useState(progressState);
+  useEffect(() => {
+    progressListeners.add(setState);
+    setState(progressState);
+    return () => {
+      progressListeners.delete(setState);
+    };
+  }, []);
+  return state;
+}
+
 export async function runSync(session: {
   userId: string;
   kemKeys: {
@@ -49,6 +81,7 @@ export async function runSync(session: {
 }): Promise<void> {
   if (isSyncRunning) return;
   setSyncing(true);
+  updateProgress({ label: "Unlocking your diaries", fraction: 0 });
 
   try {
     // push local unsynced diaries first
@@ -64,6 +97,7 @@ export async function runSync(session: {
   } catch (err) {
     console.warn("[NiceSapien Tech SyncEngine :nerd:] Sync error: ", err);
   } finally {
+    updateProgress({ runs: progressState.runs + 1, fraction: 1 });
     setSyncing(false);
   }
 }
@@ -144,10 +178,89 @@ async function pushPendingDiaries(session: {
   }
 }
 
-async function syncDiariesAndMembers(session: {
+type SyncSession = {
   userId: string;
   kemKeys: { x25519Priv: Uint8Array; mlkem768Priv: Uint8Array };
-}) {
+  signKeys: { publicKeyHex?: string };
+};
+
+async function isWrappedKeyTrusted(
+  row: {
+    wrapped_key?: string | null;
+    wrapped_sig?: string | null;
+    wrapped_by?: string | null;
+  },
+  diaryId: string,
+  session: SyncSession,
+  signerSignPubCache: Map<string, string | null>,
+): Promise<boolean> {
+  const { wrapped_key, wrapped_sig, wrapped_by } = row;
+  if (!wrapped_key || !wrapped_sig || !wrapped_by) {
+    console.warn(
+      `[Sync] Diary ${diaryId}: wrapped key is missing signature data, skipping.`,
+    );
+    return false;
+  }
+
+  let signerSignPub: string | null | undefined;
+  if (wrapped_by === session.userId) {
+    signerSignPub = session.signKeys.publicKeyHex;
+  } else if (signerSignPubCache.has(wrapped_by)) {
+    signerSignPub = signerSignPubCache.get(wrapped_by);
+  } else {
+    signerSignPub = null;
+    const { data, error } = await supabase.rpc("get_public_bundle", {
+      p_user_id: wrapped_by,
+    });
+    const bundle = !error && Array.isArray(data) ? data[0] : null;
+    if (
+      bundle &&
+      bundle.id === wrapped_by &&
+      verifyPublicBundle(
+        bundle.id,
+        bundle.kem_public_key,
+        bundle.sign_public_key,
+        bundle.bundle_signature,
+      )
+    ) {
+      const pinChanged = await checkAndPinBundle(
+        bundle.id,
+        bundle.kem_public_key,
+        bundle.sign_public_key,
+      );
+      if (pinChanged) {
+        console.warn(
+          `[Sync] Diary ${diaryId}: sharer's keys changed since first seen, skipping.`,
+        );
+      } else {
+        signerSignPub = bundle.sign_public_key;
+      }
+    } else {
+      console.warn(
+        `[Sync] Diary ${diaryId}: could not verify the sharer's public bundle, skipping.`,
+      );
+    }
+    signerSignPubCache.set(wrapped_by, signerSignPub ?? null);
+  }
+
+  if (!signerSignPub) return false;
+  const ok = verifyWrappedKeySig(
+    wrapped_key,
+    diaryId,
+    session.userId,
+    wrapped_by,
+    wrapped_sig,
+    signerSignPub,
+  );
+  if (!ok) {
+    console.warn(
+      `[Sync] Diary ${diaryId}: invalid signature on wrapped key, skipping.`,
+    );
+  }
+  return ok;
+}
+
+async function syncDiariesAndMembers(session: SyncSession) {
   const { data: memberRows, error } = await supabase
     .from("diary_members")
     .select(
@@ -157,13 +270,26 @@ async function syncDiariesAndMembers(session: {
 
   if (error || !memberRows) return;
 
+  const signerSignPubCache = new Map<string, string | null>();
+  let diaryIdx = 0;
+
   for (const row of memberRows) {
+    updateProgress({
+      label: `Unlocking diary ${diaryIdx + 1} of ${memberRows.length}`,
+      fraction: (0.3 * diaryIdx) / memberRows.length,
+    });
+    diaryIdx++;
     const diary = (row as any).diaries;
     if (!diary) continue;
 
     let keyHex = await getDiaryKey(diary.id, row.key_epoch);
 
     if (!keyHex) {
+      if (
+        !(await isWrappedKeyTrusted(row, diary.id, session, signerSignPubCache))
+      ) {
+        continue;
+      }
       try {
         const unwrapped = unwrapDiaryKey(row.wrapped_key, session.kemKeys);
         keyHex = bytesToHex(unwrapped);
@@ -315,8 +441,12 @@ async function pushOfflineEntryQueue(currentUserId: string) {
 
 async function pullRemoteEntries() {
   const localDiaries = await db.select().from(diariesTable);
+  let diaryIdx = 0;
 
   for (const diary of localDiaries) {
+    const base = (0.3 * (0.7 * diaryIdx)) / localDiaries.length;
+    const span = 0.7 / localDiaries.length;
+    const diaryNo = ++diaryIdx;
     if (!diary.remoteId) continue;
 
     const diaryKeyHex = await getDiaryKey(diary.remoteId, diary.keyEpoch);
@@ -337,8 +467,15 @@ async function pullRemoteEntries() {
     if (error || !remoteEntries || remoteEntries.length === 0) continue;
 
     let maxSeq = diary.lastSyncedSeq || 0;
+    let n = 0;
 
     for (const remote of remoteEntries) {
+      n++;
+      updateProgress({
+        label: `Diary ${diaryNo} of ${localDiaries.length} · entry ${n} of ${remoteEntries.length}`,
+        fraction: base + (span * n) / remoteEntries.length,
+      });
+      if (n % 10 === 0) await new Promise((r) => setTimeout(r, 0));
       const seq = Number(remote.change_seq);
       if (seq > maxSeq) maxSeq = seq;
 

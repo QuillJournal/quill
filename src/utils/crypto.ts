@@ -41,6 +41,7 @@ export interface UserSecretKeyBundle {
   kemMlkem768Priv: string;
   signEd25519Priv: string;
   signMldsa65Priv: string;
+  recoveryKey?: string;
 }
 
 export function padBytes(
@@ -121,14 +122,33 @@ export async function deriveAuthAndEncKeys(
 }
 
 // --- Recovery Key Formatting ---
+export function formatRecoveryKey(rawKey: Uint8Array): string {
+  const hex = bytesToHex(rawKey).toUpperCase();
+  const chunks = hex.match(/.{1,4}/g) || [];
+  return chunks.join("-");
+}
+
 export function generateRecoveryKey(): {
   rawKey: Uint8Array;
   formattedKey: string;
 } {
   const rawKey = Crypto.getRandomValues(new Uint8Array(32));
-  const hex = bytesToHex(rawKey).toUpperCase();
-  const chunks = hex.match(/.{1,4}/g) || [];
-  return { rawKey, formattedKey: chunks.join("-") };
+  return { rawKey, formattedKey: formatRecoveryKey(rawKey) };
+}
+
+export function wrapKeyBundles(
+  bundle: UserSecretKeyBundle,
+  localEncKey: Uint8Array,
+  recoveryKeyBytes: Uint8Array,
+): { encryptedKeyBundle: string; recoveryKeyBundle: string } {
+  const { recoveryKey: _ignored, ...secret } = bundle;
+  return {
+    encryptedKeyBundle: encryptKeyBundle(
+      { ...secret, recoveryKey: bytesToHex(recoveryKeyBytes) },
+      localEncKey,
+    ),
+    recoveryKeyBundle: encryptKeyBundle(secret, recoveryKeyBytes),
+  };
 }
 
 export function parseRecoveryKey(formattedKey: string): Uint8Array {

@@ -23,15 +23,25 @@ import {
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import {
   deleteAccount,
+  getUserProfileRecord,
+  rewrapKeysRpc,
   signOut,
   updateUserEncryptedProfile,
 } from "../utils/auth";
-import { encryptUserProfile } from "../utils/crypto";
+import {
+  decryptKeyBundle,
+  deriveAuthAndEncKeys, encryptUserProfile, formatRecoveryKey,
+  generateRecoveryKey,
+  hexToBytes,
+  wrapKeyBundles,
+  type UserSecretKeyBundle
+} from "../utils/crypto";
 import {
   encryptAndUploadPhoto,
   persistLocalAvatar,
 } from "../utils/photoCrypto";
 import Button from "./Button";
+import PasswordField from "./PasswordField";
 import AppModal from "./ui/AppModal";
 
 interface SettingsModalProps {
@@ -53,10 +63,135 @@ export default function SettingsModal({
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [isPhotoExpanded, setIsPhotoExpanded] = useState(false);
   const [isPickingOrUploading, setIsPickingOrUploading] = useState(false);
+  const [isRecoveryExpanded, setIsRecoveryExpanded] = useState(false);
+  const [recoveryPassword, setRecoveryPassword] = useState("");
+  const [isRecoveryBusy, setIsRecoveryBusy] = useState(false);
 
   const togglePhotoExpanded = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsPhotoExpanded((prev) => !prev);
+  };
+
+  const toggleRecoveryExpanded = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsRecoveryExpanded((prev) => !prev);
+    setRecoveryPassword("");
+  }
+
+  const unlockKeyBundle = async (): Promise<{
+    bundle: UserSecretKeyBundle;
+    localEncKey: Uint8Array;
+  }> => {
+    if (!session) throw new Error("You are not signed in.");
+    const { localEncKey } = await deriveAuthAndEncKeys(
+      recoveryPassword,
+      session.email || userEmail || "",
+    );
+    const profile = await getUserProfileRecord(session.userId);
+    if (!profile.encrypted_key_bundle) {
+      throw new Error("No encryption keys were found for this account.");
+    }
+    try {
+      return {
+        bundle: decryptKeyBundle(profile.encrypted_key_bundle, localEncKey),
+        localEncKey,
+      };
+    } catch {
+      throw new Error("Incorrect password.");
+    }
+  };
+
+  const showRecoveryCode = (formattedKey: string, title: string) => {
+    dialog.alert(
+      title,
+      "Write this down and keep it somewhere safe and offline. Anyone who has it can unlock your account's encryption keys.",
+      [{ text: "Done" }],
+      { code: formattedKey },
+    );
+  };
+
+  const generateAndStoreNewRecoveryKey = async (
+    bundle: UserSecretKeyBundle,
+    localEncKey: Uint8Array,
+  ) => {
+    const { rawKey, formattedKey } = generateRecoveryKey();
+    const { encryptedKeyBundle, recoveryKeyBundle } = wrapKeyBundles(
+      bundle,
+      localEncKey,
+      rawKey,
+    );
+    await rewrapKeysRpc({ encryptedKeyBundle, recoveryKeyBundle });
+    showRecoveryCode(formattedKey, "Your new recovery key");
+  };
+  
+  const handleShowRecoveryKey = async () => {
+    if (!recoveryPassword) return;
+    setIsRecoveryBusy(true);
+    try {
+      const { bundle, localEncKey } = await unlockKeyBundle();
+      setRecoveryPassword("");
+
+      if (bundle.recoveryKey) {
+        showRecoveryCode(
+          formatRecoveryKey(hexToBytes(bundle.recoveryKey)),
+          "Your recovery key",
+        );
+        return;
+      }
+
+      dialog.alert(
+        "Recovery key can't be shown",
+        "Your current recovery key was created before viewing was supported, so it can't be displayed. You can generate a new one; your old key will stop working.",
+        [
+          {text: "Cancel", style: "cancel"},
+          {
+            text: "Generate new key",
+            onPress: () => {
+              generateAndStoreNewRecoveryKey(bundle, localEncKey).catch(
+                (err: any) =>
+                  dialog.alert("Couldn't generate key", err?.message || "Please try again."),
+              );
+            },
+          },
+        ],
+      );
+    } catch (err: any) {
+      haptic.error();
+      dialog.alert("Couldn't show recovery key", err?.message || "Please try again.");
+    } finally {
+      setIsRecoveryBusy(false);
+    }
+  };
+
+  const handleGenerateRecoveryKey = async () => {
+    if (!recoveryPassword) return;
+    setIsRecoveryBusy(true);
+    try {
+      const { bundle, localEncKey } = await unlockKeyBundle();
+      setRecoveryPassword("");
+      dialog.alert(
+        "Generate a new recovery key?",
+        "Your current recovery key will stop working. Make sure you write the new one down.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Generate",
+            style: "destructive",
+            onPress: () => {
+              generateAndStoreNewRecoveryKey(bundle, localEncKey).catch(
+                (err: any) =>
+                  dialog.alert("Couldn't generate key", err?.message || "Please try again."),
+              );
+            },
+          },
+        ],
+      );
+    } catch (err: any) {
+      haptic.error();
+      dialog.alert("Couldn't generate key", err?.message || "Please try again.");
+    } finally {
+      setIsRecoveryBusy(false);
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -327,6 +462,57 @@ export default function SettingsModal({
             </View>
           )}
         </View>
+        {session && (
+          <View
+          style={[
+            styles.section,
+            styles.recoveryCard,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+          >
+            <TouchableOpacity
+            style={styles.recoveryHeader}
+            onPress={toggleRecoveryExpanded}
+            activeOpacity={0.8}
+            >
+              <Ionicons name="key-outline" size={20} color={colors.text} />
+              <Text style={[styles.recoveryTitle, { color: colors.text }]}>Recovery key</Text>
+              <Ionicons
+              name={isRecoveryExpanded ? "chevron-up" : "chevron-down"}
+              size={18}
+              color={colors.textMuted}
+              />
+            </TouchableOpacity>
+
+            {isRecoveryExpanded && (
+              <View style={styles.recoveryBody}>
+                <Text style={[styles.recoveryHint, {color: colors.textMuted}]}>
+                  Enter your password to view your recovery key or generate a new one.
+                </Text>
+                <PasswordField
+                password={recoveryPassword}
+                onChangePassword={setRecoveryPassword}
+                />
+                <Button
+                label="Show recovery key"
+                onPress={handleShowRecoveryKey}
+                loading={isRecoveryBusy}
+                disabled={!recoveryPassword}
+                variant="primary"
+                size="sm"
+                />
+                <Button
+                label="Generate new key"
+                onPress={handleGenerateRecoveryKey}
+                loading={isRecoveryBusy}
+                disabled={!recoveryPassword}
+                variant="secondary"
+                size="sm"
+                />
+                </View>
+            )}
+            </View>
+        )}
 
         {/* Sign Out Button */}
         <TouchableOpacity
@@ -499,5 +685,28 @@ const styles = StyleSheet.create({
   deleteText: {
     fontSize: 15,
     fontWeight: "600",
+  },
+    recoveryCard: {
+    marginBottom: 12,
+    justifyContent: "flex-start",
+    minHeight: 0,
+  },
+  recoveryHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  recoveryTitle: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  recoveryBody: {
+    marginTop: 14,
+    gap: 12,
+  },
+  recoveryHint: {
+    fontSize: 13,
+    lineHeight: 18,
   },
 });
