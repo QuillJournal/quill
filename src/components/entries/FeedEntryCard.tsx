@@ -43,6 +43,7 @@ export default function FeedEntryCard({
     year: "numeric",
   });
   const cardHeader = `${formatter.format(entryDate)} • ${formatCreatedMeta(entry.createdAt, entryDate)}`;
+  const cardFooter = ``;
   const mediaItems = media.map((m) => ({
     uri: resolveAttachmentUri(m.relPath),
     kind: m.kind,
@@ -59,6 +60,7 @@ export default function FeedEntryCard({
       {media.length > 0 && (
         <FeedMedia items={mediaItems} onOpen={onMediaOpen} />
       )}
+      <View>{cardFooter}</View>
     </View>
   );
 }

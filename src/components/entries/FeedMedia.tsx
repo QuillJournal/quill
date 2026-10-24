@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { useRef } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { Rect } from "../MediaViewer";
 
 const blurhash = "L6PZfSi_00os00j[fQfQ00fQfQfQ";
@@ -17,10 +17,11 @@ type FeedMediaProps = {
 
 type TileProps = {
   item: FeedMediaItem;
+  overlay?: string;
   onOpen: (item: FeedMediaItem, origin: Rect) => void;
 };
 
-function Tile({ item, onOpen }: TileProps) {
+function Tile({ item, overlay, onOpen }: TileProps) {
   const ref = useRef<View>(null);
   const handlePress = () => {
     ref.current?.measureInWindow((x, y, width, height) =>
@@ -39,20 +40,30 @@ function Tile({ item, onOpen }: TileProps) {
     >
       <Image
         source={item.uri}
-        style={{
-          aspectRatio: 4 / 3,
-        }}
+        style={StyleSheet.absoluteFill}
         placeholder={{ blurhash }}
         contentFit="cover"
         transition={1000}
       />
+      {overlay && (
+        <View style={styles.overlay}>
+          <Text style={styles.overlayText}>{overlay}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
 
 export default function FeedMedia({ items, onOpen }: FeedMediaProps) {
   const shown = items.slice(0, 4);
-  const tile = (i: number) => <Tile item={items[i]} onOpen={onOpen} />;
+  const extra = items.length - shown.length;
+  const tile = (i: number) => (
+    <Tile
+      item={items[i]}
+      overlay={i === shown.length - 1 && extra ? `+${extra}` : undefined}
+      onOpen={onOpen}
+    />
+  );
   const layoutMap = {
     1: () => tile(0),
     2: () => (
@@ -84,10 +95,21 @@ export default function FeedMedia({ items, onOpen }: FeedMediaProps) {
     ),
   };
   const renderLayout = layoutMap[shown.length];
-  return <View>{renderLayout()}</View>;
+  return (
+    <View style={{ aspectRatio: 4 / 3, borderRadius: 8 }}>
+      {renderLayout()}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   row: { flex: 1, flexDirection: "row", gap: 2 },
   column: { flex: 1, gap: 2 },
+  overlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  overlayText: { color: "#fff", fontSize: 18, fontWeight: "500" },
 });
