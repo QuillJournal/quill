@@ -5,6 +5,8 @@ import { Attachment } from "@/src/types/attachment";
 import type { EntryWithAuthor } from "@/src/types/entry";
 import { formatCreatedMeta, fromDateKey } from "@/src/utils/dates";
 import { StyleSheet, Text, View } from "react-native";
+import type { Rect } from "../MediaViewer";
+import type { FeedMediaItem } from "./FeedMedia";
 import FeedMedia from "./FeedMedia";
 
 type EntryCardProps = {
@@ -14,6 +16,7 @@ type EntryCardProps = {
   diaryAccent: string;
   isMe: boolean;
   media: Attachment[];
+  onMediaOpen: (item: FeedMediaItem, origin: Rect) => void;
 };
 
 export default function FeedEntryCard({
@@ -22,6 +25,7 @@ export default function FeedEntryCard({
   diaryAccent,
   media,
   isMe,
+  onMediaOpen,
 }: EntryCardProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors, diaryAccent);
@@ -52,7 +56,9 @@ export default function FeedEntryCard({
         <Text style={styles.cardTitle}>{entry.title}</Text>
         <Text style={styles.cardPreview}>{cleanPreview}</Text>
       </View>
-      {media.length > 0 && <FeedMedia items={mediaItems} />}
+      {media.length > 0 && (
+        <FeedMedia items={mediaItems} onOpen={onMediaOpen} />
+      )}
     </View>
   );
 }

@@ -1,28 +1,58 @@
 import { Image } from "expo-image";
-import { StyleSheet, View } from "react-native";
+import { useRef } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import type { Rect } from "../MediaViewer";
 
 const blurhash = "L6PZfSi_00os00j[fQfQ00fQfQfQ";
-type FeedMediaItem = {
+
+export type FeedMediaItem = {
   uri: string;
   kind: "image" | "video";
 };
+
 type FeedMediaProps = {
   items: FeedMediaItem[];
+  onOpen: (item: FeedMediaItem, origin: Rect) => void;
 };
-export default function FeedMedia({ items }: FeedMediaProps) {
-  const shown = items.slice(0, 4);
-  const tile = (i: number) => (
-    <Image
-      source={items[i].uri}
+
+type TileProps = {
+  item: FeedMediaItem;
+  onOpen: (item: FeedMediaItem, origin: Rect) => void;
+};
+
+function Tile({ item, onOpen }: TileProps) {
+  const ref = useRef<View>(null);
+  const handlePress = () => {
+    ref.current?.measureInWindow((x, y, width, height) =>
+      onOpen(item, { x, y, width, height }),
+    );
+  };
+
+  return (
+    <Pressable
+      ref={ref}
+      collapsable={false}
+      onPress={handlePress}
       style={{
         flex: 1,
-        aspectRatio: 4 / 3,
       }}
-      placeholder={{ blurhash }}
-      contentFit="cover"
-      transition={1000}
-    />
+    >
+      <Image
+        source={item.uri}
+        style={{
+          aspectRatio: 4 / 3,
+        }}
+        placeholder={{ blurhash }}
+        contentFit="cover"
+        transition={1000}
+      />
+    </Pressable>
   );
+}
+
+export default function FeedMedia({ items, onOpen }: FeedMediaProps) {
+  const shown = items.slice(0, 4);
+  const tile = (i: number) => <Tile item={items[i]} onOpen={onOpen} />;
   const layoutMap = {
     1: () => tile(0),
     2: () => (
