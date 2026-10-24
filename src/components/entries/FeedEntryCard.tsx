@@ -1,5 +1,6 @@
 import { fonts } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
+import { resolveAttachmentUri } from "@/src/services/attachments";
 import { Attachment } from "@/src/types/attachment";
 import type { EntryWithAuthor } from "@/src/types/entry";
 import { formatCreatedMeta, fromDateKey } from "@/src/utils/dates";
@@ -38,6 +39,10 @@ export default function FeedEntryCard({
     year: "numeric",
   });
   const cardHeader = `${formatter.format(entryDate)} • ${formatCreatedMeta(entry.createdAt, entryDate)}`;
+  const mediaItems = media.map((m) => ({
+    uri: resolveAttachmentUri(m.relPath),
+    kind: m.kind,
+  }));
   return (
     <View style={styles.card}>
       <View style={{ padding: 16 }}>
@@ -47,7 +52,7 @@ export default function FeedEntryCard({
         <Text style={styles.cardTitle}>{entry.title}</Text>
         <Text style={styles.cardPreview}>{cleanPreview}</Text>
       </View>
-      {media && <FeedMedia relPath={media[0].relPath} />}
+      {media.length > 0 && <FeedMedia items={mediaItems} />}
     </View>
   );
 }

@@ -24,7 +24,7 @@ export default function FeedView({
     <FeedEntryCard
       entry={entry}
       diaryAccent={diaryAccent}
-      media={media?.get(entry.id)}
+      media={media?.get(entry.id) ?? []}
     />
   );
   return (
