@@ -1,20 +1,25 @@
 import { fonts } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
+import { Attachment } from "@/src/types/attachment";
 import type { EntryWithAuthor } from "@/src/types/entry";
 import { formatCreatedMeta, fromDateKey } from "@/src/utils/dates";
 import { StyleSheet, Text, View } from "react-native";
+import FeedMedia from "./FeedMedia";
+
 type EntryCardProps = {
   entry: EntryWithAuthor;
   onPress: () => void;
   onLongPress: (entry: EntryWithAuthor) => void;
   diaryAccent: string;
   isMe: boolean;
+  media: Attachment[];
 };
 
 export default function FeedEntryCard({
   entry,
   onPress,
   diaryAccent,
+  media,
   isMe,
 }: EntryCardProps) {
   const { colors } = useTheme();
@@ -33,14 +38,16 @@ export default function FeedEntryCard({
     year: "numeric",
   });
   const cardHeader = `${formatter.format(entryDate)} • ${formatCreatedMeta(entry.createdAt, entryDate)}`;
-  const cardFooter = ''
   return (
     <View style={styles.card}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardDate}>{cardHeader}</Text>
+      <View style={{ padding: 16 }}>
+        <View style={styles.cardHeader}>
+          <Text style={styles.cardDate}>{cardHeader}</Text>
+        </View>
+        <Text style={styles.cardTitle}>{entry.title}</Text>
+        <Text style={styles.cardPreview}>{cleanPreview}</Text>
       </View>
-      <Text style={styles.cardTitle}>{entry.title}</Text>
-      <Text style={styles.cardPreview}>{cleanPreview}</Text>
+      {media && <FeedMedia relPath={media[0].relPath} />}
     </View>
   );
 }
@@ -53,8 +60,8 @@ const getStyles = (
     card: {
       backgroundColor: colors.card,
       borderRadius: 14,
-      padding: 16,
       marginBottom: 12,
+      paddingBottom: 16,
       borderWidth: 1,
       borderColor: colors.border,
       shadowColor: colors.shadow,

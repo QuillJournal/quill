@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { db } from ".";
 import type {
   Attachment,
@@ -64,6 +64,23 @@ export const getAttachmentCountsByDiaryId = async (diaryId: number) => {
     const counts = byEntry.get(r.entryId) ?? { ...EMPTY_COUNTS };
     counts[r.kind] = Number(r.count);
     byEntry.set(r.entryId, counts);
+  }
+  return byEntry;
+};
+
+export const getPreviewAttachments = async (
+  entryIds: number[],
+): Promise<Map<number, Attachment[]>> => {
+  const rows = await db
+    .select()
+    .from(attachments)
+    .where(inArray(attachments.entryId, entryIds))
+    .orderBy(asc(attachments.entryId));
+  const byEntry = new Map<number, Attachment[]>();
+  for (const row of rows) {
+    const list = byEntry.get(row.entryId) ?? [];
+    list.push(row);
+    byEntry.set(row.entryId, list);
   }
   return byEntry;
 };
