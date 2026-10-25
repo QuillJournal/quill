@@ -34,14 +34,17 @@ export default function SegmentedControl({
   const { width } = useWindowDimensions();
   const highlightPillWidth = (width - spacing.md * 2 - 2 - spacing.xs * 2) / 3;
   const progress = useSharedValue(0);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((o) => o.value === selectedValue),
+  );
+  const [activeIndex, setActiveIndex] = useState(selectedIndex);
 
   useEffect(() => {
     progress.value = withSpring(activeIndex);
   }, [activeIndex]);
 
   useEffect(() => {
-    const selectedIndex = options.findIndex((o) => o.value === selectedValue);
     setActiveIndex(selectedIndex);
   }, [selectedValue]);
 
