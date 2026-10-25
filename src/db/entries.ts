@@ -24,13 +24,13 @@ export const saveEntry = async (
   title: string,
   entryDate: string,
   body: string,
-  authorId?: string,
+  authorId: string,
 ): Promise<number> => {
   const remoteId = Crypto.randomUUID();
   const result = await db.insert(entries).values({
     remoteId,
     diaryId,
-    authorId: authorId ?? null,
+    authorId,
     title,
     entryDate,
     body,
@@ -103,6 +103,13 @@ export const deleteEntry = async (id: number): Promise<void> => {
       .set({ deleted: 1, syncState: "pending_delete", updatedAt: new Date() })
       .where(eq(entries.id, id));
   }
+};
+
+export const markEntryDirty = async (id: number): Promise<void> => {
+  await db
+    .update(entries)
+    .set({ syncState: "pending_update", updatedAt: new Date() })
+    .where(and(eq(entries.id, id), eq(entries.syncState, "synced")));
 };
 
 export const getEntriesByDiaryIdWithAttachmentCounts = async () => {};

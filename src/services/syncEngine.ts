@@ -16,6 +16,14 @@ import {
   wrapDiaryKey,
 } from "../utils/crypto";
 import { supabase } from "../utils/supabase";
+import {
+  applyRemoteManifest,
+  buildManifest,
+  downloadPendingAttachments,
+  syncAttachmentRows,
+  uploadEntryAttachments,
+  type ManifestItem,
+} from "./attachmentSync";
 import { checkAndPinBundle } from "./keyPins";
 
 let isSyncRunning = false;
@@ -99,6 +107,11 @@ export async function runSync(session: {
   } finally {
     updateProgress({ runs: progressState.runs + 1, fraction: 1 });
     setSyncing(false);
+    downloadPendingAttachments()
+      .then((n) => {
+        if (n > 0) updateProgress({ runs: progressState.runs + 1 });
+      })
+      .catch((e) => console.warn("[Sync] attachment download error", e));
   }
 }
 
@@ -356,10 +369,34 @@ async function pushOfflineEntryQueue(currentUserId: string) {
     const diaryKey = hexToBytes(diaryKeyHex);
 
     const remoteEntryId = entry.remoteId || Crypto.randomUUID();
+    let attachments: ManifestItem[] = [];
+    if (entry.syncState !== "pending_delete") {
+      const uploaded = await uploadEntryAttachments({
+        entryId: entry.id,
+        entryRemoteId: remoteEntryId,
+        authorId: entry.authorId,
+        diaryRemoteId: diary.remoteId,
+        keyEpoch: entry.keyEpoch,
+        diaryKey,
+      });
+      if (!uploaded) continue;
+      attachments = await buildManifest(entry.id);
+    }
+    const rowCtx = {
+      entryRemoteId: remoteEntryId,
+      diaryRemoteId: diary.remoteId,
+      authorId: entry.authorId,
+      currentUserId,
+    };
 
     if (entry.syncState === "pending_insert") {
       const blobHex = encryptBlob(
-        { title: entry.title, body: entry.body, entryDate: entry.entryDate },
+        {
+          title: entry.title,
+          body: entry.body,
+          entryDate: entry.entryDate,
+          attachments,
+        },
         diaryKey,
         {
           diaryId: diary.remoteId,
@@ -393,10 +430,16 @@ async function pushOfflineEntryQueue(currentUserId: string) {
             syncState: "synced",
           })
           .where(eq(entriesTable.id, entry.id));
+        await syncAttachmentRows(rowCtx, attachments);
       }
     } else if (entry.syncState === "pending_update") {
       const blobHex = encryptBlob(
-        { title: entry.title, body: entry.body, entryDate: entry.entryDate },
+        {
+          title: entry.title,
+          body: entry.body,
+          entryDate: entry.entryDate,
+          attachments,
+        },
         diaryKey,
         {
           diaryId: diary.remoteId,
@@ -425,6 +468,7 @@ async function pushOfflineEntryQueue(currentUserId: string) {
             syncState: "synced",
           })
           .where(eq(entriesTable.id, entry.id));
+        await syncAttachmentRows(rowCtx, attachments);
       }
     } else if (entry.syncState === "pending_delete") {
       const { error } = await supabase
@@ -491,7 +535,12 @@ async function pullRemoteEntries() {
         continue;
       }
 
-      let payload: { title: string; body: string; entryDate: string };
+      let payload: {
+        title: string;
+        body: string;
+        entryDate: string;
+        attachments?: ManifestItem[];
+      };
       try {
         payload = decryptBlob(remote.blob, diaryKey, {
           diaryId: diary.remoteId,
@@ -504,7 +553,7 @@ async function pullRemoteEntries() {
       }
 
       if (!existing) {
-        await db.insert(entriesTable).values({
+        const ins = await db.insert(entriesTable).values({
           remoteId: remote.id,
           diaryId: diary.id,
           authorId: remote.author_id,
@@ -517,6 +566,7 @@ async function pullRemoteEntries() {
           deleted: 0,
           syncState: "synced",
         });
+        await applyRemoteManifest(ins.lastInsertRowId, payload.attachments);
       } else {
         if (
           existing.syncState === "pending_update" &&
@@ -542,6 +592,7 @@ async function pullRemoteEntries() {
               syncState: "synced",
             })
             .where(eq(entriesTable.id, existing.id));
+          await applyRemoteManifest(existing.id, payload.attachments);
         }
       }
     }

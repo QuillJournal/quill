@@ -74,7 +74,7 @@ export const entriesTable = sqliteTable(
     diaryId: int("diary_id")
       .references(() => diariesTable.id, { onDelete: "cascade" })
       .notNull(),
-    authorId: text("author_id"),
+    authorId: text("author_id").notNull(),
     title: text().notNull(),
     body: text(),
     entryDate: text("entry_date").notNull(),
@@ -115,7 +115,7 @@ export const AttachmentsTable = sqliteTable(
     entryId: int("entry_id")
       .references(() => entriesTable.id, { onDelete: "cascade" })
       .notNull(),
-    kind: text('kind', {enum: ['image', 'video', 'audio']}).notNull(),
+    kind: text("kind", { enum: ["image", "video", "audio"] }).notNull(),
     relPath: text("rel_path").notNull(),
     mimeType: text("mimeType").notNull(),
     width: int(),
@@ -123,6 +123,18 @@ export const AttachmentsTable = sqliteTable(
     durationMs: int("duration_ms"),
     sizeBytes: int("size_bytes"),
     name: text(),
+    remoteId: text("remote_id").unique(),
+    syncState: text("sync_state", {
+      enum: [
+        "pending_upload",
+        "synced",
+        "pending_download",
+        "local_only",
+        "failed",
+      ],
+    })
+      .notNull()
+      .default("pending_upload"),
     createdAt: int("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),
