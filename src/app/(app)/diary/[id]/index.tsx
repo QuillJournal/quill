@@ -23,6 +23,8 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { supabase } from "@/src/utils/supabase";
+import { FA5Style } from "@expo/vector-icons/build/FontAwesome5";
 
 export default function DiaryScreen() {
   const { diaries } = useDiaries();
@@ -39,6 +41,29 @@ export default function DiaryScreen() {
   const isSyncing = useSyncStatus();
   const [authorMap, setAuthorMap] = useState<Record<string, string>>({});
   const { session } = useUserSession();
+  const [first, setFirst] = useState(false);
+  //set first value
+  useEffect(() => {
+    const checkfirst = async() => {
+        if(!session?.userId){
+          setFirst(false)
+          return;
+        }
+      const {data, error} = await supabase.from("profiles").select("onboarding").eq("id", session.userId).maybeSingle();
+      if(error){
+        console.error("Profile Onboarding Error"+ error.message)
+        return;
+      }
+      if(!data){
+        console.error("Error. There is no data for the onboarding table.")
+        setFirst(false)
+        return;
+      }
+      setFirst(data.onboarding === true)
+    }
+    checkfirst()
+  }, [session?.userId])
+
   useEffect(() => {
     db.select()
       .from(diaryMembersTable)
@@ -125,7 +150,7 @@ export default function DiaryScreen() {
           router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
         }}
         onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
-        first = {diaries.length ===0}
+        first = {first?? false}
       />
       <View
         pointerEvents="box-none"

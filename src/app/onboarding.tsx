@@ -4,11 +4,20 @@ import { radius } from "@/src/constants/radius";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
+import { supabase } from "@/src/utils/supabase";
 type props = {
     position?:[number, number]; 
     index2: number;
 }
 export default function Onboarding({position = [100,50], index2}:props) { // top n left
+    async function onboardingCompleted() {
+        setVisible(false)
+        const {data, error} = await supabase.from("profiles").update({onboarding: true})
+        if(error){
+            console.error("Onboarding Status Change Error"+ error.message)
+            return;
+        }
+    }
     const colors = useTheme()
     const [index, setIndex] = useState(0)
     const [visible, setVisible] = useState(true); 
@@ -42,7 +51,8 @@ export default function Onboarding({position = [100,50], index2}:props) { // top
         if(index2>= 0 && index2 < pages.length){
             setIndex(index2)
         }else{
-            setVisible(false)
+            onboardingCompleted()
+
         }
     }, [index2])
     const styles = StyleSheet.create({
@@ -102,7 +112,7 @@ export default function Onboarding({position = [100,50], index2}:props) { // top
                         backgroundColor: pressed? colors.colors.accentPressed:colors.colors.accent,
                     },
                     ]}
-                onPress = {() => setVisible(false)}> 
+                onPress = {() => onboardingCompleted()}> 
                 <Text style = {styles.subtitle}>
                     {pages[index].title}
                 </Text>

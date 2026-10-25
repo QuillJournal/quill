@@ -19,13 +19,36 @@ import { fetchDiaryMembers } from "@/src/services/sharing";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { DiaryFormData } from "@/src/types/diary";
 import { Stack } from "expo-router";
-import { useState } from "react";
+import { useState , useEffect } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, View, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { supabase } from "@/src/utils/supabase";
 
 export default function Home() {
   const { colors } = useTheme();
   const { session } = useUserSession();
+  const [first, setFirst] = useState(false);
+  //set first value
+  useEffect(() => {
+      const checkfirst = async() => {
+          if(!session?.userId){
+            setFirst(false)
+            return;
+          }
+        const {data, error} = await supabase.from("profiles").select("onboarding").eq("id", session.userId).maybeSingle();
+        if(error){
+          console.error("Profile Onboarding Error"+ error.message)
+          return;
+        }
+        if(!data){
+          console.error("Error. There is no data for the onboarding table.")
+          setFirst(false)
+          return;
+        }
+        setFirst(data.onboarding === true)
+      }
+      checkfirst()
+    }, [session?.userId])
   const styles = getStyles(colors);
 
   const firstName = session?.name
@@ -158,7 +181,7 @@ export default function Home() {
           }}
         />
         {/*CHANGE THIS */}
-        {diaries.length != 0 && (
+        {first && (
           <OnBoarding 
             position = {[0, height2-150]}
             index2 = {index}
