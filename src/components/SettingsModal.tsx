@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Image,
   LayoutAnimation,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -373,7 +374,10 @@ export default function SettingsModal({
   return (
     <AppModal isOpen={isOpen} title="Settings" onClose={onClose}>
       {/* User Profile Card */}
-      <View>
+      <ScrollView
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
+      >
         <View
           style={[
             styles.section,
@@ -603,7 +607,7 @@ export default function SettingsModal({
             </>
           )}
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </AppModal>
   );
 }
@@ -762,4 +766,7 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 14,
   },
+  scrollContent: {
+    paddingBottom: 24,
+  }
 });

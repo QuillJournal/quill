@@ -397,7 +397,48 @@ export function verifyWrappedKeySig(
     return false;
   }
 }
+export interface EntrySigFields {
+  diaryId: string;
+  entryId: string;
+  authorId: string;
+  keyEpoch: number;
+  version: number;
+  deleted: boolean;
+  blob: string;
+}
 
+function entrySigDigest(f: EntrySigFields): Uint8Array {
+  const blobHash = bytesToHex(sha256(new TextEncoder().encode(f.blob)));
+  return sha256(
+    new TextEncoder().encode(
+      `quill-v1-entry:${f.diaryId}:${f.entryId}:${f.authorId}:${f.keyEpoch}:${f.version}:${f.deleted ? 1 : 0}:${blobHash}`,
+    ),
+  );
+}
+
+export function signEntry(
+  fields: EntrySigFields,
+  ed25519Priv: Uint8Array,
+  mldsa65Priv: Uint8Array,
+): string {
+  return bytesToHex(dualSign(entrySigDigest(fields), ed25519Priv, mldsa65Priv));
+}
+
+export function verifyEntrySig(
+  fields: EntrySigFields,
+  sigHex: string,
+  authorSignPubHex: string,
+): boolean {
+  try {
+    return dualVerify(
+      entrySigDigest(fields),
+      hexToBytes(sigHex),
+      hexToBytes(authorSignPubHex),
+    );
+  } catch {
+    return false;
+  }
+}
 // --- Symmetric Padded AAD Blob Encryption (XChaCha20-Poly1305) ---
 export function encryptBlob(
   data: Record<string, any>,

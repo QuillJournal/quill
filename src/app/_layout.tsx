@@ -261,12 +261,6 @@ function AppNavigator() {
             decryptedPhotoUri,
             kemKeys?.publicKeyHex ?? "",
           );
-          const hasLocalDiaries = 
-          (await db.select({ id: diariesTable.id }).from(diariesTable).limit(1))
-          .length > 0;
-          if (!hasLocalDiaries && !decryptGateDone.current) {
-            setDecryptBaseline((prev) => prev ?? getSyncRuns());
-          }
           setSession({
             userId: newSession.user.id,
             username: profileRecord.username,
@@ -287,11 +281,40 @@ function AppNavigator() {
     return () => unsubscribe();
   }, []);
 
+  const hasKeys = !!userSession?.kemKeys;
   useEffect(() => {
-    if (decryptBaseline !== null && syncRuns > decryptBaseline) {
+    if (!userSession?.userId || !hasKeys || decryptGateDone.current) return;
+    const baseline = getSyncRuns();
+    let cancelled = false;
+    (async () => {
+      const [anyDiary] = await db
+      .select({  id: diariesTable.id })
+      .from(diariesTable)
+      .limit(1);
+      if (cancelled) return;
+      if (anyDiary) {
+        decryptGateDone.current = true;
+        return;
+      }
+      setDecryptBaseline((prev) => prev ?? baseline);
+    })().catch((e) => console.warn("Decrypt gate check failed: ", e));
+    return () => {
+      cancelled = true;
+    };
+  }, [userSession?.userId, hasKeys]);
+
+  useEffect(() => {
+    if (decryptBaseline === null) return;
+    const close = () => {
       decryptGateDone.current = true;
       setDecryptBaseline(null);
+    };
+    if (syncRuns > decryptBaseline) {
+      close();
+      return;
     }
+    const t = setTimeout(close, 60_000);
+    return () => clearTimeout(t);
   }, [syncRuns, decryptBaseline]);
 
   const isSignedIn = supabaseSession !== null;

@@ -98,5 +98,5 @@ export function useSyncLifecycle() {
             appStateSub.remove();
             supabase.removeChannel(channel);
         };
-    }, [session?.userId]);
+    }, [session?.userId, !!session?.kemKeys]);
 }

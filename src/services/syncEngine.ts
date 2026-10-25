@@ -3,14 +3,21 @@ import * as Crypto from "expo-crypto";
 import { useEffect, useState } from "react";
 import { db } from "../db";
 import { getDiaryKey, saveDiaryKey } from "../db/diaries";
-import { diariesTable, diaryInvitesTable, entriesTable } from "../db/schema";
+import {
+  AttachmentsTable,
+  diariesTable,
+  diaryInvitesTable,
+  entriesTable,
+} from "../db/schema";
 import {
   bytesToHex,
   decryptBlob,
   encryptBlob,
   hexToBytes,
+  signEntry,
   signWrappedKey,
   unwrapDiaryKey,
+  verifyEntrySig,
   verifyPublicBundle,
   verifyWrappedKeySig,
   wrapDiaryKey,
@@ -45,11 +52,18 @@ export function useSyncStatus(): boolean {
   return syncing;
 }
 
-type SyncProgressState = { runs: number; label: string; fraction: number };
+export type SyncPhase = "idle" | "diaries" | "entries" | "invites" | "done";
+type SyncProgressState = {
+  runs: number;
+  label: string;
+  fraction: number;
+  phase: SyncPhase;
+};
 let progressState: SyncProgressState = {
   runs: 0,
   label: "Decrypting",
   fraction: 0,
+  phase: "idle",
 };
 const progressListeners = new Set<(s: SyncProgressState) => void>();
 
@@ -89,23 +103,37 @@ export async function runSync(session: {
 }): Promise<void> {
   if (isSyncRunning) return;
   setSyncing(true);
-  updateProgress({ label: "Unlocking your diaries", fraction: 0 });
+  updateProgress({
+    label: "Unlocking your diaries",
+    fraction: 0,
+    phase: "diaries",
+  });
 
   try {
     // push local unsynced diaries first
     await pushPendingDiaries(session);
     // sync remote diaries and memberships
     await syncDiariesAndMembers(session);
+    updateProgress({
+      phase: "entries",
+      label: "Decrypting your entries",
+      fraction: 0.3,
+    });
     // sync pending outgoing entries
-    await pushOfflineEntryQueue(session.userId);
+    await pushOfflineEntryQueue(session);
     // pull incoming entries by change_seq
-    await pullRemoteEntries();
+    await pullRemoteEntries(session);
+    updateProgress({ phase: "invites", label: "Finishing up", fraction: 0.95 });
     // pull pending invites. email expensive so i put it in the app :fire:
     await pullInvites(session.userId);
   } catch (err) {
     console.warn("[NiceSapien Tech SyncEngine :nerd:] Sync error: ", err);
   } finally {
-    updateProgress({ runs: progressState.runs + 1, fraction: 1 });
+    updateProgress({
+      runs: progressState.runs + 1,
+      fraction: 1,
+      phase: "done",
+    });
     setSyncing(false);
     downloadPendingAttachments()
       .then((n) => {
@@ -191,11 +219,58 @@ async function pushPendingDiaries(session: {
   }
 }
 
+type FullSession = Parameters<typeof runSync>[0];
+
 type SyncSession = {
   userId: string;
   kemKeys: { x25519Priv: Uint8Array; mlkem768Priv: Uint8Array };
   signKeys: { publicKeyHex?: string };
 };
+
+async function resolveSignPub(
+  userId: string,
+  ctx: string,
+  session: SyncSession,
+  cache: Map<string, string | null>,
+): Promise<string | null> {
+  if (userId === session.userId) return session.signKeys.publicKeyHex ?? null;
+  if (cache.has(userId)) return cache.get(userId) ?? null;
+
+  let signPub: string | null = null;
+  const { data, error } = await supabase.rpc("get_public_bundle", {
+    p_user_id: userId,
+  });
+  const bundle = !error && Array.isArray(data) ? data[0] : null;
+  if (
+    bundle &&
+    bundle.id === userId &&
+    verifyPublicBundle(
+      bundle.id,
+      bundle.kem_public_key,
+      bundle.sign_public_key,
+      bundle.bundle_signature,
+    )
+  ) {
+    const pinChanged = await checkAndPinBundle(
+      bundle.id,
+      bundle.kem_public_key,
+      bundle.sign_public_key,
+    );
+    if (pinChanged) {
+      console.warn(
+        `[Sync] ${ctx}: user's keys changed since first seen, skipping.`,
+      );
+    } else {
+      signPub = bundle.sign_public_key;
+    }
+  } else {
+    console.warn(
+      `[Sync] ${ctx}: could not verify the user's public bundle, skipping.`,
+    );
+  }
+  cache.set(userId, signPub);
+  return signPub;
+}
 
 async function isWrappedKeyTrusted(
   row: {
@@ -215,46 +290,12 @@ async function isWrappedKeyTrusted(
     return false;
   }
 
-  let signerSignPub: string | null | undefined;
-  if (wrapped_by === session.userId) {
-    signerSignPub = session.signKeys.publicKeyHex;
-  } else if (signerSignPubCache.has(wrapped_by)) {
-    signerSignPub = signerSignPubCache.get(wrapped_by);
-  } else {
-    signerSignPub = null;
-    const { data, error } = await supabase.rpc("get_public_bundle", {
-      p_user_id: wrapped_by,
-    });
-    const bundle = !error && Array.isArray(data) ? data[0] : null;
-    if (
-      bundle &&
-      bundle.id === wrapped_by &&
-      verifyPublicBundle(
-        bundle.id,
-        bundle.kem_public_key,
-        bundle.sign_public_key,
-        bundle.bundle_signature,
-      )
-    ) {
-      const pinChanged = await checkAndPinBundle(
-        bundle.id,
-        bundle.kem_public_key,
-        bundle.sign_public_key,
-      );
-      if (pinChanged) {
-        console.warn(
-          `[Sync] Diary ${diaryId}: sharer's keys changed since first seen, skipping.`,
-        );
-      } else {
-        signerSignPub = bundle.sign_public_key;
-      }
-    } else {
-      console.warn(
-        `[Sync] Diary ${diaryId}: could not verify the sharer's public bundle, skipping.`,
-      );
-    }
-    signerSignPubCache.set(wrapped_by, signerSignPub ?? null);
-  }
+  const signerSignPub = await resolveSignPub(
+    wrapped_by,
+    `Diary ${diaryId}`,
+    session,
+    signerSignPubCache,
+  );
 
   if (!signerSignPub) return false;
   const ok = verifyWrappedKeySig(
@@ -344,7 +385,9 @@ async function syncDiariesAndMembers(session: SyncSession) {
   }
 }
 
-async function pushOfflineEntryQueue(currentUserId: string) {
+async function pushOfflineEntryQueue(session: FullSession) {
+  const currentUserId = session.userId;
+  const { ed25519Priv, mldsa65Priv } = session.signKeys;
   const pending = await db
     .select()
     .from(entriesTable)
@@ -382,6 +425,15 @@ async function pushOfflineEntryQueue(currentUserId: string) {
       if (!uploaded) continue;
       attachments = await buildManifest(entry.id);
     }
+    if (
+      entry.syncState !== "pending_insert" &&
+      entry.authorId !== currentUserId
+    ) {
+      console.warn(
+        `[Sync] Entry ${remoteEntryId}: not the author, skipping push.`,
+      );
+      continue;
+    }
     const rowCtx = {
       entryRemoteId: remoteEntryId,
       diaryRemoteId: diary.remoteId,
@@ -405,6 +457,19 @@ async function pushOfflineEntryQueue(currentUserId: string) {
         },
       );
 
+      const sig = signEntry(
+        {
+          diaryId: diary.remoteId,
+          entryId: remoteEntryId,
+          authorId: currentUserId,
+          keyEpoch: entry.keyEpoch,
+          version: 1,
+          deleted: false,
+          blob: blobHex,
+        },
+        ed25519Priv,
+        mldsa65Priv,
+      );
       const { data, error } = await supabase
         .from("entries")
         .insert({
@@ -448,11 +513,26 @@ async function pushOfflineEntryQueue(currentUserId: string) {
         },
       );
 
+      const nextVersion = entry.version + 1;
+      const sig = signEntry(
+        {
+          diaryId: diary.remoteId,
+          entryId: remoteEntryId,
+          authorId: currentUserId,
+          keyEpoch: entry.keyEpoch,
+          version: nextVersion,
+          deleted: false,
+          blob: blobHex,
+        },
+        ed25519Priv,
+        mldsa65Priv,
+      );
       const { data, error } = await supabase
         .from("entries")
         .update({
           blob: blobHex,
-          version: entry.version,
+          version: nextVersion,
+          sig,
         })
         .eq("id", remoteEntryId)
         .eq("version", entry.version)
@@ -471,26 +551,58 @@ async function pushOfflineEntryQueue(currentUserId: string) {
         await syncAttachmentRows(rowCtx, attachments);
       }
     } else if (entry.syncState === "pending_delete") {
-      const { error } = await supabase
-        .from("entries")
-        .update({ deleted: true, blob: "" })
-        .eq("id", remoteEntryId);
+      const nextVersion = entry.version + 1;
+      const sig = signEntry(
+        {
+          diaryId: diary.remoteId,
+          entryId: remoteEntryId,
+          authorId: currentUserId,
+          keyEpoch: entry.keyEpoch,
+          version: nextVersion,
+          deleted: true,
+          blob: "",
+        },
+        ed25519Priv,
+        mldsa65Priv,
+      );
 
-      if (!error) {
-        await db.delete(entriesTable).where(eq(entriesTable.id, entry.id));
+      const { data, error } = await supabase
+        .from("entries")
+        .update({ deleted: true, blob: "", version: nextVersion, sig })
+        .eq("id", remoteEntryId)
+        .eq("version", entry.version)
+        .select("change_seq, version")
+        .single();
+
+      if (!error && data) {
+        await db
+          .update(entriesTable)
+          .set({
+            title: "",
+            body: null,
+            deleted: 1,
+            version: data.version,
+            changeSeq: Number(data.change_seq),
+            syncState: "synced",
+          })
+          .where(eq(entriesTable.id, entry.id));
+        await db
+          .delete(AttachmentsTable)
+          .where(eq(AttachmentsTable.entryId, entry.id));
       }
     }
   }
 }
 
-async function pullRemoteEntries() {
+async function pullRemoteEntries(session: FullSession) {
+  const signerCache = new Map<string, string | null>();
   const localDiaries = await db.select().from(diariesTable);
   let diaryIdx = 0;
 
   for (const diary of localDiaries) {
-    const base = (0.3 * (0.7 * diaryIdx)) / localDiaries.length;
-    const span = 0.7 / localDiaries.length;
     const diaryNo = ++diaryIdx;
+    const base = 0.3 + (0.65 * (diaryNo - 1)) / localDiaries.length;
+    const span = 0.65 / localDiaries.length;
     if (!diary.remoteId) continue;
 
     const diaryKeyHex = await getDiaryKey(diary.remoteId, diary.keyEpoch);
@@ -502,7 +614,7 @@ async function pullRemoteEntries() {
     const { data: remoteEntries, error } = await supabase
       .from("entries")
       .select(
-        "id, diary_id, author_id, blob, key_epoch, version, deleted, change_seq, created_at, updated_at",
+        "id, diary_id, author_id, blob, sig, key_epoch, version, deleted, change_seq, created_at, updated_at",
       )
       .eq("diary_id", diary.remoteId)
       .gt("change_seq", cursor)
@@ -511,6 +623,7 @@ async function pullRemoteEntries() {
     if (error || !remoteEntries || remoteEntries.length === 0) continue;
 
     let maxSeq = diary.lastSyncedSeq || 0;
+    let retryFrom: number | null = null;
     let n = 0;
 
     for (const remote of remoteEntries) {
@@ -529,10 +642,95 @@ async function pullRemoteEntries() {
         .where(eq(entriesTable.remoteId, remote.id));
 
       if (remote.deleted) {
-        if (existing) {
-          await db.delete(entriesTable).where(eq(entriesTable.id, existing.id));
+        const authorPub = await resolveSignPub(
+          remote.author_id,
+          `Entry ${remote.id}`,
+          session,
+          signerCache,
+        );
+        if (!authorPub) {
+          retryFrom = Math.min(retryFrom ?? seq - 1, seq - 1);
+          continue;
         }
-        continue;
+        const sigOk =
+          !!remote.sig &&
+          verifyEntrySig(
+            {
+              diaryId: diary.remoteId,
+              entryId: remote.id,
+              authorId: remote.author_id,
+              keyEpoch: remote.key_epoch,
+              version: remote.version,
+              deleted: !!remote.deleted,
+              blob: remote.blob,
+            },
+            remote.sig,
+            authorPub,
+          );
+        if (!sigOk) {
+          console.warn(
+            `[Sync] Entry ${remote.id}: signature bad or missing so me skipping :fire:`,
+          );
+          continue;
+        }
+
+        if (existing) {
+          if (existing.authorId && existing.authorId !== remote.author_id) {
+            console.warn(
+              `[Sync] Entry ${remote.id}: author changed, skipping.`,
+            );
+            continue;
+          }
+          if (remote.version < existing.version) {
+            console.warn(
+              `[Sync] Entry ${remote.id}: server sent an older version (rollback), skipping.`,
+            );
+          }
+          if (
+            existing.deleted === 1 &&
+            existing.syncState === "synced" &&
+            !remote.deleted
+          ) {
+            console.warn(
+              `[Sync] Entry ${remote.id}: server resurrected a deleted entry, skipping.`,
+            );
+            continue;
+          }
+        }
+
+        if (remote.deleted) {
+          if (existing) {
+            await db
+              .update(entriesTable)
+              .set({
+                title: "",
+                body: null,
+                deleted: 1,
+                version: remote.version,
+                changeSeq: seq,
+                syncState: "synced",
+              })
+              .where(eq(entriesTable.id, existing.id));
+            await db
+              .delete(AttachmentsTable)
+              .where(eq(AttachmentsTable.entryId, existing.id));
+          } else {
+            await db.insert(entriesTable).values({
+              remoteId: remote.id,
+              diaryId: diary.id,
+              authorId: remote.author_id,
+              title: "",
+              body: null,
+              entryDate: "",
+              version: remote.version,
+              keyEpoch: remote.key_epoch,
+              changeSeq: seq,
+              deleted: 1,
+              syncState: "synced",
+            });
+          }
+          continue;
+        }
       }
 
       let payload: {
@@ -596,7 +794,7 @@ async function pullRemoteEntries() {
         }
       }
     }
-
+    if (retryFrom !== null) maxSeq = Math.min(maxSeq, retryFrom);
     if (maxSeq > diary.lastSyncedSeq) {
       await db
         .update(diariesTable)
