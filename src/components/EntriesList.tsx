@@ -1,3 +1,4 @@
+import OnBoarding from "../app/onboarding"
 import { resolveDiaryColor } from "@/src/constants/colors";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
@@ -138,6 +139,10 @@ export default function EntriesList({
       ) : (
         <EmptyState accentColor={diaryAccent} />
       )}
+      <OnBoarding 
+        position = {[0, 150]}
+        index2 = {3}
+      /> 
     </View>
   );
 }

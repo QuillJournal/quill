@@ -6,9 +6,9 @@ import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
 type props = {
     position?:[number, number]; 
-    check:boolean;
+    index2: number;
 }
-export default function Onboarding({position = [100,50], check}:props) { // top n left
+export default function Onboarding({position = [100,50], index2}:props) { // top n left
     const colors = useTheme()
     const [index, setIndex] = useState(0)
     const [visible, setVisible] = useState(true); 
@@ -16,34 +16,26 @@ export default function Onboarding({position = [100,50], check}:props) { // top 
         {
             title: "Start a new diary here!",
             description: "store all your important dates♡",
-            button: "Skip :(",
             image: require("../../assets/images/icon.png")
         },
         {
             title: "Make your first entry!",
             description: "inpsiring.",
-            button: "Next →",
             image: require("../../assets/images/icon.png")
         },
         {
             title: "done!",
             description: "inpsiring.",
-            button: "ok!",
             image: require("../../assets/images/icon.png")
         },
     ]
-    function change_page(){ 
-        if (index === 0 ){
-            //SPECIAL CASE SKIP 
-            setVisible(false);
-            return
-        }
-        if(index < pages.length -1){
-            setIndex(index+1);
+    useEffect(() => {
+        if(index2>= 0 && index2 < pages.length){
+            setIndex(index2)
         }else{
-            setVisible(false);
+            setVisible(false)
         }
-    }
+    }, [index2])
     const styles = StyleSheet.create({
     scrollContent: {
         zIndex: 10, 
@@ -99,13 +91,11 @@ export default function Onboarding({position = [100,50], check}:props) { // top 
                     styles.button,
                     {
                         backgroundColor: pressed? colors.colors.accentPressed:colors.colors.accent,
-                        opacity: check? 1: 0.5
                     },
                     ]}
-                disabled = {!check}
-                onPress = {change_page}> 
+                onPress = {() => setVisible(false)}> 
                 <Text style = {styles.subtitle}>
-                    {pages[index].button} 
+                    Skip All → 
                 </Text>
             </Pressable>
         </View>

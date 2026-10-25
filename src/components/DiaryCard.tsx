@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import {
   CardRect,
@@ -11,7 +11,6 @@ import type { Diary } from "../types/diary";
 import { dialog } from "./Dialog/DialogProvider";
 import DiaryBook, { RIBBON_OVERHANG } from "./DiaryBook";
 import SwipeableCard from "./SwipeableCard";
-
 type DiaryCardProps = {
   diary: Diary;
   isFirst?: boolean;
@@ -37,7 +36,7 @@ export default function DiaryCard({
   const titleRef = useRef<Text>(null);
 
   const entryLabel = `${diary.entryCount} ${diary.entryCount === 1 ? "entry" : "entries"}`;
-
+  /// 
   const measure = (cb: (r: CardRect) => void) =>
     ref.current?.measureInWindow((x, y, width, height) =>
       titleRef.current?.measureInWindow((tx, ty, tw, th) =>

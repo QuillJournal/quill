@@ -39,15 +39,18 @@ export default function Home() {
   const { diaries, refresh, deleteDiary, addDiary } = useDiaries();
   const isSyncing = useSyncStatus();
   const { open } = useDiaryTransition();
+
+  const [index, setIndex] = useState(0);  
   const height2:number = Dimensions.get("window").height;
 
   const handleAddDiary = (data: DiaryFormData) => {
     const name = data.name.trim();
     if (!name) return;
-    const success = addDiary(name, data.color).catch((e) =>
+    addDiary(name, data.color).catch((e) =>
       console.error("Failed to create diary: ", e),
     );
     setShowDiaryForm(false);
+    setIndex(1)
   };
 
   const handleDeleteDiary = async (id: number) => {
@@ -134,7 +137,7 @@ export default function Home() {
             <DiaryCard
               diary={item}
               isFirst={index === 0}
-              onPress={(origin) => open(item, origin)}
+              onPress={(origin) => {setIndex(1), open(item, origin)}}
               onDelete={handleDeleteDiary}
             />
           )}
@@ -154,10 +157,12 @@ export default function Home() {
             setShowDiaryForm(true);
           }}
         />
-        <OnBoarding 
-          position = {[0, height2-150]}
-          check = {true}
-        /> 
+        {/*CHANGE THIS */}
+        {diaries.length != 0 && (
+          <OnBoarding 
+            position = {[0, height2-150]}
+            index2 = {index}
+          /> )}
       </View>
     </SafeAreaView>
   );
