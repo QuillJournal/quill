@@ -9,6 +9,7 @@ import {
 import { runSync } from "../services/syncEngine";
 import type { EntryWithAuthor } from "../types/entry";
 import { isMine } from "../utils/entry";
+import useDiaryMembers from "./useDiaryMembers";
 
 export default function useEntries(diaryId: number) {
   const [entries, setEntries] = useState<EntryWithAuthor[]>([]);
@@ -26,11 +27,15 @@ export default function useEntries(diaryId: number) {
 
   const refresh = useCallback(async () => {
     const fetchedEntries = await getEntriesByDiaryId(diaryId);
+    const diaryMembers = useDiaryMembers(diaryId);
     const formatted = fetchedEntries.map((e) => {
       const isMe = isMine(e.authorId, session?.userId);
+      const authorName = isMe
+        ? session?.name || "You"
+        : diaryMembers.get(e.authorId) || "Collaborator";
       return {
         ...e,
-        authorName: isMe ? session?.name || "You" : e.authorName,
+        authorName,
       };
     });
     setEntries(formatted);
