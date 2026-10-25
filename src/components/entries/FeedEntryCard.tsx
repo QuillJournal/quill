@@ -4,8 +4,11 @@ import { resolveAttachmentUri } from "@/src/services/attachments";
 import { Attachment } from "@/src/types/attachment";
 import type { EntryWithAuthor } from "@/src/types/entry";
 import { formatCreatedMeta, fromDateKey } from "@/src/utils/dates";
+import { splitMedia } from "@/src/utils/media";
 import { Ionicons } from "@expo/vector-icons";
+import { useMemo } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import AudioRow from "../AudioRow";
 import type { Rect } from "../MediaViewer";
 import AuthorPill from "./AuthorPill";
 import type { FeedMediaItem } from "./FeedMedia";
@@ -49,19 +52,30 @@ export default function FeedEntryCard({
     month: "short",
     year: "numeric",
   });
+
   const cardHeader = `${formatter.format(entryDate)} • ${formatCreatedMeta(entry.createdAt, entryDate)}`;
-  const mediaItems = media
-    .filter((m) => m.kind !== "audio")
-    .map((m) => ({
-      uri: resolveAttachmentUri(m.relPath),
-      kind: m.kind as "image" | "video",
-    }));
+  const { visuals, audios } = useMemo(() => {
+    const { visuals, audios } = splitMedia(media);
+    return {
+      visuals: visuals.map((v) => ({
+        uri: resolveAttachmentUri(v.relPath),
+        kind: v.kind as "image" | "video",
+      })),
+      audios: audios.map((a) => ({
+        uri: resolveAttachmentUri(a.relPath),
+        name: a.name ?? "Audio",
+        durationMs: a.durationMs,
+      })),
+    };
+  }, [media]);
+
   const countWords = (str: string) => {
     return str
       .trim()
       .split(/\s+/)
       .filter((word: string) => word.length > 0).length;
   };
+
   const isMe = true;
 
   return (
@@ -85,9 +99,22 @@ export default function FeedEntryCard({
           </Text>
           <InlineReadMore text={cleanPreview} />
         </View>
-        {media.length > 0 && (
-          <FeedMedia items={mediaItems} onOpen={onMediaOpen} onExtraPress={onPress} />
+        {visuals.length > 0 && (
+          <FeedMedia
+            items={visuals}
+            onOpen={onMediaOpen}
+            onExtraPress={onPress}
+          />
         )}
+        {audios.length > 0 &&
+          audios.map((a) => (
+            <AudioRow
+              key={`n${a.uri}`}
+              uri={a.uri}
+              name={a.name}
+              durationMs={a.durationMs}
+            />
+          ))}
         <View style={styles.cardFooter}>
           <Text
             style={styles.cardDate}
