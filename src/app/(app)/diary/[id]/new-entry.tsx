@@ -1,5 +1,6 @@
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import Editor from "@/src/components/Editor";
+import type { MoodKey } from "@/src/constants/moods";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import {
   createEntryWithMedia,
@@ -22,13 +23,14 @@ export default function NewEntryScreen() {
     entryDate: string,
     body: string,
     media: { added: PendingAttachment[]; removedIds: number[] },
+    mood: MoodKey | null,
   ) => {
     try {
       if (!session?.userId) {
         dialog.alert("Couldn't save", "You're not signed in.");
         return;
       }
-      await createEntryWithMedia(diaryId, title, entryDate, body, media.added, session.userId);
+      await createEntryWithMedia(diaryId, title, entryDate, body, media.added, session.userId, mood,);
     } catch (e) {
       console.error("Save failed:", e);
       dialog.alert(

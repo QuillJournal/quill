@@ -115,6 +115,7 @@ function ensureSchema(): void {
     title TEXT NOT NULL,
     body TEXT,
     entry_date TEXT NOT NULL,
+    mood TEXT,
     version INTEGER NOT NULL DEFAULT 1,
     key_epoch INTEGER NOT NULL DEFAULT 1,
     change_seq INTEGER NOT NULL DEFAULT 0,
@@ -154,12 +155,14 @@ function ensureSchema(): void {
   CREATE INDEX IF NOT EXISTS idx_attachments_entry ON attachments (entry_id);
     `);
   migrateAttachmentSync();
+  migrateEntryMood();
 }
 
 function migrateAttachmentSync(): void {
   const cols = sqlite.getAllSync<{ name: string }>(
     "PRAGMA table_info(attachments);",
   );
+
   if (!cols.some((c) => c.name === "remote_id")) {
     sqlite.withTransactionSync(() => {
       sqlite.execSync(`
@@ -174,6 +177,14 @@ function migrateAttachmentSync(): void {
   sqlite.execSync(
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_attachments_remote ON attachments (remote_id);",
   );
+}
+function migrateEntryMood(): void {
+  const cols = sqlite.getAllSync<{ name: string }>(
+    "PRAGMA table_info(entries);",
+  );
+  if (!cols.some((c) => c.name === "mood")) {
+    sqlite.execSync("ALTER TABLE entries ADD COLUMN mood TEXT;");
+  }
 }
 
 export const dbStatus: DbStatus = (() => {
