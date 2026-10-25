@@ -1,9 +1,6 @@
-import { Image } from "expo-image";
-import { useRef } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import MediaThumb from "../MediaThumb";
 import type { Rect } from "../MediaViewer";
-
-const blurhash = "L6PZfSi_00os00j[fQfQ00fQfQfQ";
 
 export type FeedMediaItem = {
   uri: string;
@@ -22,35 +19,26 @@ type TileProps = {
 };
 
 function Tile({ item, overlay, onOpen }: TileProps) {
-  const ref = useRef<View>(null);
-  const handlePress = () => {
-    ref.current?.measureInWindow((x, y, width, height) =>
-      onOpen(item, { x, y, width, height }),
-    );
-  };
-
   return (
-    <Pressable
-      ref={ref}
-      collapsable={false}
-      onPress={handlePress}
+    <View
       style={{
         flex: 1,
       }}
     >
-      <Image
-        source={item.uri}
-        style={StyleSheet.absoluteFill}
-        placeholder={{ blurhash }}
-        contentFit="cover"
-        transition={1000}
+      <MediaThumb
+        uri={item.uri}
+        kind={item.kind}
+        hidden={false}
+        borderRadius={0}
+        label={"h"}
+        onOpen={(origin) => onOpen(item, origin)}
       />
       {overlay && (
         <View style={styles.overlay}>
           <Text style={styles.overlayText}>{overlay}</Text>
         </View>
       )}
-    </Pressable>
+    </View>
   );
 }
 
