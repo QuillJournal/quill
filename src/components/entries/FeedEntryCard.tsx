@@ -122,15 +122,17 @@ export default function FeedEntryCard({
             onExtraPress={onPress}
           />
         )}
-        {audios.length > 0 &&
-          audios.map((a) => (
-            <AudioRow
-              key={`n${a.uri}`}
-              uri={a.uri}
-              name={a.name}
-              durationMs={a.durationMs}
-            />
-          ))}
+        <View style={{ marginTop: 10 }}>
+          {audios.length > 0 &&
+            audios.map((a) => (
+              <AudioRow
+                key={`n${a.uri}`}
+                uri={a.uri}
+                name={a.name}
+                durationMs={a.durationMs}
+              />
+            ))}
+        </View>
         <View style={styles.cardFooter}>
           <Text
             style={styles.cardDate}
