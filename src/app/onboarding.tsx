@@ -1,18 +1,22 @@
 import {View, Text, Image, Pressable, StyleSheet, type PressableStateCallbackType} from "react-native";
-import React, {useState} from "react";
+import React, {useState, useEffect} from "react";
 import { radius } from "@/src/constants/radius";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
-export default function Onboarding({position= [100,50]}:{position?:[number, number]}) { // top n left
+type props = {
+    position?:[number, number]; 
+    check:boolean;
+}
+export default function Onboarding({position = [100,50], check}:props) { // top n left
     const colors = useTheme()
     const [index, setIndex] = useState(0)
     const [visible, setVisible] = useState(true); 
     const pages = [
         {
-            title: "Start a new diary here",
-            description: "inpsiring.",
-            button: "Next →",
+            title: "Start a new diary here!",
+            description: "store all your important dates♡",
+            button: "Skip :(",
             image: require("../../assets/images/icon.png")
         },
         {
@@ -28,13 +32,12 @@ export default function Onboarding({position= [100,50]}:{position?:[number, numb
             image: require("../../assets/images/icon.png")
         },
     ]
-    function check(){ 
-        if(index === 0){
-            //check if they clicked the draft button
-
-        }
-    }
     function change_page(){ 
+        if (index === 0 ){
+            //SPECIAL CASE SKIP 
+            setVisible(false);
+            return
+        }
         if(index < pages.length -1){
             setIndex(index+1);
         }else{
@@ -43,8 +46,10 @@ export default function Onboarding({position= [100,50]}:{position?:[number, numb
     }
     const styles = StyleSheet.create({
     scrollContent: {
-        width: 300,
-        height: 300,
+        zIndex: 10, 
+        elevation: 10, 
+        width: 200,
+        height: 100,
         position: "absolute", 
         left: position[0],
         top: position[1],
@@ -76,22 +81,28 @@ export default function Onboarding({position= [100,50]}:{position?:[number, numb
         borderRadius: radius.sm
     }, 
     image:{
-        width: 200, 
-        height: 200, 
+        position: "relative", 
+        alignSelf: "center", 
+        justifyContent: "flex-start", 
+        width: 50, 
+        height: 50, 
     }
     });
     return(
         visible && 
             <View style = {styles.scrollContent}>
+            <Image style = {styles.image} source = {pages[index].image}/>
             <Text style = {styles.title}> {pages[index].title} </Text>
             <Text style = {styles.subtitle}> {pages[index].description} </Text>
-            <Image style = {styles.image} source = {pages[index].image}/>
             <Pressable 
                 style = {({pressed}:PressableStateCallbackType)=> [
                     styles.button,
-                    {backgroundColor: pressed? colors.colors.accentPressed:colors.colors.accent},
+                    {
+                        backgroundColor: pressed? colors.colors.accentPressed:colors.colors.accent,
+                        opacity: check? 1: 0.5
+                    },
                     ]}
-                disabled = {()=> check()}
+                disabled = {!check}
                 onPress = {change_page}> 
                 <Text style = {styles.subtitle}>
                     {pages[index].button} 

@@ -1,7 +1,4 @@
-export {default} from "../onboarding"
-
-
-/*
+import OnBoarding from "../onboarding"
 import EmptyArt from "@/assets/images/empty.svg";
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import DiaryCard, { STACK_SIDE_PADDING } from "@/src/components/DiaryCard";
@@ -23,7 +20,7 @@ import { useSyncStatus } from "@/src/services/syncEngine";
 import type { DiaryFormData } from "@/src/types/diary";
 import { Stack } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, Text, View, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Home() {
@@ -42,11 +39,12 @@ export default function Home() {
   const { diaries, refresh, deleteDiary, addDiary } = useDiaries();
   const isSyncing = useSyncStatus();
   const { open } = useDiaryTransition();
+  const height2:number = Dimensions.get("window").height;
 
   const handleAddDiary = (data: DiaryFormData) => {
     const name = data.name.trim();
     if (!name) return;
-    addDiary(name, data.color).catch((e) =>
+    const success = addDiary(name, data.color).catch((e) =>
       console.error("Failed to create diary: ", e),
     );
     setShowDiaryForm(false);
@@ -156,6 +154,10 @@ export default function Home() {
             setShowDiaryForm(true);
           }}
         />
+        <OnBoarding 
+          position = {[0, height2-150]}
+          check = {true}
+        /> 
       </View>
     </SafeAreaView>
   );
@@ -180,4 +182,4 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       color: colors.text,
     },
   });
-  */
+  
