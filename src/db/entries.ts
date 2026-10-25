@@ -1,6 +1,7 @@
 import { and, count, eq } from "drizzle-orm";
 import * as Crypto from "expo-crypto";
 import { db } from ".";
+import type { MoodKey } from "../constants/moods";
 import type { Entry, EntryWithCounts } from "../types/entry";
 import { EMPTY_COUNTS, getAttachmentCountsByDiaryId } from "./attachments";
 import { entriesTable as entries } from "./schema";
@@ -26,6 +27,7 @@ export const saveEntry = async (
   entryDate: string,
   body: string,
   authorId: string,
+  mood: MoodKey | null = null,
 ): Promise<number> => {
   const remoteId = Crypto.randomUUID();
   const result = await db.insert(entries).values({
@@ -35,6 +37,7 @@ export const saveEntry = async (
     title,
     entryDate,
     body,
+    mood,
     version: 1,
     keyEpoch: 1,
     deleted: 0,
@@ -48,6 +51,7 @@ export const updateEntry = async (
   title: string,
   entryDate: string,
   body: string,
+  mood?: MoodKey | null,
 ): Promise<void> => {
   const [existing] = await db.select().from(entries).where(eq(entries.id, id));
   if (!existing) return;
@@ -63,6 +67,7 @@ export const updateEntry = async (
       title,
       entryDate,
       body,
+      mood,
       syncState: nextState,
       updatedAt: new Date(),
     })

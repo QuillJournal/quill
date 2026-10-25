@@ -1,5 +1,6 @@
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import Editor from "@/src/components/Editor";
+import { isMoodKey, type MoodKey } from "@/src/constants/moods";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import { db } from "@/src/db";
@@ -11,13 +12,14 @@ import {
   PendingAttachment,
   updateEntryWithMedia,
 } from "@/src/services/attachments";
+import { moodHaptics } from "@/src/services/moodHaptics";
 import { runSync } from "@/src/services/syncEngine";
 import { Attachment } from "@/src/types/attachment";
 import { Entry } from "@/src/types/entry";
 import { Ionicons } from "@expo/vector-icons";
 import { eq } from "drizzle-orm";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -59,11 +61,32 @@ export default function EntryEditScreen() {
   }, [entryId, session?.userId]);
 
   const isAuthor = !!session?.userId && entry?.authorId === session.userId;
+  const entryMood = entry?.mood;
+  const initialMood = isMoodKey(entryMood) ? entryMood : null;
+  const playedForRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (loading || !entry) return;
+    const id = String(entryId);
+    if (playedForRef.current === id) return;
+
+    const timer = setTimeout(() => {
+      playedForRef.current = id;
+      moodHaptics.onOpen(initialMood);
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      moodHaptics.cancel();
+    };
+  }, [loading, entry, entryId, initialMood]);
+  
   const handleSave = async (
     title: string,
     entryDate: string,
     body: string,
     media: { added: PendingAttachment[]; removedIds: number[] },
+    mood: MoodKey | null,
   ) => {
     if (!isAuthor) {
       dialog.alert("Read Only", "Only the author of this entry can edit it.");
@@ -76,6 +99,7 @@ export default function EntryEditScreen() {
         entryDate,
         body,
         media,
+        mood,
       );
       if (session?.kemKeys && session?.signKeys) {
         runSync({
@@ -141,6 +165,7 @@ export default function EntryEditScreen() {
       </View>
       <Editor
         initialAttachments={attachments}
+        initialMood={initialMood}
         initialTitle={entry?.title}
         initialBody={entry?.body ?? undefined}
         initialDate={entry?.entryDate}

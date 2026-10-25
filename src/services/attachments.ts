@@ -3,6 +3,7 @@ import * as Crypto from "expo-crypto";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
+import type { MoodKey } from "../constants/moods";
 import {
   deleteAttachmentRow,
   getAttachmentsByEntryId,
@@ -184,8 +185,16 @@ export async function createEntryWithMedia(
   entryDate: string,
   body: string,
   added: PendingAttachment[],
+  mood: MoodKey | null = null,
 ): Promise<number> {
-  const entryId = await saveEntry(diaryId, authorId, title, entryDate, body);
+  const entryId = await saveEntry(
+    diaryId,
+    title,
+    entryDate,
+    body,
+    authorId,
+    mood,
+  );
   try {
     if (added.length) await persistAttachments(entryId, added);
     await markEntryDirty(entryId);
@@ -203,8 +212,9 @@ export async function updateEntryWithMedia(
   entryDate: string,
   body: string,
   media: { added: PendingAttachment[]; removedIds: number[] },
+  mood?: MoodKey | null,
 ): Promise<void> {
-  await updateEntry(entryId, title, entryDate, body);
+  await updateEntry(entryId, title, entryDate, body, mood);
 
   if (media.added.length) await persistAttachments(entryId, media.added);
 

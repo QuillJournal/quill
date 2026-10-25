@@ -78,6 +78,7 @@ export const entriesTable = sqliteTable(
     title: text().notNull(),
     body: text(),
     entryDate: text("entry_date").notNull(),
+    mood: text("mood"),
     version: int("version").notNull().default(1),
     keyEpoch: int("key_epoch").notNull().default(1),
     changeSeq: int("change_seq").notNull().default(0),
