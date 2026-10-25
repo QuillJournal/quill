@@ -4,11 +4,14 @@ import { Attachment } from "@/src/types/attachment";
 import type { EntryWithAuthor } from "@/src/types/entry";
 import { formatCreatedMeta, fromDateKey } from "@/src/utils/dates";
 import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import type { Rect } from "../MediaViewer";
 import AuthorPill from "./AuthorPill";
 import type { FeedMediaItem } from "./FeedMedia";
 import FeedMedia from "./FeedMedia";
+import InlineReadMore from "./InlineReadMore";
+
 type EntryCardProps = {
   entry: EntryWithAuthor;
   onPress: () => void;
@@ -28,6 +31,7 @@ export default function FeedEntryCard({
 }: EntryCardProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors, diaryAccent);
+  const [isExpanded, setIsExpanded] = useState(false);
   const cleanPreview =
     entry.body
       ?.replace(/<br\s*\/?>/gi, "\n")
@@ -67,8 +71,8 @@ export default function FeedEntryCard({
             diaryAccent={diaryAccent}
           />
         </View>
-        <Text style={styles.cardTitle}>{entry.title}</Text>
-        <Text style={styles.cardPreview}>{cleanPreview}</Text>
+        <Text style={styles.cardTitle}> {entry.title || "Untitled Entry"}</Text>
+        <InlineReadMore text={cleanPreview} />
       </View>
       {media.length > 0 && (
         <FeedMedia items={mediaItems} onOpen={onMediaOpen} />
