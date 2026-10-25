@@ -1,3 +1,5 @@
+import { isMoodKey } from "@/src/constants/moods";
+import { fonts } from "@/src/constants/typography";
 import usePressAnimation from "@/src/hooks/usePressAnimation";
 import useTheme from "@/src/hooks/useTheme";
 import { resolveAttachmentUri } from "@/src/services/attachments";
@@ -10,6 +12,7 @@ import { useMemo } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import AudioRow from "../AudioRow";
 import type { Rect } from "../MediaViewer";
+import MojiFace from "../MojiFace";
 import AuthorPill from "./AuthorPill";
 import type { FeedMediaItem } from "./FeedMedia";
 import FeedMedia from "./FeedMedia";
@@ -77,6 +80,7 @@ export default function FeedEntryCard({
   };
 
   const isMe = true;
+  const mood = isMoodKey(entry.mood) ? entry.mood : null;
 
   return (
     <Pressable
@@ -88,11 +92,21 @@ export default function FeedEntryCard({
         <View style={{ padding: 16 }}>
           <View style={styles.cardHeader}>
             <Text style={styles.cardDate}>{cardHeader}</Text>
-            <AuthorPill
-              name={entry.authorName}
-              isMe={isMe}
-              diaryAccent={diaryAccent}
-            />
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 5,
+              }}
+            >
+              <AuthorPill
+                name={entry.authorName}
+                isMe={isMe}
+                diaryAccent={diaryAccent}
+              />
+              {mood && <MojiFace mood={mood} size={22} />}
+            </View>
           </View>
           <Text style={styles.cardTitle}>
             {entry.title || "Untitled Entry"}
@@ -151,7 +165,7 @@ const getStyles = (
     cardHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "baseline",
+      alignItems: "center",
       marginBottom: 8,
     },
     cardTitle: {
@@ -163,8 +177,8 @@ const getStyles = (
     },
     cardDate: {
       fontSize: 12,
-      fontWeight: "500",
       color: colors.textMuted,
+      fontFamily: fonts.label,
     },
     cardPreview: {
       fontSize: 14,
