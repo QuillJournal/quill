@@ -8,11 +8,12 @@ import { supabase } from "@/src/utils/supabase";
 type props = {
     position?:[number, number]; 
     index2: number;
+    userid: string; 
 }
-export default function Onboarding({position = [100,50], index2}:props) { // top n left
+export default function Onboarding({position = [100,50], index2, userid}:props) { // top n left
     async function onboardingCompleted() {
         setVisible(false)
-        const {data, error} = await supabase.from("profiles").update({onboarding: true})
+        const { error} = await supabase.from("profiles").update({onboarding: true}).eq("id", userid)
         if(error){
             console.error("Onboarding Status Change Error"+ error.message)
             return;
@@ -48,11 +49,10 @@ export default function Onboarding({position = [100,50], index2}:props) { // top
         },
     ]
     useEffect(() => {
-        if(index2>= 0 && index2 < pages.length){
+        if(index2>= 0 && index2 < pages.length-1){
             setIndex(index2)
         }else{
             onboardingCompleted()
-
         }
     }, [index2])
     const styles = StyleSheet.create({
@@ -114,7 +114,7 @@ export default function Onboarding({position = [100,50], index2}:props) { // top
                     ]}
                 onPress = {() => onboardingCompleted()}> 
                 <Text style = {styles.subtitle}>
-                    {pages[index].title}
+                    {pages[index].text}
                 </Text>
             </Pressable>
         </View>

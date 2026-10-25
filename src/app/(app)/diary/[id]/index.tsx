@@ -25,6 +25,7 @@ import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { supabase } from "@/src/utils/supabase";
 import { FA5Style } from "@expo/vector-icons/build/FontAwesome5";
+import { useBridgeState } from "@10play/tentap-editor";
 
 export default function DiaryScreen() {
   const { diaries } = useDiaries();
@@ -59,7 +60,7 @@ export default function DiaryScreen() {
         setFirst(false)
         return;
       }
-      setFirst(data.onboarding === true)
+      setFirst(data.onboarding !== true)
     }
     checkfirst()
   }, [session?.userId])
@@ -94,7 +95,17 @@ export default function DiaryScreen() {
     router.replace("/(app)");
   }, [router]);
 
-  const handleClose = useCallback(() => {
+  const handleClose = useCallback(async () => {
+    //if the user closes the tab it kicks them out of onboarding
+    if(session?.userId && first){
+      const {error} = await supabase.from("profiles").update({onboarding: true}).eq("id", session.userId)
+      setFirst(false)
+      if(error){
+        console.error("Onboarding Status Change Error"+ error.message)
+        return;
+      }
+    }
+    
     if (!diaryRow) return closeDiary();
     setResumeDiaryId(null);
     close({ ...diaryRow, entryCount: entries.length });
@@ -147,6 +158,20 @@ export default function DiaryScreen() {
         onOpenMembers={() => setShowMembers(true)}
         onNewEntry={handleAddEntry}
         onSelectEntry={(entry) => {
+          if(entries.length == 1 && first){
+            //created a new entry instead of following the path 
+            const checkfirst = async() => {
+              if(!session?.userId){
+                setFirst(false)
+                return;
+              }
+            const { error} = await supabase.from("profiles").update({onboarding: true}).eq("id", session.userId)
+              if(error){
+                console.error("Onboarding Status Change Error"+ error.message)
+                return;
+              }
+            }
+          }
           router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
         }}
         onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}

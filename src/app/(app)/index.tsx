@@ -18,7 +18,7 @@ import useUserEmail from "@/src/hooks/useUserEmail";
 import { fetchDiaryMembers } from "@/src/services/sharing";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { DiaryFormData } from "@/src/types/diary";
-import { Stack } from "expo-router";
+import { Stack, useFocusEffect } from "expo-router";
 import { useState , useEffect } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, View, Dimensions } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -45,7 +45,7 @@ export default function Home() {
           setFirst(false)
           return;
         }
-        setFirst(data.onboarding === true)
+        setFirst(data.onboarding !== true)
       }
       checkfirst()
     }, [session?.userId])
@@ -185,6 +185,7 @@ export default function Home() {
           <OnBoarding 
             position = {[0, height2-150]}
             index2 = {index}
+            userid = {session!.userId}
           /> )}
       </View>
     </SafeAreaView>

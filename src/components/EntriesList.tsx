@@ -7,6 +7,7 @@ import { useSyncStatus } from "@/src/services/syncEngine";
 import type { Entry, EntryWithAuthor } from "@/src/types/entry";
 import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
+import { useUserSession } from "@/src/context/UserSessionContext";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -47,6 +48,7 @@ export default function EntriesList({
   closing,
   first
 }: EntriesListProps) {
+  const { session } = useUserSession();
   const { colors } = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedView, setSelectedView] = useState("list");
@@ -55,7 +57,7 @@ export default function EntriesList({
   const isSyncing = useSyncStatus();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, diaryAccent, insets.top);
-
+  const [index, setIndex] = useState(2)
   const handleDayPress = (date: Date) => {
     haptic.press();
     setSelectedDate((prev) => {
@@ -63,7 +65,20 @@ export default function EntriesList({
       return date;
     });
   };
-
+  function calculateIndex(){ 
+    // 2 if there is 0 entries, 3 if there is one entry . 
+    if(entries.length == 0){
+      setIndex(2)
+    }
+    else if(entries.length == 1){ 
+      setIndex(3)
+    }
+    else{ 
+      //user made two entries instead of following the path . handled in DiaryScrenn.
+      return; 
+      
+    }
+  }
   const handleDayLongPress = (date: Date) => {
     onNewEntry(date);
   };
@@ -145,6 +160,7 @@ export default function EntriesList({
         <OnBoarding 
           position = {[0, 150]}
           index2 = {2}
+          userid = {session!.userId}
         /> 
       )}
     </View>
