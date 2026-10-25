@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import {
     Easing,
@@ -14,6 +14,13 @@ import { fonts, fontSizes } from "../constants/typography";
 import useTheme from "../hooks/useTheme";
 import { useSyncProgress } from "../services/syncEngine";
 
+export const DecryptGateContext = createContext<{
+    baseline: number | null;
+    finish: () => void;
+}>({ baseline: null, finish: () => {} });
+
+const MIN_STEP_MS = 50;
+
 const STEPS = [
     "Keys unlocked on this device",
     "Unlocking your diaries",
@@ -23,10 +30,30 @@ const STEPS = [
 
 export default function DecryptingScreen() {
     const { colors } = useTheme();
-    const { label, fraction, phase } = useSyncProgress();
+    const { label, fraction, phase, runs } = useSyncProgress();
+    const { baseline, finish } = useContext(DecryptGateContext);
 
-    const activeIndex =
-    phase === "entries" ? 2 : phase === "invites" ? 3 : phase === "done" ? 4 : 1;
+    const livePhase = phase === "done" && runs <= (baseline ?? runs) ? "idle" : phase;
+    const targetIndex =
+    livePhase === "entries" ? 2 : livePhase === "invites" ? 3 : livePhase === "done" ? 4 : 1;
+
+    const [activeIndex, setActiveIndex] = useState(0);
+    const enteredAt = useRef(Date.now());
+    useEffect(() => {
+        if (activeIndex >= targetIndex) return;
+        const wait = Math.max(0, MIN_STEP_MS - (Date.now() - enteredAt.current));
+        const t = setTimeout(() => {
+            enteredAt.current = Date.now();
+            setActiveIndex((i) => i + 1);
+        }, wait);
+        return () => clearTimeout(t);
+    }, [activeIndex, targetIndex]);
+
+    useEffect(() => {
+        if (activeIndex < STEPS.length) return;
+        const t = setTimeout(finish, MIN_STEP_MS);
+        return () => clearTimeout(t);
+    }, [activeIndex, finish]);
 
     const peak = useRef(0);
     peak.current = Math.max(peak.current, Math.min(1, Math.max(0, fraction)));

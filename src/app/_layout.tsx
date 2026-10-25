@@ -9,10 +9,10 @@ import "expo-blob";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, useColorScheme, View } from "react-native";
 import "react-native-reanimated";
-import DecryptingScreen from "../components/DecryptingScreen";
+import { DecryptGateContext } from "../components/DecryptingScreen";
 import { dialog } from "../components/Dialog/DialogProvider";
 import LockedDatabaseScreen from "../components/LockedDatabaseScreen";
 import { DiaryTransitionProvider } from "../context/DiaryTransitionContext";
@@ -55,7 +55,7 @@ import {
   getStoredDerivedKey,
 } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
-import { getSyncRuns, useSyncProgress } from "../services/syncEngine";
+import { getSyncRuns } from "../services/syncEngine";
 import { getUserProfileRecord, subscribeToAuthState } from "../utils/auth";
 import { decryptUserProfile } from "../utils/crypto";
 import {
@@ -89,14 +89,14 @@ function AppNavigator() {
     Gabarito_500Medium,
     Gabarito_700Bold,
   });
-  const { session: userSession, setSession } = useUserSession();
+  const { setSession } = useUserSession();
   useSyncLifecycle();
   const router = useRouter();
 
   const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const { runs: syncRuns } = useSyncProgress();
   const [decryptBaseline, setDecryptBaseline] = useState<number | null>(null);
+  const [gateChecked, setGateChecked] = useState(false);
   const decryptGateDone = useRef(false);
 
   let cachedPhotoUri: string | null = null;
@@ -281,44 +281,67 @@ function AppNavigator() {
     return () => unsubscribe();
   }, []);
 
-  const hasKeys = !!userSession?.kemKeys;
+  const isSignedIn = supabaseSession !== null;
+  const isNavReady = isFontsLoaded && isDbMigrated && !isAuthLoading;
+
+  const closeDecryptGate = useCallback(() => {
+    decryptGateDone.current = true;
+    setDecryptBaseline(null);
+  }, [])
+
   useEffect(() => {
-    if (!userSession?.userId || !hasKeys || decryptGateDone.current) return;
+    if (!isNavReady) return;
+    if (!isSignedIn) {
+      setGateChecked(false);
+      return;
+    }
+    if (decryptGateDone.current) {
+      setGateChecked(true);
+      return;
+    }
     const baseline = getSyncRuns();
     let cancelled = false;
     (async () => {
       const [anyDiary] = await db
-      .select({  id: diariesTable.id })
+      .select({ id: diariesTable.id })
       .from(diariesTable)
       .limit(1);
       if (cancelled) return;
-      if (anyDiary) {
-        decryptGateDone.current = true;
-        return;
-      }
-      setDecryptBaseline((prev) => prev ?? baseline);
-    })().catch((e) => console.warn("Decrypt gate check failed: ", e));
+      if (anyDiary) decryptGateDone.current = true;
+      else setDecryptBaseline((prev) => prev ?? baseline);
+      setGateChecked(true);
+    })().catch((e) => {
+      console.warn("Decrypt gate check failed: ", e);
+      if (!cancelled) setGateChecked(true);
+    });
     return () => {
       cancelled = true;
     };
-  }, [userSession?.userId, hasKeys]);
+  }, [isSignedIn, isNavReady]);
 
   useEffect(() => {
     if (decryptBaseline === null) return;
-    const close = () => {
-      decryptGateDone.current = true;
-      setDecryptBaseline(null);
-    };
-    if (syncRuns > decryptBaseline) {
-      close();
+    const t = setTimeout(closeDecryptGate, 60_000);
+    return () => clearTimeout(t);
+  }, [decryptBaseline, closeDecryptGate]);
+
+  useEffect(() => {
+    if (!isNavReady) return;
+    if (!isSignedIn) {
+      router.replace("/(auth)/login");
       return;
     }
-    const t = setTimeout(close, 60_000);
-    return () => clearTimeout(t);
-  }, [syncRuns, decryptBaseline]);
+    if (!gateChecked) return;
+    if (decryptBaseline !== null) {
+      router.replace("/decrypting");
+      return;
+    }
+    const resumeDiaryId = getResumeDiaryId();
+    router.replace(
+      resumeDiaryId === null ? "/(app)" : `/(app)/diary/${resumeDiaryId}`,
+    );
+  }, [isSignedIn, isNavReady, gateChecked, decryptBaseline]);
 
-  const isSignedIn = supabaseSession !== null;
-  const isNavReady = isFontsLoaded && isDbMigrated && !isAuthLoading;
   useEffect(() => {
     if (!isNavReady) return;
     if (!isSignedIn) {
@@ -354,22 +377,27 @@ function AppNavigator() {
   return (
     <SafeAreaProvider>
       <DialogProvider>
-        <DiaryTransitionProvider>
-          <View style={{ flex: 1 }}>
-          <Stack
-            screenOptions={{
-              contentStyle: { backgroundColor: colors.background },
-              headerShown: false,
-            }}
-          >
-            <Stack.Screen name="(app)" />
-            <Stack.Screen name="(auth)" />
-          </Stack>
-          {decryptBaseline !== null && userSession?.kemKeys && (
-            <DecryptingScreen />
-          )}
-          </View>
-        </DiaryTransitionProvider>
+        <DecryptGateContext.Provider
+        value={{ baseline: decryptBaseline, finish: closeDecryptGate }}
+        >
+          <DiaryTransitionProvider>
+            <View style={{flex: 1}}>
+              <Stack
+              screenOptions={{
+                contentStyle: { backgroundColor: colors.background },
+                headerShown: false,
+              }}
+              >
+                <Stack.Screen name="(app)" />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen
+                name="decrypting"
+                options={{ animation: "fade", gestureEnabled: false }}
+                />
+              </Stack>
+            </View>
+          </DiaryTransitionProvider>
+        </DecryptGateContext.Provider>
       </DialogProvider>
     </SafeAreaProvider>
   );

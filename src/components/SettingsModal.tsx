@@ -380,191 +380,197 @@ export default function SettingsModal({
       >
         <View
           style={[
-            styles.section,
+            styles.group,
             { backgroundColor: colors.card, borderColor: colors.border },
           ]}
         >
-          {!session ? (
-            <View style={styles.loadingRow}>
-              <ActivityIndicator size="small" color={colors.accent} />
-              <Text style={[styles.loadingText, { color: colors.textMuted }]}>
-                Loading Profile...
-              </Text>
-            </View>
-          ) : (
-            <View>
-              <View style={styles.profileRow}>
-                {/* Tapping the thumbnail toggles the smooth accordion animation */}
-                <TouchableOpacity
-                  onPress={togglePhotoExpanded}
-                  activeOpacity={0.8}
-                >
-                  {session.photoUri ? (
-                    <Image
-                      source={{ uri: session.photoUri }}
-                      style={styles.avatarImage}
-                    />
-                  ) : (
-                    <View
-                      style={[
-                        styles.avatarFallback,
-                        { backgroundColor: colors.cardPressed },
-                      ]}
-                    >
-                      <Ionicons
-                        name="person"
-                        size={24}
-                        color={colors.textMuted}
-                      />
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                <View style={styles.profileDetails}>
-                  <Text
-                    style={[styles.nameText, { color: colors.text }]}
-                    numberOfLines={1}
-                  >
-                    {session.name || "Anonymous Journaler"}
-                  </Text>
-                  <View style={styles.emailContainer}>
-                    <Ionicons
-                      name="mail-outline"
-                      size={14}
-                      color={colors.textMuted}
-                    />
-                    <Text
-                      style={[styles.emailText, { color: colors.textMuted }]}
-                      numberOfLines={1}
-                    >
-                      {session.email || userEmail || "No active session"}
-                    </Text>
-                  </View>
-                </View>
+          <View style={[styles.groupItem, styles.profileItem]}>
+            {!session ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator size="small" color={colors.accent} />
+                <Text style={[styles.loadingText, { color: colors.textMuted }]}>
+                  Loading Profile...
+                </Text>
               </View>
-
-              {/* Smoothly expanded view */}
-              {isPhotoExpanded && (
-                <View style={styles.expandedSection}>
-                  <View
-                    style={[
-                      styles.expandedImageWrapper,
-                      { borderColor: colors.border },
-                    ]}
+            ) : (
+              <View>
+                <View style={styles.profileRow}>
+                  {/* Tapping the thumbnail toggles the smooth accordion animation */}
+                  <TouchableOpacity
+                    onPress={togglePhotoExpanded}
+                    activeOpacity={0.8}
                   >
                     {session.photoUri ? (
                       <Image
                         source={{ uri: session.photoUri }}
-                        style={styles.expandedImage}
+                        style={styles.avatarImage}
                       />
                     ) : (
                       <View
                         style={[
-                          styles.expandedFallback,
+                          styles.avatarFallback,
                           { backgroundColor: colors.cardPressed },
                         ]}
                       >
                         <Ionicons
                           name="person"
-                          size={64}
+                          size={24}
                           color={colors.textMuted}
                         />
                       </View>
                     )}
+                  </TouchableOpacity>
 
-                    {isPickingOrUploading && (
-                      <View style={styles.uploadingOverlay}>
-                        <ActivityIndicator size="large" color="#FFFFFF" />
-                        <Text style={styles.uploadingText}>Processing...</Text>
-                      </View>
-                    )}
-                  </View>
-
-                  <View style={styles.buttonWrapper}>
-                    <Button
-                      label="Change Photo"
-                      onPress={handleChangePhoto}
-                      loading={isPickingOrUploading}
-                      variant="primary"
-                      size="sm"
-                    />
-                  </View>
-                  <View style={styles.nameFieldWrapper}>
-                    <FormField
-                      label="Display name"
-                      value={nameDraft}
-                      onChangeText={setNameDraft}
-                      placeholder="Your name"
-                      autoCapitalize="words"
-                    />
-                    <Button
-                      label="Save name"
-                      onPress={handleChangeName}
-                      loading={isSavingName}
-                      disabled={
-                        !nameDraft.trim() || nameDraft.trim() === session.name
-                      }
-                      variant="primary"
-                      size="sm"
-                    />
+                  <View style={styles.profileDetails}>
+                    <Text
+                      style={[styles.nameText, { color: colors.text }]}
+                      numberOfLines={1}
+                    >
+                      {session.name || "Anonymous Journaler"}
+                    </Text>
+                    <View style={styles.emailContainer}>
+                      <Ionicons
+                        name="mail-outline"
+                        size={14}
+                        color={colors.textMuted}
+                      />
+                      <Text
+                        style={[styles.emailText, { color: colors.textMuted }]}
+                        numberOfLines={1}
+                      >
+                        {session.email || userEmail || "No active session"}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-              )}
-            </View>
-          )}
-        </View>
 
-        {session && (
-          <View
-            style={[
-              styles.section,
-              styles.recoveryCard,
-              { backgroundColor: colors.card, borderColor: colors.border },
-            ]}
-          >
-            <TouchableOpacity
-              style={styles.recoveryHeader}
-              onPress={toggleRecoveryExpanded}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="key-outline" size={20} color={colors.text} />
-              <Text style={[styles.recoveryTitle, { color: colors.text }]}>Recovery key</Text>
-              <Ionicons
-                name={isRecoveryExpanded ? "chevron-up" : "chevron-down"}
-                size={18}
-                color={colors.textMuted}
-              />
-            </TouchableOpacity>
+                {/* Smoothly expanded view */}
+                {isPhotoExpanded && (
+                  <View style={styles.expandedSection}>
+                    <View
+                      style={[
+                        styles.expandedImageWrapper,
+                        { borderColor: colors.border },
+                      ]}
+                    >
+                      {session.photoUri ? (
+                        <Image
+                          source={{ uri: session.photoUri }}
+                          style={styles.expandedImage}
+                        />
+                      ) : (
+                        <View
+                          style={[
+                            styles.expandedFallback,
+                            { backgroundColor: colors.cardPressed },
+                          ]}
+                        >
+                          <Ionicons
+                            name="person"
+                            size={64}
+                            color={colors.textMuted}
+                          />
+                        </View>
+                      )}
 
-            {isRecoveryExpanded && (
-              <View style={styles.recoveryBody}>
-                <Text style={[styles.recoveryHint, {color: colors.textMuted}]}>
-                  Enter your password to view your recovery key or generate a new one.
-                </Text>
-                <PasswordField
-                  password={recoveryPassword}
-                  onChangePassword={setRecoveryPassword}
-                />
-                <Button
-                  label="Show recovery key"
-                  onPress={handleShowRecoveryKey}
-                  loading={isRecoveryBusy}
-                  disabled={!recoveryPassword}
-                  variant="primary"
-                  size="sm"
-                />
-                <Button
-                  label="Generate new key"
-                  onPress={handleGenerateRecoveryKey}
-                  loading={isRecoveryBusy}
-                  disabled={!recoveryPassword}
-                  variant="secondary"
-                  size="sm"
-                />
+                      {isPickingOrUploading && (
+                        <View style={styles.uploadingOverlay}>
+                          <ActivityIndicator size="large" color="#FFFFFF" />
+                          <Text style={styles.uploadingText}>Processing...</Text>
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={styles.buttonWrapper}>
+                      <Button
+                        label="Change Photo"
+                        onPress={handleChangePhoto}
+                        loading={isPickingOrUploading}
+                        variant="primary"
+                        size="sm"
+                      />
+                    </View>
+                    <View style={styles.nameFieldWrapper}>
+                      <FormField
+                        label="Display name"
+                        value={nameDraft}
+                        onChangeText={setNameDraft}
+                        placeholder="Your name"
+                        autoCapitalize="words"
+                      />
+                      <Button
+                        label="Save name"
+                        onPress={handleChangeName}
+                        loading={isSavingName}
+                        disabled={
+                          !nameDraft.trim() || nameDraft.trim() === session.name
+                        }
+                        variant="primary"
+                        size="sm"
+                      />
+                    </View>
+                  </View>
+                )}
               </View>
             )}
           </View>
-        )}
+
+          {session && (
+            <>
+              {/* Divider between Profile and Recovery Key */}
+              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+
+              <View style={styles.groupItem}>
+                <TouchableOpacity
+                  style={styles.recoveryHeader}
+                  onPress={toggleRecoveryExpanded}
+                  activeOpacity={0.8}
+                >
+                  <Ionicons name="key-outline" size={20} color={colors.text} />
+                  <Text style={[styles.recoveryTitle, { color: colors.text }]}>
+                    Recovery key
+                  </Text>
+                  <Ionicons
+                    name={isRecoveryExpanded ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color={colors.textMuted}
+                  />
+                </TouchableOpacity>
+
+                {isRecoveryExpanded && (
+                  <View style={styles.recoveryBody}>
+                    <Text
+                      style={[styles.recoveryHint, { color: colors.textMuted }]}
+                    >
+                      Enter your password to view your recovery key or generate
+                      a new one.
+                    </Text>
+                    <PasswordField
+                      password={recoveryPassword}
+                      onChangePassword={setRecoveryPassword}
+                    />
+                    <Button
+                      label="Show recovery key"
+                      onPress={handleShowRecoveryKey}
+                      loading={isRecoveryBusy}
+                      disabled={!recoveryPassword}
+                      variant="primary"
+                      size="sm"
+                    />
+                    <Button
+                      label="Generate new key"
+                      onPress={handleGenerateRecoveryKey}
+                      loading={isRecoveryBusy}
+                      disabled={!recoveryPassword}
+                      variant="secondary"
+                      size="sm"
+                    />
+                  </View>
+                )}
+              </View>
+            </>
+          )}
+        </View>
 
         {/* Sign Out Button */}
         <TouchableOpacity
@@ -738,11 +744,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
-  recoveryCard: {
-    marginBottom: 12,
-    justifyContent: "flex-start",
-    minHeight: 0,
-  },
   recoveryHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -768,5 +769,20 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 24,
-  }
+  },
+  group: {
+    marginBottom: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  groupItem: {
+    padding: 14,
+  },
+  profileItem: {
+    minHeight: 76,
+    justifyContent: "center",
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+  },
 });
