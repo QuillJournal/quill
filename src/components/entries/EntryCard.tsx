@@ -1,4 +1,3 @@
-import { fonts } from "@/src/constants/typography";
 import usePressAnimation from "@/src/hooks/usePressAnimation";
 import useTheme from "@/src/hooks/useTheme";
 import type { EntryWithAuthor } from "@/src/types/entry";
@@ -8,14 +7,9 @@ import {
   fromDateKey,
 } from "@/src/utils/dates";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  Animated,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import AttachmentSummary from "./AttachmentSummary";
+import AuthorPill from "./AuthorPill";
 
 type EntryCardProps = {
   entry: EntryWithAuthor;
@@ -72,30 +66,11 @@ export default function EntryCard({
             <Text style={styles.cardDate}>
               {formatCreatedMeta(entry.createdAt, entryDate)}
             </Text>
-            <View
-              style={[
-                styles.authorPill,
-                isMe ? styles.authorPillMe : styles.authorPillOther,
-              ]}
-            >
-              <View
-                style={[
-                  styles.authorDot,
-                  {
-                    backgroundColor: isMe ? diaryAccent : colors.textMuted,
-                  },
-                ]}
-              />
-              <Text
-                style={[
-                  styles.authorText,
-                  { color: isMe ? diaryAccent : colors.textMuted },
-                ]}
-                numberOfLines={1}
-              >
-                {isMe ? `${entry.authorName} • YOU` : entry.authorName}
-              </Text>
-            </View>
+            <AuthorPill
+              name={entry.authorName}
+              isMe={isMe}
+              diaryAccent={diaryAccent}
+            />
             <Ionicons
               size={16}
               color={colors.textMuted}
@@ -161,32 +136,5 @@ const getStyles = (
       borderBottomColor: colors.border,
       borderBottomWidth: 1,
       marginVertical: 15,
-    },
-    authorPill: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      paddingHorizontal: 9,
-      paddingVertical: 3,
-      borderRadius: 999,
-      borderWidth: 1,
-    },
-    authorPillMe: {
-      backgroundColor: colors.surface,
-      borderColor: diaryAccent,
-    },
-    authorPillOther: {
-      backgroundColor: colors.surface,
-      borderColor: colors.border,
-    },
-    authorDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-    },
-    authorText: {
-      fontSize: 11,
-      fontFamily: fonts.label,
-      fontWeight: "700",
     },
   });
