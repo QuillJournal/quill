@@ -11,7 +11,7 @@ export default function InlineReadMore({
   const { colors } = useTheme();
   const sytles = getStyles(colors);
   if (text.length <= maxLength) {
-    return <Text style={sytles.baseText}></Text>;
+    return <Text style={sytles.baseText}>{text}</Text>;
   }
   return (
     <Text style={sytles.baseText}>
