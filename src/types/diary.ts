@@ -3,7 +3,7 @@ import { diariesTable as diaries } from "../db/schema";
 import { Entry, EntryWithAuthor } from "./entry";
 
 export type DiaryRow = typeof diaries.$inferSelect;
-export type Diary = DiaryRow & { entryCount: number };
+export type Diary = DiaryRow & { entryCount: number, memberCount: number };
 export type DiaryFormData = { name: string; color: DiaryColorKey };
 export type ViewProps = {
   entries: EntryWithAuthor[];

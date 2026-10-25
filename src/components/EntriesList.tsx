@@ -4,15 +4,11 @@ import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { Entry, EntryWithAuthor } from "@/src/types/entry";
-import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import {
-  ActivityIndicator,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   useColorScheme,
-  View,
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ViewType } from "../types/diary";
@@ -90,7 +86,7 @@ export default function EntriesList({
 
   return (
     <View style={styles.container}>
-      <View style={styles.topBar}>
+      {/* <View style={styles.topBar}>
         {onClose && (
           <TouchableOpacity
             style={[styles.iconButton, closing && styles.hidden]}
@@ -132,7 +128,7 @@ export default function EntriesList({
             <Ionicons name="people" size={18} color={diaryAccent} />
           </TouchableOpacity>
         )}
-      </View>
+      </View> */}
       <SegmentedControl
         options={VIEW_OPTIONS}
         selectedValue={selectedView}

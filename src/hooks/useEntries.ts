@@ -14,6 +14,7 @@ import useDiaryMembers from "./useDiaryMembers";
 export default function useEntries(diaryId: number) {
   const [entries, setEntries] = useState<EntryWithAuthor[]>([]);
   const { session } = useUserSession();
+  const diaryMembers = useDiaryMembers(diaryId);
 
   const triggerSync = useCallback(async () => {
     if (session?.kemKeys && session?.signKeys) {
@@ -27,7 +28,6 @@ export default function useEntries(diaryId: number) {
 
   const refresh = useCallback(async () => {
     const fetchedEntries = await getEntriesByDiaryId(diaryId);
-    const diaryMembers = useDiaryMembers(diaryId);
     const formatted = fetchedEntries.map((e) => {
       const isMe = isMine(e.authorId, session?.userId);
       const authorName = isMe
