@@ -64,6 +64,21 @@ const PATTERNS: Record<string, Beat[]> = {
     [0, "rigid"],
     [75, "medium"],
   ],
+  moodSelectPositive: [
+    [0, "light"],
+    [70, "light"],
+  ],
+  moodSelectNeutral: [[0, "light"]],
+  moodSelectNegative: [[0, "soft"]],
+  moodOpenPositive: [
+    [0, "light"],
+    [90, "medium"],
+  ],
+  moodOpenNegative: [
+    [0, "soft"],
+    [170, "soft"],
+    [360, "soft"],
+  ],
 };
 
 export function play(name: keyof typeof PATTERNS) {
@@ -73,3 +88,5 @@ export function play(name: keyof typeof PATTERNS) {
   );
   return () => timers.forEach(clearTimeout); // cancel if the animation is interrupted
 }
+
+export const isHapticsEnabled = () => enabled;

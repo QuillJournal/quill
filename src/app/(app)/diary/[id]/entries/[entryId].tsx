@@ -12,13 +12,14 @@ import {
   PendingAttachment,
   updateEntryWithMedia,
 } from "@/src/services/attachments";
+import { moodHaptics } from "@/src/services/moodHaptics";
 import { runSync } from "@/src/services/syncEngine";
 import { Attachment } from "@/src/types/attachment";
 import { Entry } from "@/src/types/entry";
 import { Ionicons } from "@expo/vector-icons";
 import { eq } from "drizzle-orm";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -62,6 +63,24 @@ export default function EntryEditScreen() {
   const isAuthor = !!session?.userId && entry?.authorId === session.userId;
   const entryMood = entry?.mood;
   const initialMood = isMoodKey(entryMood) ? entryMood : null;
+  const playedForRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (loading || !entry) return;
+    const id = String(entryId);
+    if (playedForRef.current === id) return;
+
+    const timer = setTimeout(() => {
+      playedForRef.current = id;
+      moodHaptics.onOpen(initialMood);
+    }, 300);
+
+    return () => {
+      clearTimeout(timer);
+      moodHaptics.cancel();
+    };
+  }, [loading, entry, entryId, initialMood]);
+  
   const handleSave = async (
     title: string,
     entryDate: string,

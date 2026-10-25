@@ -335,7 +335,7 @@ export default function Editor({
             >
               {mood ? (
                 <>
-                  <MojiFace mood={mood} size={22} />
+                  <MojiFace mood={mood} size={22} animated intro introDelay={isReadOnly ? 300 : 0} />
                   <Text style={styles.moodChipText}>{MOODS[mood].label}</Text>
                 </>
               ) : (

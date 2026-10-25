@@ -84,28 +84,47 @@ export const FACE_PARAMS: Record<MoodKey, FaceParams> = {
   },
 };
 
-export function faceGeometry(p: FaceParams) {
+export function lerpParams(
+  a: FaceParams,
+  b: FaceParams,
+  t: number,
+): FaceParams {
+  "worklet";
+  return {
+    eyeOpen: a.eyeOpen + (b.eyeOpen - a.eyeOpen) * t,
+    browTilt: a.browTilt + (b.browTilt - a.browTilt) * t,
+    browY: a.browY + (b.browY - a.browY) * t,
+    browOpacity: a.browOpacity + (b.browOpacity - a.browOpacity) * t,
+    mouthCurve: a.mouthCurve + (b.mouthCurve - a.mouthCurve) * t,
+    mouthOpen: a.mouthOpen + (b.mouthOpen - a.mouthOpen) * t,
+    mouthWidth: a.mouthWidth + (b.mouthWidth - a.mouthWidth) * t,
+    mouthY: a.mouthY + (b.mouthY - a.mouthY) * t,
+  };
+}
+
+export function faceGeometry(p: FaceParams, blink = 0) {
+  "worklet";
+  const baseRy = Math.max(1.4, 5.5 * p.eyeOpen);
   const eyeRy = Math.max(1.4, 5.5 * p.eyeOpen);
 
   const inner = p.browY - p.browTilt * 5;
   const outer = p.browY + p.browTilt * 3;
   const leftBrow = `M 24 ${outer} L 44 ${inner}`;
   const rightBrow = `M 76 ${outer} L 56 ${inner}`;
+  const browOpacity = Math.min(1, Math.max(0, p.browOpacity));
 
   const x1 = 50 - p.mouthWidth;
   const x2 = 50 + p.mouthWidth;
+  const topCtrl = p.mouthY + p.mouthCurve * 18;
+  const bottomCtrl = topCtrl + Math.max(0, p.mouthOpen) * 28;
+  const mouth = `M ${x1} ${p.mouthY} Q 50 ${topCtrl} ${x2} ${p.mouthY} Q 50 ${bottomCtrl} ${x1} ${p.mouthY} Z`;
   const filled = p.mouthOpen > 0.05;
-
-  const mouth = filled
-    ? `M ${x1} ${p.mouthY} Q 50 ${p.mouthY + 28 * p.mouthOpen} ${x2} ${p.mouthY} Z`
-    : `M ${x1} ${p.mouthY} Q 50 ${p.mouthY + p.mouthCurve * 18} ${x2} ${p.mouthY}`;
 
   return {
     eyeRy,
     leftBrow,
     rightBrow,
-    browOpacity: p.browOpacity,
+    browOpacity,
     mouth,
-    filled,
   };
 }

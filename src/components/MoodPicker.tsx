@@ -2,6 +2,7 @@ import { MOOD_KEYS, MOODS, type MoodKey } from "@/src/constants/moods";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
+import { moodHaptics } from "@/src/services/moodHaptics";
 import { StyleSheet, Text, View } from "react-native";
 import MojiFace from "./MojiFace";
 import PressableScale from "./PressableScale";
@@ -19,7 +20,11 @@ export default function MoodPicker({ isOpen, value, onSelect, onClose }: Props) 
     const styles = getStyles(colors);
 
     const handlePick = (key: MoodKey) => {
-        haptic.select();
+        if (value === key) {
+            haptic.tap();
+        } else {
+            moodHaptics.onSelect(key);
+        }
         onSelect(value === key ? null : key);
         onClose();
     };
@@ -39,7 +44,7 @@ export default function MoodPicker({ isOpen, value, onSelect, onClose }: Props) 
               style={styles.item}
             >
               <View style={[styles.ring, selected && styles.ringSelected]}>
-                <MojiFace mood={key} size={52} />
+                <MojiFace mood={key} size={52} animated />
               </View>
               <Text style={[styles.label, selected && styles.labelSelected]}>
                 {MOODS[key].label}
