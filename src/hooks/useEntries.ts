@@ -7,10 +7,11 @@ import {
   saveEntry as saveEntryToDb,
 } from "../db/entries";
 import { runSync } from "../services/syncEngine";
-import type { EntryWithCounts } from "../types/entry";
+import type { EntryWithAuthor } from "../types/entry";
+import { isMine } from "../utils/entry";
 
 export default function useEntries(diaryId: number) {
-  const [entries, setEntries] = useState<EntryWithCounts[]>([]);
+  const [entries, setEntries] = useState<EntryWithAuthor[]>([]);
   const { session } = useUserSession();
 
   const triggerSync = useCallback(async () => {
@@ -24,8 +25,16 @@ export default function useEntries(diaryId: number) {
   }, [session]);
 
   const refresh = useCallback(async () => {
-    setEntries(await getEntriesByDiaryId(diaryId));
-  }, [diaryId]);
+    const fetchedEntries = await getEntriesByDiaryId(diaryId);
+    const formatted = fetchedEntries.map((e) => {
+      const isMe = isMine(e.authorId, session?.userId);
+      return {
+        ...e,
+        authorName: isMe ? session?.name || "You" : e.authorName,
+      };
+    });
+    setEntries(formatted);
+  }, [diaryId, session?.userId, session?.name]);
 
   useFocusEffect(
     useCallback(() => {

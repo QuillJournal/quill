@@ -1,21 +1,27 @@
 import { and, count, eq } from "drizzle-orm";
 import * as Crypto from "expo-crypto";
 import { db } from ".";
-import type { Entry, EntryWithCounts } from "../types/entry";
+import type { Entry, EntryWithAuthor } from "../types/entry";
 import { EMPTY_COUNTS, getAttachmentCountsByDiaryId } from "./attachments";
+import { getDiaryMembers } from "./members";
 import { entriesTable as entries } from "./schema";
 
 export const getEntriesByDiaryId = async (
   diaryId: number,
-): Promise<EntryWithCounts[]> => {
+): Promise<EntryWithAuthor[]> => {
   const rows = await db
     .select()
     .from(entries)
     .where(and(eq(entries.diaryId, diaryId), eq(entries.deleted, 0)));
-  const countByEntry = await getAttachmentCountsByDiaryId(diaryId);
+  const [countByEntry, nameById] = await Promise.all([
+    getAttachmentCountsByDiaryId(diaryId),
+    getDiaryMembers(diaryId),
+  ]);
+
   return rows.map((r) => ({
     ...r,
     counts: countByEntry.get(r.id) ?? { ...EMPTY_COUNTS },
+    authorName: nameById.get(r.authorId) ?? "Collaborator",
   }));
 };
 

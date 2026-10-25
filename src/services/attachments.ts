@@ -179,13 +179,13 @@ export async function removeAllMedia(): Promise<void> {
 
 export async function createEntryWithMedia(
   diaryId: number,
+  authorId: string,
   title: string,
   entryDate: string,
   body: string,
   added: PendingAttachment[],
-  authorId: string,
 ): Promise<number> {
-  const entryId = await saveEntry(diaryId, title, entryDate, body, authorId);
+  const entryId = await saveEntry(diaryId, authorId, title, entryDate, body);
   try {
     if (added.length) await persistAttachments(entryId, added);
     await markEntryDirty(entryId);

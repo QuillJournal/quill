@@ -1,17 +1,20 @@
+import { useUserSession } from "@/src/context/UserSessionContext";
 import { getPreviewAttachments } from "@/src/db/attachments";
+import { haptic } from "@/src/services/haptics";
 import type { Attachment } from "@/src/types/attachment";
 import { ViewProps } from "@/src/types/diary";
 import type { EntryWithAuthor } from "@/src/types/entry";
+import { isMine } from "@/src/utils/entry";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { dialog } from "../Dialog/DialogProvider";
 import type { Rect, ViewerItem } from "../MediaViewer";
 import MediaViewer from "../MediaViewer";
 import FeedEntryCard from "./FeedEntryCard";
 
 export default function FeedView({
   entries,
-  selectedDate,
   onSelectEntry,
   onDeleteEntry,
   diaryAccent,
@@ -24,6 +27,7 @@ export default function FeedView({
     item: ViewerItem;
     origin: Rect;
   } | null>(null);
+  const { session } = useUserSession();
 
   useEffect(() => {
     getPreviewAttachments(ids).then((map) => setMedia(map));
@@ -39,6 +43,33 @@ export default function FeedView({
     [],
   );
 
+  const handleLongPress = (entry: EntryWithAuthor) => {
+    if (!onDeleteEntry) return;
+    if (!isMine(entry.authorId, session?.userId)) {
+      dialog.alert(
+        "Read Only",
+        "You can only delete entries that you created.",
+      );
+      return;
+    }
+    haptic.press();
+    dialog.alert(
+      "Delete Entry",
+      `Are you sure you want to delete "${entry.title}"?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            haptic.warning();
+            onDeleteEntry(entry.id);
+          },
+        },
+      ],
+    );
+  };
+
   const renderCard = (entry: EntryWithAuthor) => (
     <FeedEntryCard
       entry={entry}
@@ -46,6 +77,8 @@ export default function FeedView({
       media={media?.get(entry.id) ?? []}
       onMediaOpen={handleOpenMedia}
       onPress={() => onSelectEntry?.(entry)}
+      onLongPress={handleLongPress}
+      isMe={isMine(entry.authorId, session?.userId)}
     />
   );
   return (

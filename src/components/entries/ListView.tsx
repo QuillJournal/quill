@@ -12,6 +12,7 @@ import { dialog } from "../Dialog/DialogProvider";
 import Pill from "../Pill";
 import EmptyState from "./EmptyState";
 import EntryCard from "./EntryCard";
+import { isMine } from "@/src/utils/entry";
 
 export default function ListView({
   entries,
@@ -25,9 +26,6 @@ export default function ListView({
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors);
   const selectedKey = selectedDate ? toDateKey(selectedDate) : null;
-
-  const isMine = (entry: Entry) =>
-    entry.authorId === session?.userId;
 
   const selectedDateEntries = useMemo(() => {
     return selectedDate
@@ -43,7 +41,7 @@ export default function ListView({
 
   const handleLongPress = (entry: EntryWithAuthor) => {
     if (!onDeleteEntry) return;
-    if (!isMine(entry)) {
+    if (!isMine(entry.authorId, session?.userId)) {
       dialog.alert(
         "Read Only",
         "You can only delete entries that you created.",
@@ -74,7 +72,7 @@ export default function ListView({
       onPress={() => onSelectEntry?.(entry)}
       onLongPress={handleLongPress}
       diaryAccent={diaryAccent}
-      isMe={isMine(entry)}
+      isMe={isMine(entry.authorId, session?.userId)}
     />
   );
 
