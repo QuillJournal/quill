@@ -1,11 +1,11 @@
+import usePressAnimation from "@/src/hooks/usePressAnimation";
 import useTheme from "@/src/hooks/useTheme";
 import { resolveAttachmentUri } from "@/src/services/attachments";
 import { Attachment } from "@/src/types/attachment";
 import type { EntryWithAuthor } from "@/src/types/entry";
 import { formatCreatedMeta, fromDateKey } from "@/src/utils/dates";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import type { Rect } from "../MediaViewer";
 import AuthorPill from "./AuthorPill";
 import type { FeedMediaItem } from "./FeedMedia";
@@ -31,7 +31,11 @@ export default function FeedEntryCard({
 }: EntryCardProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors, diaryAccent);
-  const [isExpanded, setIsExpanded] = useState(false);
+  const { animatePress, animatedColor } = usePressAnimation(
+    colors.card,
+    colors.cardPressed,
+    200,
+  );
   const cleanPreview =
     entry.body
       ?.replace(/<br\s*\/?>/gi, "\n")
@@ -61,33 +65,40 @@ export default function FeedEntryCard({
   const isMe = true;
 
   return (
-    <View style={styles.card}>
-      <View style={{ padding: 16 }}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardDate}>{cardHeader}</Text>
-          <AuthorPill
-            name={entry.authorName}
-            isMe={isMe}
-            diaryAccent={diaryAccent}
+    <Pressable
+      onPressIn={() => animatePress(true)}
+      onPressOut={() => animatePress(false)}
+    >
+      <Animated.View style={[styles.card, { backgroundColor: animatedColor }]}>
+        <View style={{ padding: 16 }}>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardDate}>{cardHeader}</Text>
+            <AuthorPill
+              name={entry.authorName}
+              isMe={isMe}
+              diaryAccent={diaryAccent}
+            />
+          </View>
+          <Text style={styles.cardTitle}>
+            {entry.title || "Untitled Entry"}
+          </Text>
+          <InlineReadMore text={cleanPreview} />
+        </View>
+        {media.length > 0 && (
+          <FeedMedia items={mediaItems} onOpen={onMediaOpen} />
+        )}
+        <View style={styles.cardFooter}>
+          <Text
+            style={styles.cardDate}
+          >{`${countWords(cleanPreview)} words`}</Text>
+          <Ionicons
+            size={16}
+            color={colors.textMuted}
+            name="chevron-forward-outline"
           />
         </View>
-        <Text style={styles.cardTitle}> {entry.title || "Untitled Entry"}</Text>
-        <InlineReadMore text={cleanPreview} />
-      </View>
-      {media.length > 0 && (
-        <FeedMedia items={mediaItems} onOpen={onMediaOpen} />
-      )}
-      <View style={styles.cardFooter}>
-        <Text
-          style={styles.cardDate}
-        >{`${countWords(cleanPreview)} words`}</Text>
-        <Ionicons
-          size={16}
-          color={colors.textMuted}
-          name="chevron-forward-outline"
-        />
-      </View>
-    </View>
+      </Animated.View>
+    </Pressable>
   );
 }
 
