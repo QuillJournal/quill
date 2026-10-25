@@ -68,6 +68,7 @@ export default function FeedEntryCard({
     <Pressable
       onPressIn={() => animatePress(true)}
       onPressOut={() => animatePress(false)}
+      onPress={onPress}
     >
       <Animated.View style={[styles.card, { backgroundColor: animatedColor }]}>
         <View style={{ padding: 16 }}>
@@ -85,7 +86,7 @@ export default function FeedEntryCard({
           <InlineReadMore text={cleanPreview} />
         </View>
         {media.length > 0 && (
-          <FeedMedia items={mediaItems} onOpen={onMediaOpen} />
+          <FeedMedia items={mediaItems} onOpen={onMediaOpen} onExtraPress={onPress} />
         )}
         <View style={styles.cardFooter}>
           <Text

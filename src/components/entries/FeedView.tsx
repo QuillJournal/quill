@@ -45,6 +45,7 @@ export default function FeedView({
       diaryAccent={diaryAccent}
       media={media?.get(entry.id) ?? []}
       onMediaOpen={handleOpenMedia}
+      onPress={() => onSelectEntry?.(entry)}
     />
   );
   return (

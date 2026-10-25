@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import MediaThumb from "../MediaThumb";
 import type { Rect } from "../MediaViewer";
 
@@ -10,15 +10,17 @@ export type FeedMediaItem = {
 type FeedMediaProps = {
   items: FeedMediaItem[];
   onOpen: (item: FeedMediaItem, origin: Rect) => void;
+  onExtraPress: () => void;
 };
 
 type TileProps = {
   item: FeedMediaItem;
   overlay?: string;
   onOpen: (item: FeedMediaItem, origin: Rect) => void;
+  onExtraPress: () => void;
 };
 
-function Tile({ item, overlay, onOpen }: TileProps) {
+function Tile({ item, overlay, onOpen, onExtraPress }: TileProps) {
   return (
     <View
       style={{
@@ -34,15 +36,15 @@ function Tile({ item, overlay, onOpen }: TileProps) {
         onOpen={(origin) => onOpen(item, origin)}
       />
       {overlay && (
-        <View style={styles.overlay}>
+        <Pressable style={styles.overlay} onPress={onExtraPress}>
           <Text style={styles.overlayText}>{overlay}</Text>
-        </View>
+        </Pressable>
       )}
     </View>
   );
 }
 
-export default function FeedMedia({ items, onOpen }: FeedMediaProps) {
+export default function FeedMedia({ items, onOpen, onExtraPress }: FeedMediaProps) {
   const shown = items.slice(0, 4);
   const extra = items.length - shown.length;
   const tile = (i: number) => (
@@ -50,6 +52,7 @@ export default function FeedMedia({ items, onOpen }: FeedMediaProps) {
       item={items[i]}
       overlay={i === shown.length - 1 && extra ? `+${extra}` : undefined}
       onOpen={onOpen}
+      onExtraPress={onExtraPress}
     />
   );
   const layoutMap: Record<number, () => React.JSX.Element> = {
