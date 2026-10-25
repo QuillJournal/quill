@@ -1,5 +1,6 @@
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import Editor from "@/src/components/Editor";
+import { isMoodKey, type MoodKey } from "@/src/constants/moods";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import { db } from "@/src/db";
@@ -59,11 +60,14 @@ export default function EntryEditScreen() {
   }, [entryId, session?.userId]);
 
   const isAuthor = !!session?.userId && entry?.authorId === session.userId;
+  const entryMood = entry?.mood;
+  const initialMood = isMoodKey(entryMood) ? entryMood : null;
   const handleSave = async (
     title: string,
     entryDate: string,
     body: string,
     media: { added: PendingAttachment[]; removedIds: number[] },
+    mood: MoodKey | null,
   ) => {
     if (!isAuthor) {
       dialog.alert("Read Only", "Only the author of this entry can edit it.");
@@ -76,6 +80,7 @@ export default function EntryEditScreen() {
         entryDate,
         body,
         media,
+        mood,
       );
       if (session?.kemKeys && session?.signKeys) {
         runSync({
@@ -141,6 +146,7 @@ export default function EntryEditScreen() {
       </View>
       <Editor
         initialAttachments={attachments}
+        initialMood={initialMood}
         initialTitle={entry?.title}
         initialBody={entry?.body ?? undefined}
         initialDate={entry?.entryDate}

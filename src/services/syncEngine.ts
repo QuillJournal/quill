@@ -447,6 +447,7 @@ async function pushOfflineEntryQueue(session: FullSession) {
           title: entry.title,
           body: entry.body,
           entryDate: entry.entryDate,
+          mood: entry.mood ?? null,
           attachments,
         },
         diaryKey,
@@ -503,6 +504,7 @@ async function pushOfflineEntryQueue(session: FullSession) {
           title: entry.title,
           body: entry.body,
           entryDate: entry.entryDate,
+          mood: entry.mood ?? null,
           attachments,
         },
         diaryKey,
@@ -580,6 +582,7 @@ async function pushOfflineEntryQueue(session: FullSession) {
           .set({
             title: "",
             body: null,
+            mood: null,
             deleted: 1,
             version: data.version,
             changeSeq: Number(data.change_seq),
@@ -705,6 +708,7 @@ async function pullRemoteEntries(session: FullSession) {
               .set({
                 title: "",
                 body: null,
+                mood: null,
                 deleted: 1,
                 version: remote.version,
                 changeSeq: seq,
@@ -737,6 +741,7 @@ async function pullRemoteEntries(session: FullSession) {
         title: string;
         body: string;
         entryDate: string;
+        mood?: string | null;
         attachments?: ManifestItem[];
       };
       try {
@@ -750,6 +755,8 @@ async function pullRemoteEntries(session: FullSession) {
         continue;
       }
 
+      const remoteMood = typeof payload.mood === "string" ? payload.mood : null;
+
       if (!existing) {
         const ins = await db.insert(entriesTable).values({
           remoteId: remote.id,
@@ -758,6 +765,7 @@ async function pullRemoteEntries(session: FullSession) {
           title: payload.title,
           body: payload.body,
           entryDate: payload.entryDate,
+          mood: remoteMood,
           version: remote.version,
           keyEpoch: remote.key_epoch,
           changeSeq: seq,
@@ -785,6 +793,7 @@ async function pullRemoteEntries(session: FullSession) {
               title: payload.title,
               body: payload.body,
               entryDate: payload.entryDate,
+              mood: remoteMood,
               version: remote.version,
               changeSeq: seq,
               syncState: "synced",
