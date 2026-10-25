@@ -1,14 +1,14 @@
-import { fonts } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
 import { resolveAttachmentUri } from "@/src/services/attachments";
 import { Attachment } from "@/src/types/attachment";
 import type { EntryWithAuthor } from "@/src/types/entry";
 import { formatCreatedMeta, fromDateKey } from "@/src/utils/dates";
+import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
 import type { Rect } from "../MediaViewer";
+import AuthorPill from "./AuthorPill";
 import type { FeedMediaItem } from "./FeedMedia";
 import FeedMedia from "./FeedMedia";
-
 type EntryCardProps = {
   entry: EntryWithAuthor;
   onPress: () => void;
@@ -24,7 +24,6 @@ export default function FeedEntryCard({
   onPress,
   diaryAccent,
   media,
-  isMe,
   onMediaOpen,
 }: EntryCardProps) {
   const { colors } = useTheme();
@@ -43,16 +42,30 @@ export default function FeedEntryCard({
     year: "numeric",
   });
   const cardHeader = `${formatter.format(entryDate)} • ${formatCreatedMeta(entry.createdAt, entryDate)}`;
-  const cardFooter = ``;
-  const mediaItems = media.map((m) => ({
-    uri: resolveAttachmentUri(m.relPath),
-    kind: m.kind,
-  }));
+  const mediaItems = media
+    .filter((m) => m.kind !== "audio")
+    .map((m) => ({
+      uri: resolveAttachmentUri(m.relPath),
+      kind: m.kind as "image" | "video",
+    }));
+  const countWords = (str: string) => {
+    return str
+      .trim()
+      .split(/\s+/)
+      .filter((word: string) => word.length > 0).length;
+  };
+  const isMe = true;
+
   return (
     <View style={styles.card}>
       <View style={{ padding: 16 }}>
         <View style={styles.cardHeader}>
           <Text style={styles.cardDate}>{cardHeader}</Text>
+          <AuthorPill
+            name={entry.authorName}
+            isMe={isMe}
+            diaryAccent={diaryAccent}
+          />
         </View>
         <Text style={styles.cardTitle}>{entry.title}</Text>
         <Text style={styles.cardPreview}>{cleanPreview}</Text>
@@ -60,7 +73,16 @@ export default function FeedEntryCard({
       {media.length > 0 && (
         <FeedMedia items={mediaItems} onOpen={onMediaOpen} />
       )}
-      <View>{cardFooter}</View>
+      <View style={styles.cardFooter}>
+        <Text
+          style={styles.cardDate}
+        >{`${countWords(cleanPreview)} words`}</Text>
+        <Ionicons
+          size={16}
+          color={colors.textMuted}
+          name="chevron-forward-outline"
+        />
+      </View>
     </View>
   );
 }
@@ -85,6 +107,7 @@ const getStyles = (
     },
     cardHeader: {
       flexDirection: "row",
+      justifyContent: "space-between",
       alignItems: "baseline",
       marginBottom: 8,
     },
@@ -105,7 +128,13 @@ const getStyles = (
       lineHeight: 20,
       color: colors.text,
     },
-    cardFooter: { flexDirection: "row", justifyContent: "space-between" },
+    cardFooter: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "flex-end",
+      marginHorizontal: 10,
+      marginTop: 10,
+    },
     cardFooterRight: {
       flexDirection: "row",
       alignItems: "center",
@@ -117,32 +146,5 @@ const getStyles = (
       borderBottomColor: colors.border,
       borderBottomWidth: 1,
       marginVertical: 15,
-    },
-    authorPill: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: 6,
-      paddingHorizontal: 9,
-      paddingVertical: 3,
-      borderRadius: 999,
-      borderWidth: 1,
-    },
-    authorPillMe: {
-      backgroundColor: colors.surface,
-      borderColor: diaryAccent,
-    },
-    authorPillOther: {
-      backgroundColor: colors.surface,
-      borderColor: colors.border,
-    },
-    authorDot: {
-      width: 6,
-      height: 6,
-      borderRadius: 3,
-    },
-    authorText: {
-      fontSize: 11,
-      fontFamily: fonts.label,
-      fontWeight: "700",
     },
   });

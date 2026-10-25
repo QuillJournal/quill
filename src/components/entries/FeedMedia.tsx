@@ -64,7 +64,7 @@ export default function FeedMedia({ items, onOpen }: FeedMediaProps) {
       onOpen={onOpen}
     />
   );
-  const layoutMap = {
+  const layoutMap: Record<number, () => React.JSX.Element> = {
     1: () => tile(0),
     2: () => (
       <View style={styles.row}>
