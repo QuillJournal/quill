@@ -1,3 +1,4 @@
+import useDiaries from "@/src/hooks/useDiaries";
 import DiaryMembersModal from "@/src/components/DiaryMembersModal";
 import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
@@ -24,6 +25,7 @@ import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function DiaryScreen() {
+  const { diaries } = useDiaries();
   const { id } = useLocalSearchParams<{ id: string }>();
   const diaryId = Number(id);
   const { colors } = useTheme();
@@ -37,7 +39,6 @@ export default function DiaryScreen() {
   const isSyncing = useSyncStatus();
   const [authorMap, setAuthorMap] = useState<Record<string, string>>({});
   const { session } = useUserSession();
-
   useEffect(() => {
     db.select()
       .from(diaryMembersTable)
@@ -124,6 +125,7 @@ export default function DiaryScreen() {
           router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
         }}
         onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
+        first = {diaries.length ===0}
       />
       <View
         pointerEvents="box-none"

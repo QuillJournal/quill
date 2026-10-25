@@ -137,7 +137,7 @@ export default function Home() {
             <DiaryCard
               diary={item}
               isFirst={index === 0}
-              onPress={(origin) => {setIndex(1), open(item, origin)}}
+              onPress={(origin) => open(item, origin)}
               onDelete={handleDeleteDiary}
             />
           )}

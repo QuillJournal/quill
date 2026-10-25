@@ -32,6 +32,7 @@ interface EntriesListProps {
   onDeleteEntry?: (id: number) => void;
   onOpenMembers?: () => void;
   closing?: boolean;
+  first?:boolean;
 }
 
 export default function EntriesList({
@@ -44,6 +45,7 @@ export default function EntriesList({
   onDeleteEntry,
   onOpenMembers,
   closing,
+  first
 }: EntriesListProps) {
   const { colors } = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -139,10 +141,12 @@ export default function EntriesList({
       ) : (
         <EmptyState accentColor={diaryAccent} />
       )}
-      <OnBoarding 
-        position = {[0, 150]}
-        index2 = {3}
-      /> 
+      {first && (
+        <OnBoarding 
+          position = {[0, 150]}
+          index2 = {2}
+        /> 
+      )}
     </View>
   );
 }

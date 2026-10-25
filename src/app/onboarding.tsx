@@ -15,18 +15,27 @@ export default function Onboarding({position = [100,50], index2}:props) { // top
     const pages = [
         {
             title: "Start a new diary here!",
-            description: "store all your important dates♡",
-            image: require("../../assets/images/icon.png")
+            description: "store all your important dates ♡",
+            image: require("../../assets/images/icon.png"),
+            text: "Skip All →"
+        },
+        {
+            title: "Open your diary!",
+            description: "view your calender!",
+            image: require("../../assets/images/icon.png"),
+            text: "Skip All →"
         },
         {
             title: "Make your first entry!",
-            description: "inpsiring.",
-            image: require("../../assets/images/icon.png")
+            description: "click here to make an entry",
+            image: require("../../assets/images/icon.png"),
+            text: "Skip All →"
         },
         {
-            title: "done!",
-            description: "inpsiring.",
-            image: require("../../assets/images/icon.png")
+            title: "Click here to invite a collaborator!",
+            description: "share notes together!",
+            image: require("../../assets/images/icon.png"),
+            text: "Finish!"
         },
     ]
     useEffect(() => {
@@ -95,7 +104,7 @@ export default function Onboarding({position = [100,50], index2}:props) { // top
                     ]}
                 onPress = {() => setVisible(false)}> 
                 <Text style = {styles.subtitle}>
-                    Skip All → 
+                    {pages[index].title}
                 </Text>
             </Pressable>
         </View>
