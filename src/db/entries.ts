@@ -105,4 +105,11 @@ export const deleteEntry = async (id: number): Promise<void> => {
   }
 };
 
+export const markEntryDirty = async (id: number): Promise<void> => {
+  await db
+    .update(entries)
+    .set({ syncState: "pending_update", updatedAt: new Date() })
+    .where(and(eq(entries.id, id), eq(entries.syncState, "synced")));
+};
+
 export const getEntriesByDiaryIdWithAttachmentCounts = async () => {};

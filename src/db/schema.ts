@@ -123,6 +123,18 @@ export const AttachmentsTable = sqliteTable(
     durationMs: int("duration_ms"),
     sizeBytes: int("size_bytes"),
     name: text(),
+    remoteId: text("remote_id").unique(),
+    syncState: text("sync_state", {
+      enum: [
+        "pending_upload",
+        "synced",
+        "pending_download",
+        "local_only",
+        "failed",
+      ],
+    })
+      .notNull()
+      .default("pending_upload"),
     createdAt: int("created_at", { mode: "timestamp" })
       .notNull()
       .default(sql`(unixepoch())`),

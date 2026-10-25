@@ -12,6 +12,7 @@ import { deleteDiary } from "../db/diaries";
 import {
   deleteEntry,
   getEntriesByDiaryId,
+  markEntryDirty,
   saveEntry,
   updateEntry,
 } from "../db/entries";
@@ -131,6 +132,7 @@ export async function persistAttachments(
 
       const row = {
         entryId: entryId,
+        remoteId: Crypto.randomUUID(),
         kind: p.kind,
         name: p.name,
         relPath: relPath,
@@ -186,6 +188,7 @@ export async function createEntryWithMedia(
   const entryId = await saveEntry(diaryId, title, entryDate, body, authorId);
   try {
     if (added.length) await persistAttachments(entryId, added);
+    await markEntryDirty(entryId);
   } catch (e) {
     await deleteEntry(entryId).catch(() => {});
     await removeEntryMedia(entryId).catch(() => {});
@@ -214,6 +217,7 @@ export async function updateEntryWithMedia(
       await deleteAttachmentRow(a.id);
     }
   }
+  await markEntryDirty(entryId);
 }
 
 export async function deleteEntryWithMedia(entryId: number): Promise<void> {
@@ -227,3 +231,6 @@ export async function deleteDiaryWithMedia(diaryId: number): Promise<void> {
   }
   await deleteDiary(diaryId);
 }
+
+export const hasLocalFile = (a: Attachment) =>
+  a.syncState !== "pending_download" && a.syncState !== "failed";

@@ -16,6 +16,7 @@ import { saveLocalProfile } from "../db/localProfile";
 import useTheme from "../hooks/useTheme";
 import { haptic } from "../services/haptics";
 import { wipeLocalData } from "../services/localWipe";
+import { changeAccountName, propagateNameToDiaries } from "../services/profile";
 import {
   clearDerivedKey,
   getStoredDerivedKey,
@@ -41,6 +42,7 @@ import {
   persistLocalAvatar,
 } from "../utils/photoCrypto";
 import Button from "./Button";
+import FormField from "./FormField";
 import PasswordField from "./PasswordField";
 import AppModal from "./ui/AppModal";
 
@@ -66,9 +68,12 @@ export default function SettingsModal({
   const [isRecoveryExpanded, setIsRecoveryExpanded] = useState(false);
   const [recoveryPassword, setRecoveryPassword] = useState("");
   const [isRecoveryBusy, setIsRecoveryBusy] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [isSavingName, setIsSavingName] = useState(false);
 
   const togglePhotoExpanded = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    if (!isPhotoExpanded) setNameDraft(session?.name ?? "");
     setIsPhotoExpanded((prev) => !prev);
   };
 
@@ -311,6 +316,29 @@ export default function SettingsModal({
     }
   };
 
+  const handleChangeName = async () => {
+    if (!session) return;
+    setIsSavingName(true);
+    try {
+      const name = await changeAccountName(session, nameDraft);
+      const next = { ...session, name };
+      setSession(next);
+      const failed = await propagateNameToDiaries(next);
+      haptic.success();
+      dialog.alert(
+        "Name updated",
+        failed > 0
+        ? `Saved, but ${failed} shared diar${failed === 1 ? "y" : "ies"} still show your old name. Try again later.`
+        : "Your name was updated.",
+      );
+    } catch (err: any) {
+      haptic.error();
+      dialog.alert("Update Failed", err.message || "Could not update name.");
+    } finally {
+      setIsSavingName(false);
+    }
+  };
+
   const handleLogout = () => {
     haptic.thud();
     dialog.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -457,30 +485,50 @@ export default function SettingsModal({
                       size="sm"
                     />
                   </View>
+                  <View style={styles.nameFieldWrapper}>
+                    <FormField
+                      label="Display name"
+                      value={nameDraft}
+                      onChangeText={setNameDraft}
+                      placeholder="Your name"
+                      autoCapitalize="words"
+                    />
+                    <Button
+                      label="Save name"
+                      onPress={handleChangeName}
+                      loading={isSavingName}
+                      disabled={
+                        !nameDraft.trim() || nameDraft.trim() === session.name
+                      }
+                      variant="primary"
+                      size="sm"
+                    />
+                  </View>
                 </View>
               )}
             </View>
           )}
         </View>
+
         {session && (
           <View
-          style={[
-            styles.section,
-            styles.recoveryCard,
-            { backgroundColor: colors.card, borderColor: colors.border },
-          ]}
+            style={[
+              styles.section,
+              styles.recoveryCard,
+              { backgroundColor: colors.card, borderColor: colors.border },
+            ]}
           >
             <TouchableOpacity
-            style={styles.recoveryHeader}
-            onPress={toggleRecoveryExpanded}
-            activeOpacity={0.8}
+              style={styles.recoveryHeader}
+              onPress={toggleRecoveryExpanded}
+              activeOpacity={0.8}
             >
               <Ionicons name="key-outline" size={20} color={colors.text} />
               <Text style={[styles.recoveryTitle, { color: colors.text }]}>Recovery key</Text>
               <Ionicons
-              name={isRecoveryExpanded ? "chevron-up" : "chevron-down"}
-              size={18}
-              color={colors.textMuted}
+                name={isRecoveryExpanded ? "chevron-up" : "chevron-down"}
+                size={18}
+                color={colors.textMuted}
               />
             </TouchableOpacity>
 
@@ -490,28 +538,28 @@ export default function SettingsModal({
                   Enter your password to view your recovery key or generate a new one.
                 </Text>
                 <PasswordField
-                password={recoveryPassword}
-                onChangePassword={setRecoveryPassword}
+                  password={recoveryPassword}
+                  onChangePassword={setRecoveryPassword}
                 />
                 <Button
-                label="Show recovery key"
-                onPress={handleShowRecoveryKey}
-                loading={isRecoveryBusy}
-                disabled={!recoveryPassword}
-                variant="primary"
-                size="sm"
+                  label="Show recovery key"
+                  onPress={handleShowRecoveryKey}
+                  loading={isRecoveryBusy}
+                  disabled={!recoveryPassword}
+                  variant="primary"
+                  size="sm"
                 />
                 <Button
-                label="Generate new key"
-                onPress={handleGenerateRecoveryKey}
-                loading={isRecoveryBusy}
-                disabled={!recoveryPassword}
-                variant="secondary"
-                size="sm"
+                  label="Generate new key"
+                  onPress={handleGenerateRecoveryKey}
+                  loading={isRecoveryBusy}
+                  disabled={!recoveryPassword}
+                  variant="secondary"
+                  size="sm"
                 />
-                </View>
+              </View>
             )}
-            </View>
+          </View>
         )}
 
         {/* Sign Out Button */}
@@ -668,7 +716,7 @@ const styles = StyleSheet.create({
   },
   buttonWrapper: {
     marginTop: 14,
-    width: 160, // Gives our custom Button a neat, centered pill width
+    width: 160,
     alignSelf: "center",
   },
   deleteButton: {
@@ -686,7 +734,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
-    recoveryCard: {
+  recoveryCard: {
     marginBottom: 12,
     justifyContent: "flex-start",
     minHeight: 0,
@@ -708,5 +756,10 @@ const styles = StyleSheet.create({
   recoveryHint: {
     fontSize: 13,
     lineHeight: 18,
+  },
+  nameFieldWrapper: {
+    alignSelf: "stretch",
+    gap: 12,
+    marginTop: 14,
   },
 });
