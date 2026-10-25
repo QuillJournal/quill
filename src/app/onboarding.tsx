@@ -1,45 +1,56 @@
-import {View, Text, Image, Pressable, StyleSheet} from "react-native"
+import {View, Text, Image, Pressable, StyleSheet, type PressableStateCallbackType} from "react-native";
 import React, {useState} from "react";
 import { radius } from "@/src/constants/radius";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
-export default function Onboarding() {
+export default function Onboarding({position= [100,50]}:{position?:[number, number]}) { // top n left
     const colors = useTheme()
     const [index, setIndex] = useState(0)
+    const [visible, setVisible] = useState(true); 
     const pages = [
         {
             title: "Start a new diary here",
             description: "inpsiring.",
             button: "Next →",
-            image: require("./assets/images/icon.png")
+            image: require("../../assets/images/icon.png")
         },
         {
             title: "Make your first entry!",
             description: "inpsiring.",
             button: "Next →",
-            image: require("./assets/images/icon.png")
+            image: require("../../assets/images/icon.png")
         },
         {
             title: "done!",
             description: "inpsiring.",
             button: "ok!",
-            image: require("./assets/images/icon.png")
+            image: require("../../assets/images/icon.png")
         },
     ]
+    function check(){ 
+        if(index === 0){
+            //check if they clicked the draft button
+
+        }
+    }
     function change_page(){ 
         if(index < pages.length -1){
             setIndex(index+1);
         }else{
-            //make invisible
+            setVisible(false);
         }
     }
     const styles = StyleSheet.create({
     scrollContent: {
-        flexGrow: 1,
+        width: 300,
+        height: 300,
+        position: "absolute", 
+        left: position[0],
+        top: position[1],
         paddingHorizontal: spacing.lg,
-        paddingTop: spacing.xxl,
-        paddingBottom: spacing.xl,
+        paddingTop: spacing.xs,
+        paddingBottom: spacing.xs,
         justifyContent: "center",
         backgroundColor: colors.colors.background, 
         alignItems: "center",
@@ -70,20 +81,23 @@ export default function Onboarding() {
     }
     });
     return(
-        <View style = {styles.scrollContent}>
+        visible && 
+            <View style = {styles.scrollContent}>
             <Text style = {styles.title}> {pages[index].title} </Text>
             <Text style = {styles.subtitle}> {pages[index].description} </Text>
             <Image style = {styles.image} source = {pages[index].image}/>
             <Pressable 
-                style = {({pressed})=> [
+                style = {({pressed}:PressableStateCallbackType)=> [
                     styles.button,
-                    {backgroundColor: pressed? colors.colors.accent:colors.colors.accentPressed},
+                    {backgroundColor: pressed? colors.colors.accentPressed:colors.colors.accent},
                     ]}
-            onPress = {change_page}> 
-                <Text style = {styles.button}>
+                disabled = {()=> check()}
+                onPress = {change_page}> 
+                <Text style = {styles.subtitle}>
                     {pages[index].button} 
                 </Text>
             </Pressable>
         </View>
+        
     );
 }

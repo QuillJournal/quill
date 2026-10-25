@@ -1,3 +1,7 @@
+export {default} from "../onboarding"
+
+
+/*
 import EmptyArt from "@/assets/images/empty.svg";
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import DiaryCard, { STACK_SIDE_PADDING } from "@/src/components/DiaryCard";
@@ -176,3 +180,4 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       color: colors.text,
     },
   });
+  */
