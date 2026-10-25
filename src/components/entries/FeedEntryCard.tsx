@@ -34,6 +34,7 @@ export default function FeedEntryCard({
   diaryAccent,
   media,
   onMediaOpen,
+  onLongPress,
 }: EntryCardProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors, diaryAccent);
@@ -87,6 +88,7 @@ export default function FeedEntryCard({
       onPressIn={() => animatePress(true)}
       onPressOut={() => animatePress(false)}
       onPress={onPress}
+      onLongPress={() => onLongPress(entry)}
     >
       <Animated.View style={[styles.card, { backgroundColor: animatedColor }]}>
         <View style={{ padding: 16 }}>
