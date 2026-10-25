@@ -9,27 +9,29 @@ import "expo-blob";
 import { useFonts } from "expo-font";
 import { Stack, useRouter } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, useColorScheme } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, useColorScheme, View } from "react-native";
 import "react-native-reanimated";
+import { DecryptGateContext } from "../components/DecryptingScreen";
 import { dialog } from "../components/Dialog/DialogProvider";
 import LockedDatabaseScreen from "../components/LockedDatabaseScreen";
 import { DiaryTransitionProvider } from "../context/DiaryTransitionContext";
-import { dbStatus } from "../db";
+import { db, dbStatus } from "../db";
 import { getResumeDiaryId } from "../db/appState";
+import { getLocalProfile, saveLocalProfile } from "../db/localProfile";
 import { protectLocalStorage } from "../services/localProtection";
 import { finishPendingWipe } from "../services/localWipe";
 import { initKeysRpc } from "../utils/auth";
 import {
   bytesToHex,
   decryptKeyBundle,
-  encryptKeyBundle,
   generateDualSignKeyPair,
   generateHybridKemKeyPair,
   generateRecoveryKey,
   hexToBytes,
   signPublicBundle,
-  type UserSecretKeyBundle,
+  wrapKeyBundles,
+  type UserSecretKeyBundle
 } from "../utils/crypto";
 
 export {
@@ -46,13 +48,14 @@ import {
   useSyncLifecycle,
   useUserSession,
 } from "../context/UserSessionContext";
-import { getLocalProfile, saveLocalProfile } from "../db/localProfile";
+import { diariesTable } from "../db/schema";
 import useTheme from "../hooks/useTheme";
 import {
   clearDerivedKey,
   getStoredDerivedKey,
 } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
+import { getSyncRuns } from "../services/syncEngine";
 import { getUserProfileRecord, subscribeToAuthState } from "../utils/auth";
 import { decryptUserProfile } from "../utils/crypto";
 import {
@@ -86,12 +89,16 @@ function AppNavigator() {
     Gabarito_500Medium,
     Gabarito_700Bold,
   });
-  const { session: userSession, setSession } = useUserSession();
+  const { setSession } = useUserSession();
   useSyncLifecycle();
   const router = useRouter();
 
   const [supabaseSession, setSupabaseSession] = useState<Session | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [decryptBaseline, setDecryptBaseline] = useState<number | null>(null);
+  const [gateChecked, setGateChecked] = useState(false);
+  const decryptGateDone = useRef(false);
+
   let cachedPhotoUri: string | null = null;
 
   useEffect(() => {
@@ -113,6 +120,8 @@ function AppNavigator() {
       setSupabaseSession(newSession);
 
       if (!newSession) {
+        decryptGateDone.current = false;
+        setDecryptBaseline(null);
         setIsAuthLoading(false);
         return;
       }
@@ -181,12 +190,13 @@ function AppNavigator() {
               signEd25519Priv: bytesToHex(signPair.ed25519Priv),
               signMldsa65Priv: bytesToHex(signPair.mldsa65Priv),
             };
+            const wrappedBundles = wrapKeyBundles(secretBundle, derivedKey, recKeyBytes);
             await initKeysRpc({
               kemPublicKey: kemPubHex,
               signPublicKey: signPubHex,
               bundleSignature: bundleSigHex,
-              encryptedKeyBundle: encryptKeyBundle(secretBundle, derivedKey),
-              recoveryKeyBundle: encryptKeyBundle(secretBundle, recKeyBytes),
+              encryptedKeyBundle: wrappedBundles.encryptedKeyBundle,
+              recoveryKeyBundle: wrappedBundles.recoveryKeyBundle,
             });
 
             setTimeout(() => {
@@ -221,7 +231,7 @@ function AppNavigator() {
             kemKeys = {
               x25519Priv: hexToBytes(bundle.kemX25519Priv),
               mlkem768Priv: hexToBytes(bundle.kemMlkem768Priv),
-              publicKeyHex: profileRecord.sign_public_key,
+              publicKeyHex: profileRecord.kem_public_key,
             };
             signKeys = {
               ed25519Priv: hexToBytes(bundle.signEd25519Priv),
@@ -251,7 +261,6 @@ function AppNavigator() {
             decryptedPhotoUri,
             kemKeys?.publicKeyHex ?? "",
           );
-
           setSession({
             userId: newSession.user.id,
             username: profileRecord.username,
@@ -271,8 +280,68 @@ function AppNavigator() {
     });
     return () => unsubscribe();
   }, []);
+
   const isSignedIn = supabaseSession !== null;
   const isNavReady = isFontsLoaded && isDbMigrated && !isAuthLoading;
+
+  const closeDecryptGate = useCallback(() => {
+    decryptGateDone.current = true;
+    setDecryptBaseline(null);
+  }, [])
+
+  useEffect(() => {
+    if (!isNavReady) return;
+    if (!isSignedIn) {
+      setGateChecked(false);
+      return;
+    }
+    if (decryptGateDone.current) {
+      setGateChecked(true);
+      return;
+    }
+    const baseline = getSyncRuns();
+    let cancelled = false;
+    (async () => {
+      const [anyDiary] = await db
+      .select({ id: diariesTable.id })
+      .from(diariesTable)
+      .limit(1);
+      if (cancelled) return;
+      if (anyDiary) decryptGateDone.current = true;
+      else setDecryptBaseline((prev) => prev ?? baseline);
+      setGateChecked(true);
+    })().catch((e) => {
+      console.warn("Decrypt gate check failed: ", e);
+      if (!cancelled) setGateChecked(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isSignedIn, isNavReady]);
+
+  useEffect(() => {
+    if (decryptBaseline === null) return;
+    const t = setTimeout(closeDecryptGate, 60_000);
+    return () => clearTimeout(t);
+  }, [decryptBaseline, closeDecryptGate]);
+
+  useEffect(() => {
+    if (!isNavReady) return;
+    if (!isSignedIn) {
+      router.replace("/(auth)/login");
+      return;
+    }
+    if (!gateChecked) return;
+    if (decryptBaseline !== null) {
+      router.replace("/decrypting");
+      return;
+    }
+    const resumeDiaryId = getResumeDiaryId();
+    router.replace(
+      resumeDiaryId === null ? "/(app)" : `/(app)/diary/${resumeDiaryId}`,
+    );
+  }, [isSignedIn, isNavReady, gateChecked, decryptBaseline]);
+
   useEffect(() => {
     if (!isNavReady) return;
     if (!isSignedIn) {
@@ -308,17 +377,27 @@ function AppNavigator() {
   return (
     <SafeAreaProvider>
       <DialogProvider>
-        <DiaryTransitionProvider>
-          <Stack
-            screenOptions={{
-              contentStyle: { backgroundColor: colors.background },
-              headerShown: false,
-            }}
-          >
-            <Stack.Screen name="(app)" />
-            <Stack.Screen name="(auth)" />
-          </Stack>
-        </DiaryTransitionProvider>
+        <DecryptGateContext.Provider
+        value={{ baseline: decryptBaseline, finish: closeDecryptGate }}
+        >
+          <DiaryTransitionProvider>
+            <View style={{flex: 1}}>
+              <Stack
+              screenOptions={{
+                contentStyle: { backgroundColor: colors.background },
+                headerShown: false,
+              }}
+              >
+                <Stack.Screen name="(app)" />
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen
+                name="decrypting"
+                options={{ animation: "fade", gestureEnabled: false }}
+                />
+              </Stack>
+            </View>
+          </DiaryTransitionProvider>
+        </DecryptGateContext.Provider>
       </DialogProvider>
     </SafeAreaProvider>
   );

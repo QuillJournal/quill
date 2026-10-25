@@ -1,6 +1,7 @@
 import { and, count, eq } from "drizzle-orm";
 import * as Crypto from "expo-crypto";
 import { db } from ".";
+import type { MoodKey } from "../constants/moods";
 import type { Entry, EntryWithCounts } from "../types/entry";
 import { EMPTY_COUNTS, getAttachmentCountsByDiaryId } from "./attachments";
 import { entriesTable as entries } from "./schema";
@@ -24,16 +25,18 @@ export const saveEntry = async (
   title: string,
   entryDate: string,
   body: string,
-  authorId?: string,
+  authorId: string,
+  mood: MoodKey | null = null,
 ): Promise<number> => {
   const remoteId = Crypto.randomUUID();
   const result = await db.insert(entries).values({
     remoteId,
     diaryId,
-    authorId: authorId ?? null,
+    authorId,
     title,
     entryDate,
     body,
+    mood,
     version: 1,
     keyEpoch: 1,
     deleted: 0,
@@ -47,6 +50,7 @@ export const updateEntry = async (
   title: string,
   entryDate: string,
   body: string,
+  mood?: MoodKey | null,
 ): Promise<void> => {
   const [existing] = await db.select().from(entries).where(eq(entries.id, id));
   if (!existing) return;
@@ -62,6 +66,7 @@ export const updateEntry = async (
       title,
       entryDate,
       body,
+      mood,
       syncState: nextState,
       updatedAt: new Date(),
     })
@@ -103,6 +108,13 @@ export const deleteEntry = async (id: number): Promise<void> => {
       .set({ deleted: 1, syncState: "pending_delete", updatedAt: new Date() })
       .where(eq(entries.id, id));
   }
+};
+
+export const markEntryDirty = async (id: number): Promise<void> => {
+  await db
+    .update(entries)
+    .set({ syncState: "pending_update", updatedAt: new Date() })
+    .where(and(eq(entries.id, id), eq(entries.syncState, "synced")));
 };
 
 export const getEntriesByDiaryIdWithAttachmentCounts = async () => {};

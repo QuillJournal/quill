@@ -7,6 +7,7 @@ import {
   Toolbar,
   useEditorBridge,
 } from "@10play/tentap-editor";
+import { Ionicons } from "@expo/vector-icons";
 import { DatePicker } from "@quidone/react-native-wheel-picker";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -31,6 +32,7 @@ import {
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
 import { GabaritoFont } from "../constants/Gabarito";
+import { MOODS, type MoodKey } from "../constants/moods";
 import { fonts } from "../constants/typography";
 import useTheme from "../hooks/useTheme";
 import {
@@ -48,7 +50,9 @@ import AudioRow from "./AudioRow";
 import Button from "./Button";
 import MediaThumb from "./MediaThumb";
 import MediaViewer, { Rect, ViewerItem } from "./MediaViewer";
-import { IconButton } from "./PressableScale";
+import MojiFace from "./MojiFace";
+import MoodPicker from "./MoodPicker";
+import PressableScale, { IconButton } from "./PressableScale";
 import VoiceRecorder from "./VoiceRecorder";
 import AppModal from "./ui/AppModal";
 
@@ -58,11 +62,13 @@ interface EditorProps {
   initialDate?: string;
   initialReadOnly?: boolean;
   initialAttachments?: Attachment[];
+  initialMood?: MoodKey | null;
   onSave: (
     title: string,
     entryDate: string,
     body: string,
     media: { added: PendingAttachment[]; removedIds: number[] },
+    mood: MoodKey | null,
   ) => void;
   onBack?: () => void;
 }
@@ -73,6 +79,7 @@ export default function Editor({
   initialDate,
   initialReadOnly,
   initialAttachments,
+  initialMood,
   onSave,
   onBack,
 }: EditorProps) {
@@ -102,6 +109,8 @@ export default function Editor({
   );
   const [added, setAdded] = useState<PendingAttachment[]>([]);
   const [removedIds, setRemovedIds] = useState<number[]>([]);
+  const [mood, setMood] = useState<MoodKey | null>(initialMood ?? null);
+  const [showMoodPicker, setShowMoodPicker] = useState(false);
 
   const addedRef = useRef(added);
   addedRef.current = added;
@@ -136,6 +145,13 @@ export default function Editor({
 
   const handleDatePress = () => {
     if (!isReadOnly) setShowDatePicker(true);
+  };
+
+  const openMoodPicker = () => {
+    if (isReadOnly) return;
+    Keyboard.dismiss();
+    editor.blur();
+    setShowMoodPicker(true);
   };
 
   const thumbs = [
@@ -217,7 +233,7 @@ export default function Editor({
     const contentHtml = await editor.getHTML();
     setIsReadOnly(true);
     handedOffRef.current = true;
-    onSave(title, entryDate, contentHtml, { added, removedIds });
+    onSave(title, entryDate, contentHtml, { added, removedIds }, mood);
   };
 
   const handleStartEditing = () => {
@@ -303,9 +319,34 @@ export default function Editor({
           editable={!isReadOnly}
         />
 
-        <Pressable onLongPress={handleDatePress}>
-          <Text style={styles.dateSubtitle}>{displayDate}</Text>
-        </Pressable>
+                <View style={styles.metaRow}>
+          <Pressable onLongPress={handleDatePress}>
+            <Text style={styles.dateSubtitle}>{displayDate}</Text>
+          </Pressable>
+          {(mood || !isReadOnly) && (
+            <PressableScale
+              disabled={isReadOnly}
+              onPress={openMoodPicker}
+              accessibilityRole="button"
+              accessibilityLabel={
+                mood ? `Mood: ${MOODS[mood].label}. Change mood` : "Add mood"
+              }
+              style={styles.moodChip}
+            >
+              {mood ? (
+                <>
+                  <MojiFace mood={mood} size={22} animated intro introDelay={isReadOnly ? 300 : 0} />
+                  <Text style={styles.moodChipText}>{MOODS[mood].label}</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="happy-outline" size={18} color={colors.textMuted} />
+                  <Text style={styles.moodChipText}>Mood</Text>
+                </>
+              )}
+            </PressableScale>
+          )}
+        </View>
         {visual.length > 0 && (
           <ScrollView
             horizontal
@@ -368,6 +409,12 @@ export default function Editor({
           onCancel={() => setRecorderOpen(false)}
         />
       )}
+            <MoodPicker
+        isOpen={showMoodPicker}
+        value={mood}
+        onSelect={setMood}
+        onClose={() => setShowMoodPicker(false)}
+      />
       <AppModal
         title="Jump To"
         isOpen={showDatePicker}
@@ -490,5 +537,29 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       backgroundColor: colors.surface,
       alignItems: "center",
       justifyContent: "center",
+    },
+        metaRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingRight: 20,
+      paddingBottom: 14,
+    },
+    moodChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    moodChipText: {
+      fontFamily: fonts.label,
+      fontSize: 12,
+      fontWeight: "600",
+      color: colors.textMuted,
     },
   });

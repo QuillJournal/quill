@@ -8,30 +8,31 @@ import { fonts, fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import useTheme from "@/src/hooks/useTheme";
 import {
-    DiaryMemberInfo,
-    fetchDiaryMembers,
-    getSharePhotoPreference,
-    lookupUserForInvite,
-    sendDiaryInvite,
-    updateMyMemberBlob,
+  DiaryMemberInfo,
+  fetchDiaryMembers,
+  getSharePhotoPreference,
+  lookupUserForInvite,
+  sendDiaryInvite,
+  updateMyMemberBlob,
 } from "@/src/services/sharing";
 import type { DiaryRow } from "@/src/types/diary";
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import {
-    ActivityIndicator,
-    FlatList,
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    Pressable,
-    StyleSheet,
-    Switch,
-    Text,
-    TouchableOpacity,
-    useColorScheme,
-    View,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Keyboard,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View,
 } from "react-native";
 
 interface DiaryMembersModalProps {
@@ -93,6 +94,7 @@ export default function DiaryMembersModal({
   };
 
   const handleInvite = async () => {
+    Keyboard.dismiss();
     const clean = inviteUsername.trim().toLowerCase();
     if (!clean || !diary || !session) return;
 

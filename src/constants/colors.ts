@@ -92,6 +92,16 @@ export const diaryColors = {
   slate: { light: "#E5384F", dark: "#FF6B7F" }, // Strawberry
 } as const;
 
+export const moodColors = {
+  awesome: { light: primitives.sunshineLight, dark: primitives.sunshineDark },
+  happy: { light: primitives.mintLight, dark: primitives.mintDark },
+  calm: { light: primitives.skyLight, dark: primitives.skyDark },
+  meh: { light: primitives.inkMuted, dark: primitives.frostMuted },
+  sad: { light: primitives.grapeLight, dark: primitives.grapeDark },
+  anxious: { light: primitives.tangerineLight, dark: primitives.tangerineDark },
+  angry: { light: primitives.crimson, dark: primitives.crimsonLight },
+} as const;
+
 export type DiaryColorKey = keyof typeof diaryColors;
 export const DEFAULT_DIARY_COLOR: DiaryColorKey = "cobalt";
 

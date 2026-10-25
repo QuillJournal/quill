@@ -50,3 +50,37 @@ export const collapse = (ms: number): HapticEvent[] => [
     sharpness: 0.2,
   },
 ];
+
+export const moodSelectPositive: HapticEvent[] = [
+  t(0, 0.6, 0.8),
+  t(0.07, 0.4, 0.7),
+];
+
+export const moodSelectNeutral: HapticEvent[] = [t(0, 0.5, 0.5)];
+
+export const moodSelectNegative: HapticEvent[] = [
+  {
+    type: "continuous",
+    time: 0,
+    duration: 0.18,
+    intensity: 0.45,
+    endIntensity: 0.1,
+    sharpness: 0.1,
+  },
+];
+
+export const moodOpenPositive: HapticEvent[] = [
+  t(0, 0.6, 0.85),
+  t(0.09, 0.9, 0.9),
+];
+
+export const moodOpenNegative: HapticEvent[] = [
+  {
+    type: "continuous",
+    time: 0,
+    duration: 0.9,
+    intensity: 0.5,
+    endIntensity: 0,
+    sharpness: 0.1,
+  },
+];

@@ -39,6 +39,7 @@ export default function useEntries(diaryId: number) {
     body: string,
     entryDate: string = new Date().toISOString().slice(0, 10),
   ): Promise<void> => {
+    if (!session?.userId) return;
     await saveEntryToDb(diaryId, title, entryDate, body, session?.userId);
     await refresh();
     await triggerSync();

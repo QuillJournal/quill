@@ -1,3 +1,4 @@
+import { isMoodKey } from "@/src/constants/moods";
 import { fonts } from "@/src/constants/typography";
 import usePressAnimation from "@/src/hooks/usePressAnimation";
 import useTheme from "@/src/hooks/useTheme";
@@ -15,6 +16,7 @@ import {
   Text,
   View,
 } from "react-native";
+import MojiFace from "../MojiFace";
 import AttachmentSummary from "./AttachmentSummary";
 
 type EntryCardProps = {
@@ -35,6 +37,7 @@ export default function EntryCard({
   const { colors } = useTheme();
   const styles = getStyles(colors, diaryAccent);
   const entryDate = fromDateKey(entry.entryDate);
+  const mood = isMoodKey(entry.mood) ? entry.mood : null;
 
   const { animatePress, animatedColor } = usePressAnimation(
     colors.card,
@@ -56,10 +59,13 @@ export default function EntryCard({
       onPressOut={() => animatePress(false)}
     >
       <Animated.View style={[styles.card, { backgroundColor: animatedColor }]}>
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle} numberOfLines={1}>
-            {entry.title || "Untitled Entry"}
-          </Text>
+                <View style={styles.cardHeader}>
+          <View style={styles.cardTitleRow}>
+            {mood && <MojiFace mood={mood} size={22} />}
+            <Text style={styles.cardTitle} numberOfLines={1}>
+              {entry.title || "Untitled Entry"}
+            </Text>
+          </View>
           <Text style={styles.cardDate}>{formatEntryDate(entryDate)}</Text>
         </View>
         <Text style={styles.cardPreview} numberOfLines={3}>
@@ -126,18 +132,24 @@ const getStyles = (
       shadowRadius: 4,
       elevation: 2,
     },
-    cardHeader: {
+        cardHeader: {
       flexDirection: "row",
       justifyContent: "space-between",
-      alignItems: "baseline",
+      alignItems: "center",
       marginBottom: 8,
+    },
+    cardTitleRow: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginRight: 12,
     },
     cardTitle: {
       fontSize: 16,
       fontWeight: "600",
       color: colors.text,
-      flex: 1,
-      marginRight: 12,
+      flexShrink: 1,
     },
     cardDate: {
       fontSize: 12,

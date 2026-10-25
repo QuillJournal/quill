@@ -9,4 +9,6 @@
 - [ ] Add a calendar which shows what days entries were made and on what days no entry was made
 - [x] Add Supabase cloud sync with end to end encryption.
 - [x] Add ability to add other people as well as actually collaborate on journals
+- [ ] Build a website for the app
+- [ ] YouTube Music integration? :p
 

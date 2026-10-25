@@ -23,7 +23,6 @@ import {
   decryptKeyBundle,
   decryptUserProfile,
   deriveAuthAndEncKeys,
-  encryptKeyBundle,
   encryptUserProfile,
   generateDualSignKeyPair,
   generateHybridKemKeyPair,
@@ -31,8 +30,10 @@ import {
   hexToBytes,
   parseRecoveryKey,
   signPublicBundle,
-  UserSecretKeyBundle
+  UserSecretKeyBundle,
+  wrapKeyBundles
 } from "@/src/utils/crypto";
+import { MIN_PASSWORD_LENGTH, validatePassword } from "@/src/utils/passwordPolicy";
 import { downloadAndDecryptPhoto } from "@/src/utils/photoCrypto";
 import { supabase } from "@/src/utils/supabase";
 import * as Clipboard from 'expo-clipboard';
@@ -49,7 +50,6 @@ import {
   UIManager,
   View
 } from "react-native";
-4
 
 if (
   Platform.OS === "android" &&
@@ -89,6 +89,13 @@ export default function Auth() {
 
     try {
       const cleanEmail = email.trim().toLowerCase();
+      if (isSignUp) {
+        const check = validatePassword(password, [cleanEmail, username, name]);
+        if (!check.ok) {
+          dialog.alert("Choose a stronger password", check.message);
+          return;
+        }
+      }
       const { authSecret, localEncKey } = await deriveAuthAndEncKeys(password, cleanEmail);
 
       if (isSignUp) {
@@ -158,15 +165,18 @@ export default function Auth() {
             signMldsa65Priv: bytesToHex(signPair.mldsa65Priv),
           };
 
-          const encKeyBundleHex = encryptKeyBundle(secretBundle, localEncKey);
-          const recKeyBundleHex = encryptKeyBundle(secretBundle, recKeyBytes);
+          const { encryptedKeyBundle, recoveryKeyBundle } = wrapKeyBundles(
+            secretBundle,
+            localEncKey,
+            recKeyBytes,
+          );
 
           await initKeysRpc({
             kemPublicKey: kemPubHex,
             signPublicKey: signPubHex,
             bundleSignature: bundleSigHex,
-            encryptedKeyBundle: encKeyBundleHex,
-            recoveryKeyBundle: recKeyBundleHex,
+            encryptedKeyBundle,
+            recoveryKeyBundle,
           });
 
           dialog.alert(
@@ -293,7 +303,11 @@ export default function Auth() {
 
       const keyBundle = decryptKeyBundle(profileRecord.recovery_key_bundle, recKeyBytes);
 
-      const newEncKeyBundleHex = encryptKeyBundle(keyBundle, newLocalEncKey);
+      const { encryptedKeyBundle: newEncKeyBundleHex } = wrapKeyBundles(
+        keyBundle,
+        newLocalEncKey,
+        recKeyBytes,
+      );
 
       const { error: authErr } = await supabase.auth.updateUser({ password: newAuthSecret });
       if (authErr) throw authErr;
@@ -396,6 +410,12 @@ export default function Auth() {
             keyboardType="email-address"
           />
           <PasswordField password={password} onChangePassword={setPassword} />
+          {isSignUp && (
+            <Text style={{ color: colors.textMuted, fontSize: fontSizes.xs }}>
+              At least {MIN_PASSWORD_LENGTH} characters; a few random words make a great password.
+              It also protects your encrypted diaries, so keep your recovery key safe.
+            </Text>
+          )}
 
           {!isSignUp && (
             <Animated.View

@@ -6,18 +6,19 @@ import { db } from "../db";
 import { getDiaryById, getDiaryKey, saveDiaryKey } from "../db/diaries";
 import { diaryInvitesTable, diaryMembersTable } from "../db/schema";
 import {
-    bytesToHex,
-    computeSafetyNumber,
-    decryptBlob,
-    encryptBlob,
-    hexToBytes,
-    signWrappedKey,
-    unwrapDiaryKey,
-    verifyPublicBundle,
-    verifyWrappedKeySig,
-    wrapDiaryKey,
+  bytesToHex,
+  computeSafetyNumber,
+  decryptBlob,
+  encryptBlob,
+  hexToBytes,
+  signWrappedKey,
+  unwrapDiaryKey,
+  verifyPublicBundle,
+  verifyWrappedKeySig,
+  wrapDiaryKey,
 } from "../utils/crypto";
 import { supabase } from "../utils/supabase";
+import { checkAndPinBundle } from "./keyPins";
 import { runSync } from "./syncEngine";
 
 export interface LookedUpUser {
@@ -52,21 +53,6 @@ export interface DiaryMemberInfo {
   photoDataUri: string | null;
   safetyNumber: string;
   pinChanged: boolean;
-}
-
-async function checkAndPinBundle(
-  userId: string,
-  kemPub: string,
-  signPub: string,
-): Promise<boolean> {
-  const storeKey = `quill_pin_${userId}`;
-  const combined = `${kemPub}:${signPub}`;
-  const existing = await SecureStore.getItemAsync(storeKey);
-  if (existing && existing !== combined) {
-    return true;
-  }
-  await SecureStore.setItemAsync(storeKey, combined);
-  return false;
 }
 
 async function encodePhotoDataUri(

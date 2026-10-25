@@ -3,6 +3,7 @@ import * as Crypto from "expo-crypto";
 import * as DocumentPicker from "expo-document-picker";
 import * as FileSystem from "expo-file-system/legacy";
 import * as ImagePicker from "expo-image-picker";
+import type { MoodKey } from "../constants/moods";
 import {
   deleteAttachmentRow,
   getAttachmentsByEntryId,
@@ -12,11 +13,11 @@ import { deleteDiary } from "../db/diaries";
 import {
   deleteEntry,
   getEntriesByDiaryId,
+  markEntryDirty,
   saveEntry,
   updateEntry,
 } from "../db/entries";
 import type { Attachment } from "../types/attachment";
-import { db } from "../db";
 
 export const ROOT = () => `${FileSystem.documentDirectory}attachments/`;
 
@@ -132,6 +133,7 @@ export async function persistAttachments(
 
       const row = {
         entryId: entryId,
+        remoteId: Crypto.randomUUID(),
         kind: p.kind,
         name: p.name,
         relPath: relPath,
@@ -182,10 +184,20 @@ export async function createEntryWithMedia(
   entryDate: string,
   body: string,
   added: PendingAttachment[],
+  authorId: string,
+  mood: MoodKey | null = null,
 ): Promise<number> {
-  const entryId = await saveEntry(diaryId, title, entryDate, body);
+  const entryId = await saveEntry(
+    diaryId,
+    title,
+    entryDate,
+    body,
+    authorId,
+    mood,
+  );
   try {
     if (added.length) await persistAttachments(entryId, added);
+    await markEntryDirty(entryId);
   } catch (e) {
     await deleteEntry(entryId).catch(() => {});
     await removeEntryMedia(entryId).catch(() => {});
@@ -200,8 +212,9 @@ export async function updateEntryWithMedia(
   entryDate: string,
   body: string,
   media: { added: PendingAttachment[]; removedIds: number[] },
+  mood?: MoodKey | null,
 ): Promise<void> {
-  await updateEntry(entryId, title, entryDate, body);
+  await updateEntry(entryId, title, entryDate, body, mood);
 
   if (media.added.length) await persistAttachments(entryId, media.added);
 
@@ -214,6 +227,7 @@ export async function updateEntryWithMedia(
       await deleteAttachmentRow(a.id);
     }
   }
+  await markEntryDirty(entryId);
 }
 
 export async function deleteEntryWithMedia(entryId: number): Promise<void> {
@@ -227,3 +241,6 @@ export async function deleteDiaryWithMedia(diaryId: number): Promise<void> {
   }
   await deleteDiary(diaryId);
 }
+
+export const hasLocalFile = (a: Attachment) =>
+  a.syncState !== "pending_download" && a.syncState !== "failed";
