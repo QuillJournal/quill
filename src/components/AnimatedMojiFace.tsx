@@ -1,19 +1,22 @@
 import { moodColors } from "@/src/constants/colors";
 import {
+    applyExpression,
+    EXPRESSIVE,
     FACE_PARAMS,
     faceGeometry,
     lerpParams,
+    type ExpressionKind,
     type FaceParams,
 } from "@/src/constants/mojiFaces";
-import { MOODS, type MoodKey, type MoodValence } from "@/src/constants/moods";
+import { MOODS, type MoodKey } from "@/src/constants/moods";
 import useTheme from "@/src/hooks/useTheme";
 import { useEffect, useRef } from "react";
+import { View } from "react-native";
 import Animated, {
     cancelAnimation,
     Easing,
     interpolateColor,
     useAnimatedProps,
-    useAnimatedStyle,
     useDerivedValue,
     useReducedMotion,
     useSharedValue,
@@ -30,22 +33,18 @@ const AnimatedEllipse = Animated.createAnimatedComponent(Ellipse);
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 
 const SPRING = { damping: 11, stiffness: 150, mass: 0.7 };
-const BREATH_MS: Record<MoodValence, number> = {
-    positive: 1300,
-    neutral: 2000,
-    negative: 3200,
-};
-
-const BOB: Record<MoodValence, number> = {
-    positive: -0.03,
-    neutral: 0,
-    negative: 0.025,
-};
+const LAUGH_BEAT_MS = 130;
+const LAUGH_REST_MS = 1300;
+const ANGRY_BUILD_MS = 900;
+const ANGRY_HOLD_MS = 700;
+const ANGRY_RELEASE_MS = 600;
+const ANGRY_REST_MS = 500;
+const SHAKE_MS = 45;
 
 type Props = {
-    mood: MoodKey,
-    size?: number,
-    intro?: boolean,
+    mood: MoodKey;
+    size?: number;
+    intro?: boolean;
     introDelay?: number;
 };
 
@@ -60,7 +59,6 @@ export default function AnimatedMojiFace({
     const ink = colors.textOnAccent;
     const scheme = isDark ? "dark" : "light";
     const fill: string = moodColors[mood][scheme];
-    const valence = MOODS[mood].valence;
 
     const startMood: MoodKey = intro ? "meh" : mood;
     const from = useSharedValue<FaceParams>(FACE_PARAMS[startMood]);
@@ -69,115 +67,154 @@ export default function AnimatedMojiFace({
     const toFill = useSharedValue<string>(fill);
     const progress = useSharedValue(intro ? 0 : 1);
 
-    const blink = useSharedValue(0);
-    const breath = useSharedValue(0);
-    const pop = useSharedValue(1);
+    const exprKind = useSharedValue<ExpressionKind>(EXPRESSIVE[mood] ?? "none");
+  const expr = useSharedValue(0);
+  const shake = useSharedValue(0);
 
-    const mounted = useRef(false);
-    const lastMood = useRef<MoodKey>(mood);
+  const blink = useSharedValue(0);
 
-    useEffect(() => {
-        if (!mounted.current) return;
+  const mounted = useRef(false);
+  const lastMood = useRef<MoodKey>(mood);
 
-        if (lastMood.current === mood) {
-            fromFill.value = fill;
-            toFill.value = fill;
-            return;
-        }
+  useEffect(() => {
+    if (!mounted.current) return;
 
-        lastMood.current = mood;
-        from.value = to.value;
-        fromFill.value = toFill.value;
-        to.value = FACE_PARAMS[mood];
+    if (lastMood.current === mood) {
+        fromFill.value = fill;
         toFill.value = fill;
+        return;
+    }
 
-        progress.value = 0;
-        if (reduce) {
-            progress.value = 1;
-            return;
-        }
-        progress.value = withSpring(1, SPRING);
-        pop.value = withSequence(
-            withTiming(1.2, { duration: 90 }),
-            withSpring(1, { damping: 8, stiffness: 260 }),
-        );
-    }, [mood, fill]);
+    lastMood.current = mood;
+    from.value = to.value;
+    fromFill.value = toFill.value;
+    to.value = FACE_PARAMS[mood];
+    toFill.value = fill;
 
-    useEffect(() => {
-        mounted.current = true;
-        if (!intro) return;
-        progress.value = reduce
-        ? 1
-        : withDelay(introDelay, withSpring(1, SPRING));
-    }, []);
+    progress.value = 0;
+    progress.value = reduce ? 1 : withSpring(1, SPRING);
+  }, [mood, fill]);
 
-    useEffect(() => {
-        if (reduce) {
-            blink.value = 0;
-            return;
-        }
-        const wait = 1800 + Math.random() * 3200;
-        blink.value = withRepeat(
-            withSequence(
-                withDelay(wait, withTiming(1, { duration: 80 })),
-                withTiming(0, { duration: 120 }),
-            ),
-            -1
-        );
-        return () => cancelAnimation(blink);
-    }, [reduce]);
+  useEffect(() => {
+    mounted.current = true;
+    if (!intro) return;
+    progress.value = reduce
+      ? 1
+      : withDelay(introDelay, withSpring(1, SPRING));
+  }, []);
 
-    useEffect(() => {
-        if (reduce) {
-            breath.value = 0;
-            return;
-        }
-        breath.value = withRepeat(
+  useEffect(() => {
+    const kind = EXPRESSIVE[mood] ?? "none";
+    exprKind.value = kind;
+    cancelAnimation(expr);
+    cancelAnimation(shake);
+    expr.value = 0;
+    shake.value = 0;
+    if (reduce || kind === "none") return;
+
+    const startDelay = Math.random() * 1200;
+
+    if (kind === "awesome") {
+      const ha = [
+        withTiming(1, { duration: LAUGH_BEAT_MS }),
+        withTiming(0.25, { duration: LAUGH_BEAT_MS }),
+      ];
+      expr.value = withDelay(
+        startDelay,
+        withRepeat(
+          withSequence(
+            ...ha,
+            ...ha,
+            withTiming(1, { duration: LAUGH_BEAT_MS }),
+            withTiming(0, { duration: 350, easing: Easing.out(Easing.quad) }),
+            withTiming(0, { duration: LAUGH_REST_MS }),
+          ),
+          -1,
+        ),
+      );
+    }
+
+    if (kind === "angry") {
+      expr.value = withDelay(
+        startDelay,
+        withRepeat(
+          withSequence(
             withTiming(1, {
-                duration: BREATH_MS[valence],
-                easing: Easing.inOut(Easing.sin),
+              duration: ANGRY_BUILD_MS,
+              easing: Easing.in(Easing.quad),
             }),
-            -1,
-            true,
-        );
-        return () => cancelAnimation(breath);
-    }, [valence, reduce]);
+            withTiming(1, { duration: ANGRY_HOLD_MS }),
+            withTiming(0.15, {
+              duration: ANGRY_RELEASE_MS,
+              easing: Easing.out(Easing.quad),
+            }),
+            withTiming(0.15, { duration: ANGRY_REST_MS }),
+          ),
+          -1,
+        ),
+      );
+      shake.value = withRepeat(withTiming(1, { duration: SHAKE_MS }), -1, true);
+    }
 
-    const geo = useDerivedValue(() =>
-    faceGeometry(lerpParams(from.value, to.value, progress.value), blink.value),
-);
+    return () => {
+      cancelAnimation(expr);
+      cancelAnimation(shake);
+    };
+  }, [mood, reduce]);
 
-const wrapStyle = useAnimatedStyle(() => ({
-    transform: [
-        { translateY: BOB[valence] * size * breath.value },
-        { scale: (1 + 0.035 * breath.value) * pop.value },
-    ],
-}));
+  useEffect(() => {
+    if (reduce) {
+      blink.value = 0;
+      return;
+    }
+    const wait = 1800 + Math.random() * 3200;
+    blink.value = withRepeat(
+      withSequence(
+        withDelay(wait, withTiming(1, { duration: 80 })),
+        withTiming(0, { duration: 120 }),
+      ),
+      -1,
+    );
+    return () => cancelAnimation(blink);
+  }, [reduce]);
 
-const circleProps = useAnimatedProps(() => ({
+  const geo = useDerivedValue(() => {
+    const base = lerpParams(from.value, to.value, progress.value);
+    const w = Math.min(1, Math.max(0, progress.value));
+    const p = applyExpression(
+      base,
+      exprKind.value,
+      expr.value,
+      shake.value * 2 - 1,
+      w,
+    );
+    return faceGeometry(p, blink.value);
+  });
+
+  const circleProps = useAnimatedProps(() => ({
     fill: interpolateColor(
-        progress.value,
-        [0, 1],
-        [fromFill.value, toFill.value],
+      progress.value,
+      [0, 1],
+      [fromFill.value, toFill.value],
     ),
-}));
-const leftBrowProps = useAnimatedProps(() => ({
+  }));
+  const leftBrowProps = useAnimatedProps(() => ({
     d: geo.value.leftBrow,
     opacity: geo.value.browOpacity,
-}));
-const rightBrowProps = useAnimatedProps(() => ({
+  }));
+  const rightBrowProps = useAnimatedProps(() => ({
     d: geo.value.rightBrow,
     opacity: geo.value.browOpacity,
-}));
-const eyeProps = useAnimatedProps(() => ({ ry: geo.value.eyeRy }));
-const mouthProps = useAnimatedProps(() => ({ d: geo.value.mouth }));
+  }));
+  const eyeProps = useAnimatedProps(() => ({ ry: geo.value.eyeRy }));
+  const mouthProps = useAnimatedProps(() => ({ d: geo.value.mouth }));
 
-return (
-    <Animated.View
+  return (
+    <View
       accessible
       accessibilityRole="image"
       accessibilityLabel={`${MOODS[mood].label} face`}
-      style={[{ width: size, height: size }, wrapStyle]}
+      style={{ width: size, height: size }}
     >
       <Svg width={size} height={size} viewBox="0 0 100 100">
         <AnimatedCircle cx={50} cy={50} r={46} animatedProps={circleProps} />
@@ -206,6 +243,6 @@ return (
           fill={ink}
         />
       </Svg>
-    </Animated.View>
+    </View>
   );
 }

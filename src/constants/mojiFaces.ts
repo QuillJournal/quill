@@ -128,3 +128,40 @@ export function faceGeometry(p: FaceParams, blink = 0) {
     mouth,
   };
 }
+
+export type ExpressionKind = "none" | "awesome" | "angry";
+
+export const EXPRESSIVE: Partial<Record<MoodKey, ExpressionKind>> = {
+  awesome: "awesome",
+  angry: "angry",
+};
+
+export function applyExpression(
+  p: FaceParams,
+  kind: ExpressionKind,
+  e: number,
+  s: number,
+  w: number,
+): FaceParams {
+  "worklet";
+  if (kind === "none" || w <= 0) return p;
+
+  if (kind === "awesome") {
+    return {
+      ...p,
+      eyeOpen: p.eyeOpen - 0.6 * e * w,
+      mouthOpen: p.mouthOpen - 0.45 * (1 - e) * w + 0.15 * e * w,
+      mouthWidth: p.mouthWidth + 3 * e * w,
+    };
+  }
+
+  return {
+    ...p,
+    browTilt: p.browTilt - 0.25 * e * w,
+    browY: p.browY + 1.5 * e * w + s * 0.6 * e * w,
+    eyeOpen: p.eyeOpen - 0.2 * e * w,
+    mouthCurve: p.mouthCurve - 0.3 * e * w,
+    mouthWidth: p.mouthWidth - 2 * e * w,
+    mouthY: p.mouthY + s * 0.7 * e * w,
+  };
+}
