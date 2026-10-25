@@ -54,7 +54,7 @@ export default function DiaryScreen() {
   const listItems = useMemo(
     () =>
       entries.map((e) => {
-        const isMe = !e.authorId || e.authorId === session?.userId;
+        const isMe = e.authorId === session?.userId;
         const authorName = isMe
           ? session?.name || "You"
           : authorMap[e.authorId!] || "Collaborator";

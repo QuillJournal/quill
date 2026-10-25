@@ -58,9 +58,7 @@ export default function EntryEditScreen() {
     loadEntry();
   }, [entryId, session?.userId]);
 
-  const isAuthor =
-  !entry?.authorId || !session?.userId || entry.authorId === session.userId;
-
+  const isAuthor = !!session?.userId && entry?.authorId === session.userId;
   const handleSave = async (
     title: string,
     entryDate: string,

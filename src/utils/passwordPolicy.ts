@@ -9,7 +9,7 @@ let configured = false;
 function configure() {
   if (configured) return;
   zxcvbnOptions.setOptions({
-    translations: zxcvbnCommonPackage.translations,
+    translations: zxcvbnEnPackage.translations,
     graphs: zxcvbnCommonPackage.adjacencyGraphs,
     dictionary: {
       ...zxcvbnCommonPackage.dictionary,

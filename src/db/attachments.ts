@@ -67,3 +67,19 @@ export const getAttachmentCountsByDiaryId = async (diaryId: number) => {
   }
   return byEntry;
 };
+
+export const updateAttachment = async (
+  id: number,
+  patch: Partial<NewAttachment>,
+): Promise<void> => {
+  await db.update(attachments).set(patch).where(eq(attachments.id, id));
+};
+
+export const getAttachmentsBySyncState = async (
+  state: Attachment["syncState"],
+): Promise<Attachment[]> =>
+  db
+    .select()
+    .from(attachments)
+    .where(eq(attachments.syncState, state))
+    .orderBy(attachments.id);

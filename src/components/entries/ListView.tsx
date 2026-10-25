@@ -33,7 +33,7 @@ export default function ListView({
   const selectedKey = selectedDate ? toDateKey(selectedDate) : null;
 
   const isMine = (entry: Entry) =>
-    !entry.authorId || entry.authorId === session?.userId;
+    entry.authorId === session?.userId;
 
   const selectedDateEntries = useMemo(() => {
     return selectedDate

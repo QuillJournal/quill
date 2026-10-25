@@ -12,6 +12,7 @@ type FormFieldProps = {
   keyboardType?: KeyboardTypeOptions;
   rightElement?: React.ReactNode;
   secureTextEntry?: boolean;
+  autoCapitalize?: "none" | "sentences" | "words" | "characters";
   onChangeText: (text: string) => void;
 };
 export default function FormField({
@@ -21,6 +22,7 @@ export default function FormField({
   keyboardType,
   rightElement,
   secureTextEntry,
+  autoCapitalize = "none",
   onChangeText,
 }: FormFieldProps) {
   const { colors } = useTheme();
@@ -49,7 +51,7 @@ export default function FormField({
           placeholderTextColor={colors.textMuted}
           value={value}
           onChangeText={onChangeText}
-          autoCapitalize="none"
+          autoCapitalize={autoCapitalize}
           keyboardType={keyboardType}
           autoCorrect={false}
           secureTextEntry={secureTextEntry}
