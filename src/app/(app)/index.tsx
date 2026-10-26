@@ -1,5 +1,5 @@
 import OnBoarding from "../onboarding"
-import EmptyArt from "@/assets/images/empty.svg";
+import EmptyArt from "@/assets/images/empty.png";
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import DiaryCard, { STACK_SIDE_PADDING } from "@/src/components/DiaryCard";
 import DiaryForm from "@/src/components/DiaryForm";
@@ -20,7 +20,7 @@ import { useSyncStatus } from "@/src/services/syncEngine";
 import type { DiaryFormData } from "@/src/types/diary";
 import { Stack, useFocusEffect } from "expo-router";
 import { useState , useEffect } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View, Dimensions } from "react-native";
+import { ActivityIndicator, FlatList, StyleSheet, Text, View, Dimensions, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "@/src/utils/supabase";
 
@@ -149,7 +149,7 @@ export default function Home() {
         }
           ListEmptyComponent={
             <View style={styles.emptyList}>
-              <EmptyArt width={220} height={220} />
+              <Image source = {EmptyArt} style = {{width:220, height:220}}/>
               <Text style={styles.noDiaryText}>No Diaries Yet.</Text>
               <Text style={{ color: colors.textMuted }}>
                 Join or create a new one.

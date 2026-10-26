@@ -5,12 +5,30 @@ import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
 import { supabase } from "@/src/utils/supabase";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+  withRepeat, 
+} from "react-native-reanimated";
 type props = {
     position?:[number, number]; 
     index2: number;
     userid: string; 
 }
 export default function Onboarding({position = [100,50], index2, userid}:props) { // top n left
+    const saveScale = useSharedValue(1);
+    const saveStyle = useAnimatedStyle(() => ({
+        transform: [{ scale: saveScale.value }],
+    }));
+    useEffect(() =>{
+        saveScale.value = withRepeat(withSequence(
+            withTiming(0.92, { duration: 60 }),
+        withSpring(1, { damping: 4, stiffness: 300 }),
+        ),Infinity);
+    }, [])
     async function onboardingCompleted() {
         setVisible(false)
         const { error} = await supabase.from("profiles").update({onboarding: true}).eq("id", userid)
@@ -26,25 +44,25 @@ export default function Onboarding({position = [100,50], index2, userid}:props) 
         {
             title: "Start a new diary here!",
             description: "store all your important dates ♡",
-            image: require("../../assets/images/icon.png"),
+            image: require("../../assets/images/onboarding.png"),
             text: "Skip All →"
         },
         {
             title: "Open your diary!",
             description: "view your calender!",
-            image: require("../../assets/images/icon.png"),
+            image: require("../../assets/images/onboarding.png"),
             text: "Skip All →"
         },
         {
             title: "Make your first entry!",
             description: "click here to make an entry",
-            image: require("../../assets/images/icon.png"),
+            image: require("../../assets/images/onboarding.png"),
             text: "Skip All →"
         },
         {
             title: "Click here to invite a collaborator!",
             description: "share notes together!",
-            image: require("../../assets/images/icon.png"),
+            image: require("../../assets/images/onboarding.png"),
             text: "Finish!"
         },
     ]
@@ -59,7 +77,7 @@ export default function Onboarding({position = [100,50], index2, userid}:props) 
     scrollContent: {
         zIndex: 10, 
         elevation: 10, 
-        width: 200,
+        width: 300,
         height: 100,
         position: "absolute", 
         left: position[0],
@@ -101,7 +119,7 @@ export default function Onboarding({position = [100,50], index2, userid}:props) 
     });
     return(
         visible && 
-            <View style = {styles.scrollContent}>
+            <Animated.View style = {[styles.scrollContent, saveStyle]}>
             <Image style = {styles.image} source = {pages[index].image}/>
             <Text style = {styles.title}> {pages[index].title} </Text>
             <Text style = {styles.subtitle}> {pages[index].description} </Text>
@@ -117,7 +135,7 @@ export default function Onboarding({position = [100,50], index2, userid}:props) 
                     {pages[index].text}
                 </Text>
             </Pressable>
-        </View>
+        </Animated.View>
         
     );
 }

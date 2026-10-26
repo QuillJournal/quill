@@ -109,7 +109,7 @@ export default function DiaryScreen() {
     if (!diaryRow) return closeDiary();
     setResumeDiaryId(null);
     close({ ...diaryRow, entryCount: entries.length });
-  }, [diaryRow, entries.length, close, closeDiary]);
+  }, [diaryRow, entries.length, close, closeDiary, session?.userId,first]);
 
   useEffect(() => {
     if (!Number.isInteger(diaryId) || !openDiary(diaryId)) closeDiary();
@@ -171,6 +171,8 @@ export default function DiaryScreen() {
                 return;
               }
             }
+            checkfirst(); 
+            setFirst(false);
           }
           router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
         }}

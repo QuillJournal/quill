@@ -6,7 +6,7 @@ import { haptic } from "@/src/services/haptics";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { Entry, EntryWithAuthor } from "@/src/types/entry";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import {
   ActivityIndicator,
@@ -65,20 +65,16 @@ export default function EntriesList({
       return date;
     });
   };
-  function calculateIndex(){ 
+  useEffect(() => {
     // 2 if there is 0 entries, 3 if there is one entry . 
-    if(entries.length == 0){
-      setIndex(2)
+    if(entries.length === 0){
+      setIndex(2);
     }
-    else if(entries.length == 1){ 
-      setIndex(3)
+    else if(entries.length === 1){ 
+      setIndex(3);
     }
-    else{ 
-      //user made two entries instead of following the path . handled in DiaryScrenn.
-      return; 
-      
-    }
-  }
+    //else user made two entries instead of following the path . handled in DiaryScrenn.
+  }, [entries.length])
   const handleDayLongPress = (date: Date) => {
     onNewEntry(date);
   };
@@ -159,7 +155,7 @@ export default function EntriesList({
       {first && (
         <OnBoarding 
           position = {[0, 150]}
-          index2 = {2}
+          index2 = {index}
           userid = {session!.userId}
         /> 
       )}
