@@ -2,6 +2,7 @@ import { fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
+import { ViewProps } from "@/src/types/diary";
 import type { Entry, EntryWithAuthor } from "@/src/types/entry";
 import { formatEntryDate, toDateKey } from "@/src/utils/dates";
 import { useMemo } from "react";
@@ -11,29 +12,20 @@ import { dialog } from "../Dialog/DialogProvider";
 import Pill from "../Pill";
 import EmptyState from "./EmptyState";
 import EntryCard from "./EntryCard";
+import { isMine } from "@/src/utils/entry";
 
-type ListViewProps = {
-  entries: EntryWithAuthor[];
-  selectedDate: Date | null;
-  onSelectEntry?: (entry: Entry) => void;
-  onDeleteEntry?: (id: number) => void;
-  diaryAccent: string;
-};
 export default function ListView({
   entries,
   selectedDate,
   onSelectEntry,
   onDeleteEntry,
   diaryAccent,
-}: ListViewProps) {
+}: ViewProps) {
   const { colors } = useTheme();
   const { session } = useUserSession();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors);
   const selectedKey = selectedDate ? toDateKey(selectedDate) : null;
-
-  const isMine = (entry: Entry) =>
-    entry.authorId === session?.userId;
 
   const selectedDateEntries = useMemo(() => {
     return selectedDate
@@ -49,7 +41,7 @@ export default function ListView({
 
   const handleLongPress = (entry: EntryWithAuthor) => {
     if (!onDeleteEntry) return;
-    if (!isMine(entry)) {
+    if (!isMine(entry.authorId, session?.userId)) {
       dialog.alert(
         "Read Only",
         "You can only delete entries that you created.",
@@ -80,7 +72,7 @@ export default function ListView({
       onPress={() => onSelectEntry?.(entry)}
       onLongPress={handleLongPress}
       diaryAccent={diaryAccent}
-      isMe={isMine(entry)}
+      isMe={isMine(entry.authorId, session?.userId)}
     />
   );
 

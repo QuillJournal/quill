@@ -17,12 +17,13 @@ import { radius } from "../constants/radius";
 import { spacing } from "../constants/spacings";
 import useTheme from "../hooks/useTheme";
 import { select } from "../services/hapticPatterns";
+import type { ViewType } from "../types/diary";
 
-type Option = { label: string; value: string };
+type Option = { label: string; value: ViewType };
 type SegmentedControlProps = {
-  options: Option[];
-  selectedValue: string;
-  onSelect: (value: string) => void;
+  options: readonly Option[];
+  selectedValue: ViewType;
+  onSelect: (value: ViewType) => void;
 };
 export default function SegmentedControl({
   options,
@@ -33,14 +34,17 @@ export default function SegmentedControl({
   const { width } = useWindowDimensions();
   const highlightPillWidth = (width - spacing.md * 2 - 2 - spacing.xs * 2) / 3;
   const progress = useSharedValue(0);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const selectedIndex = Math.max(
+    0,
+    options.findIndex((o) => o.value === selectedValue),
+  );
+  const [activeIndex, setActiveIndex] = useState(selectedIndex);
 
   useEffect(() => {
     progress.value = withSpring(activeIndex);
   }, [activeIndex]);
 
   useEffect(() => {
-    const selectedIndex = options.findIndex((o) => o.value === selectedValue);
     setActiveIndex(selectedIndex);
   }, [selectedValue]);
 
@@ -77,7 +81,7 @@ export default function SegmentedControl({
     ></Animated.View>
   );
 
-  const handlePress = (value: string) => {
+  const handlePress = (value: ViewType) => {
     play(select);
     onSelect(value);
   };

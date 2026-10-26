@@ -14,6 +14,7 @@ export const getEntriesByDiaryId = async (
     .from(entries)
     .where(and(eq(entries.diaryId, diaryId), eq(entries.deleted, 0)));
   const countByEntry = await getAttachmentCountsByDiaryId(diaryId);
+
   return rows.map((r) => ({
     ...r,
     counts: countByEntry.get(r.id) ?? { ...EMPTY_COUNTS },

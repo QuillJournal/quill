@@ -27,7 +27,10 @@ export default function useDiaries() {
   }, [session]);
 
   const refresh = useCallback(async () => {
-    setDiaries(await getAllDiaries());
+    const fetchedDiaries = await getAllDiaries();
+    setDiaries(
+      fetchedDiaries.map((d) => ({ ...d, isPublic: d.memberCount > 1 })),
+    );
   }, []);
 
   useFocusEffect(
