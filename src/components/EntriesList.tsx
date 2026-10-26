@@ -10,8 +10,8 @@ import { useUserSession } from "@/src/context/UserSessionContext";
 import {
   StyleSheet,
   useColorScheme,
-  View
-  Dimensions, 
+  View,
+  Dimensions
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ViewType } from "../types/diary";

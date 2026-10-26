@@ -15,6 +15,7 @@ import { useSyncStatus } from "@/src/services/syncEngine";
 import type { DiaryRow } from "@/src/types/diary";
 import { toDateKey } from "@/src/utils/dates";
 import { Ionicons } from "@expo/vector-icons";
+import { useUserSession } from "@/src/context/UserSessionContext";
 import {
   Stack,
   useFocusEffect,
@@ -48,8 +49,6 @@ export default function DiaryScreen() {
   const [showMembers, setShowMembers] = useState(false);
   const { close, closing, reportReady } = useDiaryTransition();
   const isSyncing = useSyncStatus();
-<<<<<<< HEAD
-  const [authorMap, setAuthorMap] = useState<Record<string, string>>({});
   const { session } = useUserSession();
   const [first, setFirst] = useState(false);
   //set first value
@@ -74,32 +73,6 @@ export default function DiaryScreen() {
     checkfirst()
   }, [session?.userId])
 
-  useEffect(() => {
-    db.select()
-      .from(diaryMembersTable)
-      .then((rows) => {
-        const map: Record<string, string> = {};
-        for (const r of rows) {
-          map[r.userId] = r.name || (r.username ? `@${r.username}` : "Member");
-        }
-        setAuthorMap(map);
-      })
-      .catch(() => {});
-  }, [entries, isSyncing]);
-
-  const listItems = useMemo(
-    () =>
-      entries.map((e) => {
-        const isMe = e.authorId === session?.userId;
-        const authorName = isMe
-          ? session?.name || "You"
-          : authorMap[e.authorId!] || "Collaborator";
-        return { ...e, authorName };
-      }),
-    [entries, session?.userId, session?.name, authorMap],
-  );
-=======
->>>>>>> origin/master
 
   const closeDiary = useCallback(() => {
     setResumeDiaryId(null);
@@ -116,23 +89,17 @@ export default function DiaryScreen() {
         return;
       }
     }
-    
     if (!diaryRow) return closeDiary();
     setResumeDiaryId(null);
-<<<<<<< HEAD
-    close({ ...diaryRow, entryCount: entries.length });
-  }, [diaryRow, entries.length, close, closeDiary, session?.userId,first]);
-=======
     close({
       ...diaryRow,
       entryCount: entries.length,
       memberCount: diaryMembers.size,
     });
-  }, [diaryRow, entries.length, close, closeDiary]);
->>>>>>> origin/master
+  }, [diaryRow, entries.length, close, closeDiary, session?.userId]);
 
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
-  const diaryAccent = resolveDiaryColor(diaryRow?.color, scheme);
+  const diaryAccent = resolveDiaryColor(diaryRow?.color ?? "white", scheme);
   const styles = getStyles(colors, diaryAccent, insets.top);
 
   useEffect(() => {
