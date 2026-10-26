@@ -15,6 +15,7 @@ import {
   TouchableOpacity,
   useColorScheme,
   View,
+  Dimensions, 
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { isSameDay } from "../utils/dates";
@@ -48,6 +49,8 @@ export default function EntriesList({
   closing,
   first
 }: EntriesListProps) {
+  const height2:number = Dimensions.get("window").height;
+  const [position, setPosition] = useState([0, height2-250])
   const { session } = useUserSession();
   const { colors } = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -69,16 +72,17 @@ export default function EntriesList({
     // 2 if there is 0 entries, 3 if there is one entry . 
     if(entries.length === 0){
       setIndex(2);
+      setPosition([0, height2-250])
     }
     else if(entries.length === 1){ 
       setIndex(3);
+      setPosition([0, -height2+250])
     }
     //else user made two entries instead of following the path . handled in DiaryScrenn.
   }, [entries.length])
   const handleDayLongPress = (date: Date) => {
     onNewEntry(date);
   };
-
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
@@ -152,7 +156,7 @@ export default function EntriesList({
       ) : (
         <EmptyState accentColor={diaryAccent} />
       )}
-      {first && (
+      {first && session?.userId != null && (
         <OnBoarding 
           position = {[0, 150]}
           index2 = {index}

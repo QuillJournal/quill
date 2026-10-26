@@ -65,7 +65,7 @@ export default function Home() {
 
   const [index, setIndex] = useState(0);  
   const height2:number = Dimensions.get("window").height;
-
+  const [position, setPosition] = useState<[number,number]>([0, height2-250])
   const handleAddDiary = (data: DiaryFormData) => {
     const name = data.name.trim();
     if (!name) return;
@@ -74,6 +74,7 @@ export default function Home() {
     );
     setShowDiaryForm(false);
     setIndex(1)
+    setPosition([0, height2/2-250])
   };
 
   const handleDeleteDiary = async (id: number) => {
@@ -180,12 +181,11 @@ export default function Home() {
             setShowDiaryForm(true);
           }}
         />
-        {/*CHANGE THIS */}
-        {first && (
+        {first && session?.userId != null && (
           <OnBoarding 
-            position = {[0, height2-150]}
+            position = {position}
             index2 = {index}
-            userid = {session!.userId}
+            userid = {session.userId}
           /> )}
       </View>
     </SafeAreaView>

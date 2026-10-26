@@ -25,8 +25,8 @@ export default function Onboarding({position = [100,50], index2, userid}:props) 
     }));
     useEffect(() =>{
         saveScale.value = withRepeat(withSequence(
-            withTiming(0.92, { duration: 60 }),
-        withSpring(1, { damping: 4, stiffness: 300 }),
+            withTiming(0.95, { duration: 600 }),
+            withSpring(1, { damping: 4, stiffness: 300 }),
         ),Infinity);
     }, [])
     async function onboardingCompleted() {
@@ -67,7 +67,7 @@ export default function Onboarding({position = [100,50], index2, userid}:props) 
         },
     ]
     useEffect(() => {
-        if(index2>= 0 && index2 < pages.length-1){
+        if(index2>= 0 && index2 < pages.length){
             setIndex(index2)
         }else{
             onboardingCompleted()
