@@ -21,7 +21,17 @@ jobs:
         with:
           node-version: 24
           cache: npm
+      - name: Diagnose npm
+        run: |
+          node --version
+          npm --version
+          npm config get userconfig
+          npm config get globalconfig
+          npm config list --location=project
+          env | grep -i '^npm_config_' | sed 's/=.*//' || true
 
+      - name: Install dependencies
+        run: npm ci
       - name: Install dependencies
         run: npm ci
 
