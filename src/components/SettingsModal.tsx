@@ -8,6 +8,7 @@ import {
   LayoutAnimation,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TouchableOpacity,
   View
@@ -17,6 +18,7 @@ import { saveLocalProfile } from "../db/localProfile";
 import useTheme from "../hooks/useTheme";
 import { haptic } from "../services/haptics";
 import { wipeLocalData } from "../services/localWipe";
+import { setPreference, ThemePreference, usePreferences } from "../services/preferences";
 import { changeAccountName, propagateNameToDiaries } from "../services/profile";
 import {
   clearDerivedKey,
@@ -45,6 +47,7 @@ import {
 import Button from "./Button";
 import FormField from "./FormField";
 import PasswordField from "./PasswordField";
+import SegmentedControl from "./SegmentedControl";
 import AppModal from "./ui/AppModal";
 
 interface SettingsModalProps {
@@ -60,7 +63,8 @@ export default function SettingsModal({
   userEmail,
   onLogoutSuccess,
 }: SettingsModalProps) {
-  const { colors } = useTheme();
+  const { colors, fonts, fontSizes } = useTheme();
+  const prefs = usePreferences();
   const { session, setSession, clearSession } = useUserSession();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -571,7 +575,54 @@ export default function SettingsModal({
             </>
           )}
         </View>
-
+                {/* Preferences */}
+        <View
+          style={[
+            styles.group,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+        >
+          <View style={[styles.groupItem, styles.prefRow]}>
+            <Text
+              style={{
+                color: colors.text,
+                fontFamily: fonts.label,
+                fontSize: fontSizes.md,
+              }}
+            >
+              Haptics
+            </Text>
+            <Switch
+              value={prefs.haptics}
+              onValueChange={(v) => {
+                setPreference("haptics", v);
+                if (v) haptic.select();
+              }}
+              trackColor={{ true: colors.accent, false: colors.border }}
+            />
+          </View>
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <View style={styles.groupItem}>
+            <Text
+              style={{
+                color: colors.text,
+                fontFamily: fonts.label,
+                fontSize: fontSizes.md,
+              }}
+            >
+              Theme
+            </Text>
+          </View>
+          <SegmentedControl
+            options={[
+              { label: "Light", value: "light" },
+              { label: "Dark", value: "dark" },
+              { label: "System", value: "system" },
+            ]}
+            selectedValue={prefs.theme}
+            onSelect={(v) => setPreference("theme", v as ThemePreference)}
+          />
+        </View>
         {/* Sign Out Button */}
         <TouchableOpacity
           style={[styles.logoutButton, { backgroundColor: colors.danger }]}
@@ -784,5 +835,10 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: StyleSheet.hairlineWidth,
+  },
+    prefRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
 });

@@ -50,6 +50,7 @@ import {
 } from "../context/UserSessionContext";
 import { diariesTable } from "../db/schema";
 import useTheme from "../hooks/useTheme";
+import "../services/preferences";
 import {
   clearDerivedKey,
   getStoredDerivedKey,
