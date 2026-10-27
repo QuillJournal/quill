@@ -1,4 +1,3 @@
-import { play } from "@/modules/haptic-engine";
 import { Image as ExpoImage } from "expo-image";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEffect, useRef, useState } from "react";
@@ -6,6 +5,7 @@ import { Modal, Pressable, StyleSheet, useWindowDimensions, View } from "react-n
 import Animated, { Easing, interpolate, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { collapse, expand } from "../services/hapticPatterns";
+import { playEvents as play } from "../services/haptics";
 import { IconButton } from "./PressableScale";
 import { getCachedThumb } from "./VideoThumb";
 

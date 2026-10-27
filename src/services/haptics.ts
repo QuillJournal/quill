@@ -1,3 +1,4 @@
+import * as engine from "@/modules/haptic-engine";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
 
@@ -88,5 +89,10 @@ export function play(name: keyof typeof PATTERNS) {
   );
   return () => timers.forEach(clearTimeout); // cancel if the animation is interrupted
 }
+
+export const playEvents = (events: Parameters<typeof engine.play>[0]) => {
+  if (!enabled || Platform.OS === "web") return;
+  engine.play(events);
+};
 
 export const isHapticsEnabled = () => enabled;

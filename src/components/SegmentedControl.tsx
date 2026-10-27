@@ -1,11 +1,9 @@
-import { play } from "@/modules/haptic-engine";
 import { useEffect, useState } from "react";
 import {
   Platform,
   Pressable,
   StyleSheet,
   Text,
-  useWindowDimensions,
   View,
 } from "react-native";
 import Animated, {
@@ -17,6 +15,7 @@ import { radius } from "../constants/radius";
 import { spacing } from "../constants/spacings";
 import useTheme from "../hooks/useTheme";
 import { select } from "../services/hapticPatterns";
+import { playEvents as play } from "../services/haptics";
 import type { ViewType } from "../types/diary";
 
 type Option = { label: string; value: ViewType };
@@ -31,8 +30,11 @@ export default function SegmentedControl({
   onSelect,
 }: SegmentedControlProps) {
   const { colors } = useTheme();
-  const { width } = useWindowDimensions();
-  const highlightPillWidth = (width - spacing.md * 2 - 2 - spacing.xs * 2) / 3;
+  const [containerWidth, setContainerWidth] = useState(0);
+  const highlightPillWidth = Math.max(
+    0,
+    (containerWidth - 2 - spacing.xs * 2) / options.length,
+  );
   const progress = useSharedValue(0);
   const selectedIndex = Math.max(
     0,
@@ -88,6 +90,7 @@ export default function SegmentedControl({
 
   return (
     <View
+    onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
       style={[
         styles.container,
         {
