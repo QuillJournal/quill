@@ -355,26 +355,28 @@ export default function Editor({
             contentContainerStyle={styles.mediaStripContent}
           >
             {visual.map((t) => (
-              <MediaThumb
-                key={t.key}
-                uri={t.uri}
-                kind={t.kind as "image" | "video"}
-                label={t.kind === "image" ? "Photo" : "Video"}
-                hidden={viewing?.key === t.key}
-                onOpen={(origin) =>
-                  setViewing({
-                    key: t.key,
-                    origin,
-                    item: {
-                      uri: t.uri,
-                      kind: t.kind as "image" | "video",
-                      width: t.width,
-                      height: t.height,
-                    },
-                  })
-                }
-                onRemove={isReadOnly ? undefined : t.remove}
-              />
+              <View style={{ width: 84, height: 84 }} key={t.key}>
+                <MediaThumb
+                  uri={t.uri}
+                  kind={t.kind as "image" | "video"}
+                  label={t.kind === "image" ? "Photo" : "Video"}
+                  hidden={viewing?.key === t.key}
+                  borderRadius={10}
+                  onOpen={(origin) =>
+                    setViewing({
+                      key: t.key,
+                      origin,
+                      item: {
+                        uri: t.uri,
+                        kind: t.kind as "image" | "video",
+                        width: t.width,
+                        height: t.height,
+                      },
+                    })
+                  }
+                  onRemove={isReadOnly ? undefined : t.remove}
+                />
+              </View>
             ))}
           </ScrollView>
         )}

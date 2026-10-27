@@ -75,6 +75,7 @@ export default function Auth() {
   const forgotAnim = useRef(new Animated.Value(isSignUp ? 0 : 1)).current;
 
   async function handleAuth() {
+    if (loading) return; 
     if (!email.trim() || !password.trim()) {
       dialog.alert("Missing details", "Please fill in both email and password.");
       return;
@@ -170,7 +171,6 @@ export default function Auth() {
             localEncKey,
             recKeyBytes,
           );
-
           await initKeysRpc({
             kemPublicKey: kemPubHex,
             signPublicKey: signPubHex,
@@ -178,7 +178,7 @@ export default function Auth() {
             encryptedKeyBundle,
             recoveryKeyBundle,
           });
-
+          console.log("MADE IT")
           dialog.alert(
             "Save your recovery key.",
             `Please, write this down and store it safely. It will NEVER be shown again:\n\n${recKeyDisplay}`,

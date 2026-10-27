@@ -1,4 +1,5 @@
-import EmptyArt from "@/assets/images/empty.svg";
+import OnBoarding from "../onboarding"
+import EmptyArt from "@/assets/images/empty.png";
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import DiaryCard, { STACK_SIDE_PADDING } from "@/src/components/DiaryCard";
 import DiaryForm from "@/src/components/DiaryForm";
@@ -17,14 +18,37 @@ import useUserEmail from "@/src/hooks/useUserEmail";
 import { fetchDiaryMembers } from "@/src/services/sharing";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { DiaryFormData } from "@/src/types/diary";
-import { Stack } from "expo-router";
-import { useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import { Stack, useFocusEffect } from "expo-router";
+import { useState , useEffect } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, Text, View, Dimensions, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { supabase } from "@/src/utils/supabase";
 
 export default function Home() {
   const { colors } = useTheme();
   const { session } = useUserSession();
+  const [first, setFirst] = useState(false);
+  //set first value
+  useEffect(() => {
+      const checkfirst = async() => {
+          if(!session?.userId){
+            setFirst(false)
+            return;
+          }
+        const {data, error} = await supabase.from("profiles").select("onboarding").eq("id", session.userId).maybeSingle();
+        if(error){
+          console.error("Profile Onboarding Error"+ error.message)
+          return;
+        }
+        if(!data){
+          console.error("Error. There is no data for the onboarding table.")
+          setFirst(false)
+          return;
+        }
+        setFirst(data.onboarding !== true)
+      }
+      checkfirst()
+    }, [session?.userId])
   const styles = getStyles(colors);
 
   const firstName = session?.name
@@ -39,6 +63,9 @@ export default function Home() {
   const isSyncing = useSyncStatus();
   const { open } = useDiaryTransition();
 
+  const [index, setIndex] = useState(0);  
+  const height2:number = Dimensions.get("window").height;
+  const [position, setPosition] = useState<[number,number]>([0, height2-250])
   const handleAddDiary = (data: DiaryFormData) => {
     const name = data.name.trim();
     if (!name) return;
@@ -46,6 +73,8 @@ export default function Home() {
       console.error("Failed to create diary: ", e),
     );
     setShowDiaryForm(false);
+    setIndex(1)
+    setPosition([0, height2/2-250])
   };
 
   const handleDeleteDiary = async (id: number) => {
@@ -121,7 +150,7 @@ export default function Home() {
         }
           ListEmptyComponent={
             <View style={styles.emptyList}>
-              <EmptyArt width={220} height={220} />
+              <Image source = {EmptyArt} style = {{width:220, height:220}}/>
               <Text style={styles.noDiaryText}>No Diaries Yet.</Text>
               <Text style={{ color: colors.textMuted }}>
                 Join or create a new one.
@@ -152,6 +181,12 @@ export default function Home() {
             setShowDiaryForm(true);
           }}
         />
+        {first && session?.userId != null && (
+          <OnBoarding 
+            position = {position}
+            index2 = {index}
+            userid = {session.userId}
+          /> )}
       </View>
     </SafeAreaView>
   );
@@ -176,3 +211,4 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       color: colors.text,
     },
   });
+  

@@ -1,24 +1,26 @@
+import OnBoarding from "../app/onboarding"
 import { resolveDiaryColor } from "@/src/constants/colors";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { Entry, EntryWithAuthor } from "@/src/types/entry";
-import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useUserSession } from "@/src/context/UserSessionContext";
 import {
-  ActivityIndicator,
   StyleSheet,
-  Text,
-  TouchableOpacity,
   useColorScheme,
   View,
+  Dimensions
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { ViewType } from "../types/diary";
 import { isSameDay } from "../utils/dates";
 import Calendar from "./calendar/Calendar";
 import EmptyState from "./entries/EmptyState";
+import FeedView from "./entries/FeedView";
 import ListView from "./entries/ListView";
+import TimelineView from "./entries/TimelineView";
 import SegmentedControl from "./SegmentedControl";
 
 interface EntriesListProps {
@@ -31,6 +33,7 @@ interface EntriesListProps {
   onDeleteEntry?: (id: number) => void;
   onOpenMembers?: () => void;
   closing?: boolean;
+  first?:boolean;
 }
 
 export default function EntriesList({
@@ -43,16 +46,31 @@ export default function EntriesList({
   onDeleteEntry,
   onOpenMembers,
   closing,
+  first
 }: EntriesListProps) {
+  const height2:number = Dimensions.get("window").height;
+  const [position, setPosition] = useState([0, height2-250])
+  const { session } = useUserSession();
   const { colors } = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedView, setSelectedView] = useState("list");
+  const [selectedView, setSelectedView] = useState<ViewType>("list");
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const diaryAccent = resolveDiaryColor(diaryColor, scheme);
   const isSyncing = useSyncStatus();
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors, diaryAccent, insets.top);
 
+  const VIEW_OPTIONS = [
+    { label: "Feed", value: "feed" },
+    { label: "Timeline", value: "timeline" },
+    { label: "List", value: "list" },
+  ] as const;
+  const VIEW_COMPONENTS = {
+    feed: FeedView,
+    list: ListView,
+    timeline: TimelineView,
+  };
+  const [index, setIndex] = useState(2)
   const handleDayPress = (date: Date) => {
     haptic.press();
     setSelectedDate((prev) => {
@@ -60,14 +78,33 @@ export default function EntriesList({
       return date;
     });
   };
-
+  useEffect(() => {
+    // 2 if there is 0 entries, 3 if there is one entry . 
+    if(entries.length === 0){
+      setIndex(2);
+      setPosition([0, height2-250])
+    }
+    else if(entries.length === 1){ 
+      setIndex(3);
+      setPosition([0, -height2+250])
+    }
+    //else user made two entries instead of following the path . handled in DiaryScrenn.
+  }, [entries.length])
   const handleDayLongPress = (date: Date) => {
     onNewEntry(date);
   };
 
+  const ViewProps = {
+    entries,
+    selectedDate,
+    onDeleteEntry,
+    onSelectEntry,
+    diaryAccent,
+  };
+  const SelectedComponent = VIEW_COMPONENTS[selectedView];
   return (
     <View style={styles.container}>
-      <View style={styles.topBar}>
+      {/* <View style={styles.topBar}>
         {onClose && (
           <TouchableOpacity
             style={[styles.iconButton, closing && styles.hidden]}
@@ -109,34 +146,33 @@ export default function EntriesList({
             <Ionicons name="people" size={18} color={diaryAccent} />
           </TouchableOpacity>
         )}
-      </View>
+      </View> */}
       <SegmentedControl
-        options={[
-          { label: "Feed", value: "feed" },
-          { label: "Timeline", value: "timeline" },
-          { label: "List", value: "list" },
-        ]}
+        options={VIEW_OPTIONS}
         selectedValue={selectedView}
         onSelect={setSelectedView}
       />
-      <View style={styles.calendarWrap}>
-        <Calendar
-          entries={entries}
-          selectedDate={selectedDate}
-          onDayPress={handleDayPress}
-          onDayLongPress={handleDayLongPress}
-        />
-      </View>
+      {selectedView != "feed" && (
+        <View style={styles.calendarWrap}>
+          <Calendar
+            entries={entries}
+            selectedDate={selectedDate}
+            onDayPress={handleDayPress}
+            onDayLongPress={handleDayLongPress}
+          />
+        </View>
+      )}
       {entries.length > 0 ? (
-        <ListView
-          entries={entries}
-          selectedDate={selectedDate}
-          onDeleteEntry={onDeleteEntry}
-          onSelectEntry={onSelectEntry}
-          diaryAccent={diaryAccent}
-        />
+        <SelectedComponent {...ViewProps} />
       ) : (
         <EmptyState accentColor={diaryAccent} />
+      )}
+      {first && session?.userId != null && (
+        <OnBoarding 
+          position = {[0, 150]}
+          index2 = {index}
+          userid = {session!.userId}
+        /> 
       )}
     </View>
   );

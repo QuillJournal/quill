@@ -8,16 +8,22 @@ import {
   diariesTable as diaries,
   diaryKeysTable,
   entriesTable as entries,
+  diaryMembersTable as members,
 } from "./schema";
 
 export const getAllDiaries = async (): Promise<Diary[]> => {
   return await db
-    .select({ ...getTableColumns(diaries), entryCount: count(entries.id) })
+    .select({
+      ...getTableColumns(diaries),
+      entryCount: count(entries.id),
+      memberCount: count(members.userId),
+    })
     .from(diaries)
     .leftJoin(
       entries,
       and(eq(entries.diaryId, diaries.id), eq(entries.deleted, 0)),
     )
+    .leftJoin(members, eq(members.diaryRemoteId, diaries.remoteId))
     .groupBy(diaries.id)
     .orderBy(
       desc(sql`coalesce(${diaries.lastOpenedAt}, ${diaries.createdAt} * 1000)`),

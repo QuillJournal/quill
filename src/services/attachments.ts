@@ -180,11 +180,11 @@ export async function removeAllMedia(): Promise<void> {
 
 export async function createEntryWithMedia(
   diaryId: number,
+  authorId: string,
   title: string,
   entryDate: string,
   body: string,
   added: PendingAttachment[],
-  authorId: string,
   mood: MoodKey | null = null,
 ): Promise<number> {
   const entryId = await saveEntry(

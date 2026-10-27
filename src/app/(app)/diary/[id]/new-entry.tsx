@@ -27,10 +27,19 @@ export default function NewEntryScreen() {
   ) => {
     try {
       if (!session?.userId) {
-        dialog.alert("Couldn't save", "You're not signed in.");
-        return;
+        throw new Error(
+          "Authentication required. Please sign in to save your entry.",
+        );
       }
-      await createEntryWithMedia(diaryId, title, entryDate, body, media.added, session.userId, mood,);
+      await createEntryWithMedia(
+        diaryId,
+        session.userId,
+        title,
+        entryDate,
+        body,
+        media.added,
+        mood,
+      );
     } catch (e) {
       console.error("Save failed:", e);
       dialog.alert(
