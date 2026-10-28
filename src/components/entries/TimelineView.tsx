@@ -5,13 +5,14 @@ import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import type { ViewProps } from "@/src/types/diary";
 import type { EntryWithAuthor } from "@/src/types/entry";
-import { fromDateKey } from "@/src/utils/dates";
 import { isMine } from "@/src/utils/entry";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dialog } from "../Dialog/DialogProvider";
+import DateBadge from "./DateBadge";
 import EmptyState from "./EmptyState";
 import TimelineEntryCard from "./TimelineEntryCard";
+
 export default function TimelineView({
   entries,
   selectedDate,
@@ -55,21 +56,7 @@ export default function TimelineView({
       <View style={styles.container}>
         <View style={styles.row}>
           <View style={styles.line}></View>
-          <View style={styles.dateBadge}>
-            <Text
-              style={{
-                color: colors.textMuted,
-                fontSize: fontSizes.xs,
-                textTransform: "uppercase",
-                flex: 1,
-              }}
-            >
-              {fromDateKey(entry.entryDate).toLocaleDateString("en-US", {
-                weekday: "short",
-              })}
-            </Text>
-            <Text style={styles.text}>{entry.entryDate.split("-")[2]}</Text>
-          </View>
+          <DateBadge date={entry.entryDate} />
         </View>
         <View style={{ flex: 1 }}>
           <TimelineEntryCard
