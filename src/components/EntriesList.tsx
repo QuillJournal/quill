@@ -1,19 +1,14 @@
-import OnBoarding from "../app/onboarding"
 import { resolveDiaryColor } from "@/src/constants/colors";
 import { fonts, fontSizes } from "@/src/constants/typography";
+import { useUserSession } from "@/src/context/UserSessionContext";
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { Entry, EntryWithAuthor } from "@/src/types/entry";
-import { useState, useEffect } from "react";
-import { useUserSession } from "@/src/context/UserSessionContext";
-import {
-  StyleSheet,
-  useColorScheme,
-  View,
-  Dimensions
-} from "react-native";
+import { useEffect, useState } from "react";
+import { Dimensions, StyleSheet, useColorScheme, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import OnBoarding from "../app/onboarding";
 import { ViewType } from "../types/diary";
 import { isSameDay } from "../utils/dates";
 import Calendar from "./calendar/Calendar";
@@ -33,7 +28,7 @@ interface EntriesListProps {
   onDeleteEntry?: (id: number) => void;
   onOpenMembers?: () => void;
   closing?: boolean;
-  first?:boolean;
+  first?: boolean;
 }
 
 export default function EntriesList({
@@ -46,10 +41,10 @@ export default function EntriesList({
   onDeleteEntry,
   onOpenMembers,
   closing,
-  first
+  first,
 }: EntriesListProps) {
-  const height2:number = Dimensions.get("window").height;
-  const [position, setPosition] = useState([0, height2-250])
+  const height2: number = Dimensions.get("window").height;
+  const [position, setPosition] = useState([0, height2 - 250]);
   const { session } = useUserSession();
   const { colors } = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -70,7 +65,7 @@ export default function EntriesList({
     list: ListView,
     timeline: TimelineView,
   };
-  const [index, setIndex] = useState(2)
+  const [index, setIndex] = useState(2);
   const handleDayPress = (date: Date) => {
     haptic.press();
     setSelectedDate((prev) => {
@@ -79,17 +74,16 @@ export default function EntriesList({
     });
   };
   useEffect(() => {
-    // 2 if there is 0 entries, 3 if there is one entry . 
-    if(entries.length === 0){
+    // 2 if there is 0 entries, 3 if there is one entry .
+    if (entries.length === 0) {
       setIndex(2);
-      setPosition([0, height2-250])
-    }
-    else if(entries.length === 1){ 
+      setPosition([0, height2 - 250]);
+    } else if (entries.length === 1) {
       setIndex(3);
-      setPosition([0, -height2+250])
+      setPosition([0, -height2 + 250]);
     }
     //else user made two entries instead of following the path . handled in DiaryScrenn.
-  }, [entries.length])
+  }, [entries.length]);
   const handleDayLongPress = (date: Date) => {
     onNewEntry(date);
   };
@@ -152,7 +146,7 @@ export default function EntriesList({
         selectedValue={selectedView}
         onSelect={setSelectedView}
       />
-      {selectedView != "feed" && (
+      {selectedView == "list" && (
         <View style={styles.calendarWrap}>
           <Calendar
             entries={entries}
@@ -168,11 +162,11 @@ export default function EntriesList({
         <EmptyState accentColor={diaryAccent} />
       )}
       {first && session?.userId != null && (
-        <OnBoarding 
-          position = {[0, 150]}
-          index2 = {index}
-          userid = {session!.userId}
-        /> 
+        <OnBoarding
+          position={[0, 150]}
+          index2={index}
+          userid={session!.userId}
+        />
       )}
     </View>
   );
