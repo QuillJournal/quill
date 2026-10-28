@@ -11,7 +11,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OnBoarding from "../app/onboarding";
 import { ViewType } from "../types/diary";
 import { isSameDay } from "../utils/dates";
-import Calendar from "./calendar/Calendar";
 import EmptyState from "./entries/EmptyState";
 import FeedView from "./entries/FeedView";
 import ListView from "./entries/ListView";
@@ -146,7 +145,7 @@ export default function EntriesList({
         selectedValue={selectedView}
         onSelect={setSelectedView}
       />
-      {selectedView == "list" && (
+      {/* {selectedView == "list" && (
         <View style={styles.calendarWrap}>
           <Calendar
             entries={entries}
@@ -155,7 +154,7 @@ export default function EntriesList({
             onDayLongPress={handleDayLongPress}
           />
         </View>
-      )}
+      )} */}
       {entries.length > 0 ? (
         <SelectedComponent {...ViewProps} />
       ) : (

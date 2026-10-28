@@ -1,17 +1,13 @@
+import { isMoodKey } from "@/src/constants/moods";
+import { fonts, fontSizes } from "@/src/constants/typography";
 import usePressAnimation from "@/src/hooks/usePressAnimation";
 import useTheme from "@/src/hooks/useTheme";
 import type { EntryWithAuthor } from "@/src/types/entry";
-import {
-  formatCreatedMeta,
-  formatEntryDate,
-  fromDateKey,
-} from "@/src/utils/dates";
+import { fromDateKey } from "@/src/utils/dates";
 import { Ionicons } from "@expo/vector-icons";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
-import AttachmentSummary from "./AttachmentSummary";
 import AuthorPill from "./AuthorPill";
-import { isMoodKey } from "@/src/constants/moods";
-import MojiFace from "../MojiFace";
+import DateBadge from "./DateBadge";
 
 type EntryCardProps = {
   entry: EntryWithAuthor;
@@ -37,13 +33,6 @@ export default function EntryCard({
     colors.card,
     colors.cardPressed,
   );
-  const cleanPreview =
-    entry.body
-      ?.replace(/<br\s*\/?>/gi, "\n")
-      ?.replace(/<\/p>|<\/div>/gi, "\n")
-      ?.replace(/<[^>]+>/g, "")
-      ?.replace(/\n\s*\n/g, "\n\n")
-      .trim() || "Empty entry.";
 
   return (
     <Pressable
@@ -53,36 +42,29 @@ export default function EntryCard({
       onPressOut={() => animatePress(false)}
     >
       <Animated.View style={[styles.card, { backgroundColor: animatedColor }]}>
-                <View style={styles.cardHeader}>
-          <View style={styles.cardTitleRow}>
-            {mood && <MojiFace mood={mood} size={22} />}
-            <Text style={styles.cardTitle} numberOfLines={1}>
-              {entry.title || "Untitled Entry"}
-            </Text>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <View style={styles.cardHeader}>
+            <DateBadge date={entry.entryDate} />
+            <View style={{ alignItems: "flex-start", gap: 5 }}>
+              <Text style={styles.cardTitle}>{entry.title}</Text>
+              <AuthorPill
+                name={entry.authorName}
+                isMe={isMe}
+                diaryAccent={diaryAccent}
+              />
+            </View>
           </View>
-          <Text style={styles.cardDate}>{formatEntryDate(entryDate)}</Text>
-        </View>
-        <Text style={styles.cardPreview} numberOfLines={3}>
-          {cleanPreview}
-        </Text>
-        <View style={styles.hr}></View>
-        <View style={styles.cardFooter}>
-          <AttachmentSummary counts={entry.counts} />
-          <View style={styles.cardFooterRight}>
-            <Text style={styles.cardDate}>
-              {formatCreatedMeta(entry.createdAt, entryDate)}
-            </Text>
-            <AuthorPill
-              name={entry.authorName}
-              isMe={isMe}
-              diaryAccent={diaryAccent}
-            />
-            <Ionicons
-              size={16}
-              color={colors.textMuted}
-              name="chevron-forward-outline"
-            />
-          </View>
+          <Ionicons
+            size={18}
+            color={colors.textMuted}
+            name="chevron-forward-outline"
+          />
         </View>
       </Animated.View>
     </Pressable>
@@ -96,22 +78,17 @@ const getStyles = (
   StyleSheet.create({
     card: {
       backgroundColor: colors.card,
-      borderRadius: 14,
       padding: 16,
-      marginBottom: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
       shadowColor: colors.shadow,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.05,
       shadowRadius: 4,
       elevation: 2,
     },
-        cardHeader: {
+    cardHeader: {
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 8,
+      gap: 10,
     },
     cardTitleRow: {
       flex: 1,
@@ -121,9 +98,9 @@ const getStyles = (
       marginRight: 12,
     },
     cardTitle: {
-      fontSize: 16,
-      fontWeight: "600",
+      fontSize: fontSizes.lg,
       color: colors.text,
+      fontFamily: fonts.body,
       flexShrink: 1,
     },
     cardDate: {

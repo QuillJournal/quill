@@ -10,6 +10,7 @@ export default function DateBadge({ date }: DateBadgeProps) {
   const styles = getStyles(colors);
   return (
     <View style={styles.dateBadge}>
+      <Text style={styles.text}>{date.split("-")[2]}</Text>
       <Text
         style={{
           color: colors.textMuted,
@@ -22,7 +23,6 @@ export default function DateBadge({ date }: DateBadgeProps) {
           weekday: "short",
         })}
       </Text>
-      <Text style={styles.text}>{date.split("-")[2]}</Text>
     </View>
   );
 }
@@ -30,7 +30,7 @@ export default function DateBadge({ date }: DateBadgeProps) {
 const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
   StyleSheet.create({
     dateBadge: {
-      backgroundColor: colors.card,
+      backgroundColor: colors.cardPressed,
       borderRadius: radius.md,
       width: 50,
       height: 50,

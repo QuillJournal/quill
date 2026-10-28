@@ -1,18 +1,20 @@
 import { fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
+import { getPreviewAttachments } from "@/src/db/attachments";
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
+import type { Attachment } from "@/src/types/attachment";
 import { ViewProps } from "@/src/types/diary";
-import type { Entry, EntryWithAuthor } from "@/src/types/entry";
+import type { EntryWithAuthor } from "@/src/types/entry";
 import { formatEntryDate, toDateKey } from "@/src/utils/dates";
-import { useMemo } from "react";
+import { isMine } from "@/src/utils/entry";
+import { useEffect, useMemo, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dialog } from "../Dialog/DialogProvider";
 import Pill from "../Pill";
 import EmptyState from "./EmptyState";
 import EntryCard from "./EntryCard";
-import { isMine } from "@/src/utils/entry";
 
 export default function ListView({
   entries,
