@@ -45,6 +45,7 @@ type Props = {
   size?: number;
   intro?: boolean;
   introDelay?: number;
+  startDelay?: number;
 };
 
 export default function AnimatedMojiFace({
@@ -52,6 +53,7 @@ export default function AnimatedMojiFace({
   size = 40,
   intro = false,
   introDelay = 0,
+  startDelay: customStartDelay,
 }: Props) {
   const { colors, isDark } = useTheme();
   const reduce = useReducedMotion();
@@ -114,7 +116,8 @@ export default function AnimatedMojiFace({
     exprKind.value = reduce ? "none" : kind;
     if (reduce || kind === "none") return;
 
-    const startDelay = Math.random() * 1200;
+    const isInstant = customStartDelay === 0;
+    const startDelay = customStartDelay ?? Math.random() * 1200;
     const ease = Easing.inOut(Easing.sin);
     const loop = (...steps: number[]) =>
       withDelay(startDelay, withRepeat(withSequence(...steps), -1));
@@ -166,7 +169,7 @@ export default function AnimatedMojiFace({
         withTiming(0.2, { duration: 500 }),
       );
       drop.value = withDelay(
-        startDelay + 1900,
+        isInstant ? 350 : startDelay + 1900,
         withRepeat(
           withSequence(
             withTiming(1, { duration: 1400, easing: Easing.in(Easing.quad) }),
@@ -189,14 +192,14 @@ export default function AnimatedMojiFace({
       );
       shake.value = withRepeat(withTiming(1, { duration: 40 }), -1, true);
       drop.value = withDelay(
-        startDelay + 300,
+        isInstant ? 100 : startDelay + 300,
         withRepeat(
           withSequence(
             withTiming(1, { duration: 1300, easing: Easing.in(Easing.quad) }),
             withTiming(0, { duration: 0 }),
             withTiming(0, { duration: 1200 }),
           ),
-          -1
+          -1,
         ),
       );
     }
@@ -228,7 +231,7 @@ export default function AnimatedMojiFace({
       cancelAnimation(shake);
       cancelAnimation(drop);
     };
-  }, [mood, reduce]);
+  }, [mood, reduce, customStartDelay]);
 
   useEffect(() => {
     if (reduce) {
@@ -272,7 +275,7 @@ export default function AnimatedMojiFace({
     d: geo.value.rightBrow,
     opacity: geo.value.browOpacity,
   }));
-  
+
   const leftEyeProps = useAnimatedProps(() => ({
     cx: geo.value.eyeLx,
     cy: geo.value.eyeCy,
