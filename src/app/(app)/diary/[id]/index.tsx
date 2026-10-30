@@ -1,6 +1,7 @@
 import useDiaries from "@/src/hooks/useDiaries";
 import DiaryMembersModal from "@/src/components/DiaryMembersModal";
 import EntriesList from "@/src/components/EntriesList";
+import Intro from "@/src/components/intro";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import { resolveDiaryColor } from "@/src/constants/colors";
 import { fonts, fontSizes } from "@/src/constants/typography";
