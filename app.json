@@ -54,7 +54,11 @@
           "microphonePermission": "Microphone permission to record voice notes."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-expo-local-authentication",
+        { "faceIDPermission": "Quill uses Face ID to support app lock." }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
