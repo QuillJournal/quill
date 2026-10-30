@@ -1,17 +1,22 @@
 import React, {useState} from "react"
 import EmptyArt from "@/assets/images/empty.png";
 import useTheme from "@/src/hooks/useTheme";
+import { radius } from "@/src/constants/radius";
+import { spacing } from "@/src/constants/spacings";
+import { useRouter } from "expo-router";
 import { 
     FlatList, 
     View, 
     StyleSheet, 
     Text, 
     Image, 
-    Dimensions
+    Dimensions, 
+    Pressable
 } from "react-native";
 const height:number = Dimensions.get("window").height;
 const width:number = Dimensions.get("window").width;
 export default function Intro(){
+    const router = useRouter();
     const colors = useTheme();
     const pages = [
         {photo: EmptyArt, text: "inspiring", subtext: "inspiring"},
@@ -32,10 +37,17 @@ export default function Intro(){
     }
     const styles = StyleSheet.create({
         activedot:{
-
+            width: 30, 
+            height: 10,
+            backgroundColor: colors.colors.accentPressed, 
+            borderRadius: 30
         }, 
         normaldot: {
-
+            width: 10, 
+            height: 10,
+            backgroundColor: colors.colors.accent, 
+            borderRadius: 30, 
+            opacity: 0.3
         },
         container: {
         flex: 1,
@@ -43,32 +55,42 @@ export default function Intro(){
         },
         card:{
             width: width,
-            height: height,
+            height: height/2,
+            alignItems: "center", 
+            justifyContent: "center",
             inset: 0, 
             flex: 1, 
         },
         page:{
-
+            flex: 1, 
+            backgroundColor: colors.colors.shadow
         }, 
         scrollers:{ 
-
+            display: "flex", 
+            flexDirection: "row",
+            gap: spacing.md, 
+            alignItems: "center", 
+            justifyContent: "center",
         }, 
         text:{
-
+            color: colors.colors.text
         }, 
         subtext:{ 
-
+            color: colors.colors.textMuted
         },
         item:{
 
         }, 
-        pages: {
-            
+        button: { 
+             backgroundColor: colors.colors.accent,
+            color: colors.colors.text,
+            paddingVertical: spacing.xs,
+            borderRadius: radius.sm
         }
     });
 
     return(
-        <View style = {styles.pages}>
+        <View style = {styles.page}>
             <View style = {styles.container}>
                 <FlatList
                     data = {pages}
@@ -104,6 +126,7 @@ export default function Intro(){
                     );
                 })}    
             </View> 
+            <Pressable onPress = {() => {router.replace("/(auth)/login")}} style = {styles.button}><Text>Start</Text></Pressable>
         </View>
     );
 
