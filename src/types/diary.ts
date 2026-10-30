@@ -1,12 +1,14 @@
 import type { DiaryColorKey } from "../constants/colors";
 import { diariesTable as diaries } from "../db/schema";
+import { Attachment } from "./attachment";
 import { Entry, EntryWithAuthor } from "./entry";
 
 export type DiaryRow = typeof diaries.$inferSelect;
-export type Diary = DiaryRow & { entryCount: number, memberCount: number };
+export type Diary = DiaryRow & { entryCount: number; memberCount: number };
 export type DiaryFormData = { name: string; color: DiaryColorKey };
 export type ViewProps = {
   entries: EntryWithAuthor[];
+  media: Attachment[];
   selectedDate: Date | null;
   onSelectEntry?: (entry: Entry) => void;
   onDeleteEntry?: (id: number) => void;

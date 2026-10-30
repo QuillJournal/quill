@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { Dimensions, StyleSheet, useColorScheme, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import OnBoarding from "../app/onboarding";
+import { Attachment } from "../types/attachment";
 import { ViewType } from "../types/diary";
 import { isSameDay } from "../utils/dates";
 import EmptyState from "./entries/EmptyState";
@@ -26,6 +27,7 @@ interface EntriesListProps {
   onClose?: () => void;
   onDeleteEntry?: (id: number) => void;
   onOpenMembers?: () => void;
+  media: Attachment[];
   closing?: boolean;
   first?: boolean;
 }
@@ -39,6 +41,7 @@ export default function EntriesList({
   onClose,
   onDeleteEntry,
   onOpenMembers,
+  media,
   closing,
   first,
 }: EntriesListProps) {
@@ -89,6 +92,7 @@ export default function EntriesList({
 
   const ViewProps = {
     entries,
+    media,
     selectedDate,
     onDeleteEntry,
     onSelectEntry,

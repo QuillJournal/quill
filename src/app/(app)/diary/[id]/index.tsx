@@ -1,28 +1,30 @@
-import useDiaries from "@/src/hooks/useDiaries";
 import DiaryMembersModal from "@/src/components/DiaryMembersModal";
 import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import { resolveDiaryColor } from "@/src/constants/colors";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import { useDiaryTransition } from "@/src/context/DiaryTransitionContext";
+import { useUserSession } from "@/src/context/UserSessionContext";
 import { setResumeDiaryId } from "@/src/db/appState";
+import { getPreviewAttachments } from "@/src/db/attachments";
 import { getDiaryById, openDiary } from "@/src/db/diaries";
 import useDiaryMembers from "@/src/hooks/useDiaryMembers";
 import useEntries from "@/src/hooks/useEntries";
 import useTheme from "@/src/hooks/useTheme";
 import { deleteEntryWithMedia } from "@/src/services/attachments";
 import { useSyncStatus } from "@/src/services/syncEngine";
+import type { Attachment } from "@/src/types/attachment";
 import type { DiaryRow } from "@/src/types/diary";
 import { toDateKey } from "@/src/utils/dates";
+import { supabase } from "@/src/utils/supabase";
 import { Ionicons } from "@expo/vector-icons";
-import { useUserSession } from "@/src/context/UserSessionContext";
 import {
   Stack,
   useFocusEffect,
   useLocalSearchParams,
   useRouter,
 } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -32,18 +34,19 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase } from "@/src/utils/supabase";
-import { FA5Style } from "@expo/vector-icons/build/FontAwesome5";
-import { useBridgeState } from "@10play/tentap-editor";
 
 export default function DiaryScreen() {
-  const { diaries } = useDiaries();
   const { id } = useLocalSearchParams<{ id: string }>();
   const diaryId = Number(id);
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { entries, refresh } = useEntries(diaryId);
+  const [media, setMedia] = useState<Map<number, Attachment[]>>();
+  const ids = useMemo(() => entries.map((e) => e.id), [entries]);
+  useEffect(() => {
+    getPreviewAttachments(ids).then((map) => setMedia(map));
+  });
   const diaryMembers = useDiaryMembers(diaryId);
   const [diaryRow, setDiaryRow] = useState<DiaryRow>();
   const [showMembers, setShowMembers] = useState(false);
@@ -53,26 +56,29 @@ export default function DiaryScreen() {
   const [first, setFirst] = useState(false);
   //set first value
   useEffect(() => {
-    const checkfirst = async() => {
-        if(!session?.userId){
-          setFirst(false)
-          return;
-        }
-      const {data, error} = await supabase.from("profiles").select("onboarding").eq("id", session.userId).maybeSingle();
-      if(error){
-        console.error("Profile Onboarding Error"+ error.message)
+    const checkfirst = async () => {
+      if (!session?.userId) {
+        setFirst(false);
         return;
       }
-      if(!data){
-        console.error("Error. There is no data for the onboarding table.")
-        setFirst(false)
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("onboarding")
+        .eq("id", session.userId)
+        .maybeSingle();
+      if (error) {
+        console.error("Profile Onboarding Error" + error.message);
         return;
       }
-      setFirst(data.onboarding !== true)
-    }
-    checkfirst()
-  }, [session?.userId])
-
+      if (!data) {
+        console.error("Error. There is no data for the onboarding table.");
+        setFirst(false);
+        return;
+      }
+      setFirst(data.onboarding !== true);
+    };
+    checkfirst();
+  }, [session?.userId]);
 
   const closeDiary = useCallback(() => {
     setResumeDiaryId(null);
@@ -81,11 +87,14 @@ export default function DiaryScreen() {
 
   const handleClose = useCallback(async () => {
     //if the user closes the tab it kicks them out of onboarding
-    if(session?.userId && first){
-      const {error} = await supabase.from("profiles").update({onboarding: true}).eq("id", session.userId)
-      setFirst(false)
-      if(error){
-        console.error("Onboarding Status Change Error"+ error.message)
+    if (session?.userId && first) {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ onboarding: true })
+        .eq("id", session.userId);
+      setFirst(false);
+      if (error) {
+        console.error("Onboarding Status Change Error" + error.message);
         return;
       }
     }
@@ -186,6 +195,7 @@ export default function DiaryScreen() {
       </View>
       <EntriesList
         entries={entries}
+        media={media}
         closing={closing}
         onClose={handleClose}
         diaryName={diaryRow?.name}
@@ -193,26 +203,29 @@ export default function DiaryScreen() {
         onOpenMembers={() => setShowMembers(true)}
         onNewEntry={handleAddEntry}
         onSelectEntry={(entry) => {
-          if(entries.length == 1 && first){
-            //created a new entry instead of following the path 
-            const checkfirst = async() => {
-              if(!session?.userId){
-                setFirst(false)
+          if (entries.length == 1 && first) {
+            //created a new entry instead of following the path
+            const checkfirst = async () => {
+              if (!session?.userId) {
+                setFirst(false);
                 return;
               }
-            const { error} = await supabase.from("profiles").update({onboarding: true}).eq("id", session.userId)
-              if(error){
-                console.error("Onboarding Status Change Error"+ error.message)
+              const { error } = await supabase
+                .from("profiles")
+                .update({ onboarding: true })
+                .eq("id", session.userId);
+              if (error) {
+                console.error("Onboarding Status Change Error" + error.message);
                 return;
               }
-            }
-            checkfirst(); 
+            };
+            checkfirst();
             setFirst(false);
           }
           router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
         }}
         onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
-        first = {first?? false}
+        first={first ?? false}
       />
       <View
         pointerEvents="box-none"

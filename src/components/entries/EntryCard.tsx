@@ -1,16 +1,23 @@
 import { isMoodKey } from "@/src/constants/moods";
+import { radius } from "@/src/constants/radius";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import usePressAnimation from "@/src/hooks/usePressAnimation";
 import useTheme from "@/src/hooks/useTheme";
+import { resolveAttachmentUri } from "@/src/services/attachments";
+import { Attachment } from "@/src/types/attachment";
 import type { EntryWithAuthor } from "@/src/types/entry";
 import { fromDateKey } from "@/src/utils/dates";
+import { splitMedia } from "@/src/utils/media";
 import { Ionicons } from "@expo/vector-icons";
+import { useMemo } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import MediaThumb from "../MediaThumb";
 import AuthorPill from "./AuthorPill";
 import DateBadge from "./DateBadge";
 
 type EntryCardProps = {
   entry: EntryWithAuthor;
+  media: Attachment[];
   onPress: () => void;
   onLongPress: (entry: EntryWithAuthor) => void;
   diaryAccent: string;
@@ -19,6 +26,7 @@ type EntryCardProps = {
 
 export default function EntryCard({
   entry,
+  media,
   onPress,
   onLongPress,
   diaryAccent,
@@ -28,7 +36,20 @@ export default function EntryCard({
   const styles = getStyles(colors, diaryAccent);
   const entryDate = fromDateKey(entry.entryDate);
   const mood = isMoodKey(entry.mood) ? entry.mood : null;
-
+  const { visuals, audios } = useMemo(() => {
+    const { visuals, audios } = splitMedia(media);
+    return {
+      visuals: visuals.map((v) => ({
+        uri: resolveAttachmentUri(v.relPath),
+        kind: v.kind as "image" | "video",
+      })),
+      audios: audios.map((a) => ({
+        uri: resolveAttachmentUri(a.relPath),
+        name: a.name ?? "Audio",
+        durationMs: a.durationMs,
+      })),
+    };
+  }, [media]);
   const { animatePress, animatedColor } = usePressAnimation(
     colors.card,
     colors.cardPressed,
@@ -51,20 +72,71 @@ export default function EntryCard({
         >
           <View style={styles.cardHeader}>
             <DateBadge date={entry.entryDate} />
-            <View style={{ alignItems: "flex-start", gap: 5 }}>
-              <Text style={styles.cardTitle}>{entry.title}</Text>
-              <AuthorPill
-                name={entry.authorName}
-                isMe={isMe}
-                diaryAccent={diaryAccent}
-              />
+            <View
+              style={{ alignSelf: "stretch", flex: 1, gap: 5, minWidth: 0 }}
+            >
+              <Text
+                style={styles.cardTitle}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {entry.title}
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 10,
+                }}
+              >
+                <AuthorPill
+                  name={entry.authorName}
+                  isMe={isMe}
+                  diaryAccent={diaryAccent}
+                />
+                {audios.length > 0 && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      flexShrink: 0,
+                      borderRadius: radius.lg,
+                      paddingHorizontal: 5,
+                      backgroundColor: colors.cardPressed,
+                    }}
+                  >
+                    <Ionicons
+                      name="mic-outline"
+                      color={colors.secondaryAccent}
+                      size={18}
+                      accessibilityLabel={`mic icon`}
+                    />
+                    {audios[0]?.durationMs && (
+                      <Text>{audios[0]?.durationMs / 1000}s</Text>
+                    )}
+                  </View>
+                )}
+              </View>
             </View>
+            {visuals.length > 0 && (
+              <View style={{ flexShrink: 0, height: 56, width: 56 }}>
+                <MediaThumb
+                  uri={visuals[0].uri}
+                  kind={visuals[0].kind}
+                  borderRadius={5}
+                  onOpen={onPress}
+                  label={visuals[0].kind === "image" ? "Photo" : "Video"}
+                  hidden={false}
+                />
+              </View>
+            )}
+            <Ionicons
+              size={18}
+              color={colors.textMuted}
+              name="chevron-forward-outline"
+            />
           </View>
-          <Ionicons
-            size={18}
-            color={colors.textMuted}
-            name="chevron-forward-outline"
-          />
         </View>
       </Animated.View>
     </Pressable>

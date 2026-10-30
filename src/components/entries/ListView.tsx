@@ -1,14 +1,12 @@
 import { fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
-import { getPreviewAttachments } from "@/src/db/attachments";
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
-import type { Attachment } from "@/src/types/attachment";
 import { ViewProps } from "@/src/types/diary";
 import type { EntryWithAuthor } from "@/src/types/entry";
 import { formatEntryDate, toDateKey } from "@/src/utils/dates";
 import { isMine } from "@/src/utils/entry";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dialog } from "../Dialog/DialogProvider";
@@ -18,6 +16,7 @@ import EntryCard from "./EntryCard";
 
 export default function ListView({
   entries,
+  media,
   selectedDate,
   onSelectEntry,
   onDeleteEntry,
@@ -71,6 +70,7 @@ export default function ListView({
   const renderCard = (entry: EntryWithAuthor) => (
     <EntryCard
       entry={entry}
+      media={media?.get(entry.id) ?? []}
       onPress={() => onSelectEntry?.(entry)}
       onLongPress={handleLongPress}
       diaryAccent={diaryAccent}
