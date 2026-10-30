@@ -49,6 +49,7 @@ export default function EntriesList({
   first
 }: EntriesListProps) {
   const height2:number = Dimensions.get("window").height;
+  const width2:number = Dimensions.get("window").width;
   const [position, setPosition] = useState([0, height2-250])
   const { session } = useUserSession();
   const { colors } = useTheme();
@@ -86,7 +87,7 @@ export default function EntriesList({
     }
     else if(entries.length === 1){ 
       setIndex(3);
-      setPosition([0, -height2+250])
+      setPosition([width2/2, -height2+250])
     }
     //else user made two entries instead of following the path . handled in DiaryScrenn.
   }, [entries.length])
