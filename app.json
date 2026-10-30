@@ -56,7 +56,7 @@
       ],
       "expo-asset",
       [
-        "expo-expo-local-authentication",
+        "expo-local-authentication",
         { "faceIDPermission": "Quill uses Face ID to support app lock." }
       ]
     ],
