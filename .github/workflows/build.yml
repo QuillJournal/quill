@@ -7,7 +7,7 @@ on:
 jobs:
   android:
     name: Build Android (Debug & Release)
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-16vcpu-ubuntu-2404
     env:
       EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       EXPO_PUBLIC_SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
@@ -15,7 +15,7 @@ jobs:
       GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dorg.gradle.parallel=true -Dorg.gradle.vfs.watch=false"
     steps:
       - name: Checkout
-        uses: actions/checkout@v7
+        uses: useblacksmith/checkout@v1
 
       - name: Setup Node
         uses: actions/setup-node@v7

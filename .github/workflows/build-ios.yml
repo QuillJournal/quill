@@ -7,7 +7,7 @@ on:
 jobs:
   ios:
     name: Build iOS (Debug & Release)
-    runs-on: macos-latest
+    runs-on: blacksmith-12vcpu-macos-latest
     env:
       EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       EXPO_PUBLIC_SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
