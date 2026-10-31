@@ -12,6 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useMemo } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
 import MediaThumb from "../MediaThumb";
+import MojiFace from "../MojiFace";
 import AuthorPill from "./AuthorPill";
 import DateBadge from "./DateBadge";
 
@@ -86,7 +87,7 @@ export default function EntryCard({
                 style={{
                   flexDirection: "row",
                   alignItems: "center",
-                  gap: 10,
+                  gap: 8,
                 }}
               >
                 <AuthorPill
@@ -94,6 +95,7 @@ export default function EntryCard({
                   isMe={isMe}
                   diaryAccent={diaryAccent}
                 />
+                {mood && <MojiFace mood={mood} size={22} />}
                 {audios.length > 0 && (
                   <View
                     style={{
@@ -131,11 +133,6 @@ export default function EntryCard({
                 />
               </View>
             )}
-            <Ionicons
-              size={18}
-              color={colors.textMuted}
-              name="chevron-forward-outline"
-            />
           </View>
         </View>
       </Animated.View>
