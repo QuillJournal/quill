@@ -42,6 +42,7 @@ export {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-get-random-values";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import AppLockScreen from "../components/AppLocalScreen";
 import { DialogProvider } from "../components/Dialog/DialogProvider";
 import {
   UserSessionProvider,
@@ -396,6 +397,7 @@ function AppNavigator() {
                 options={{ animation: "fade", gestureEnabled: false }}
                 />
               </Stack>
+              <AppLockScreen />
             </View>
           </DiaryTransitionProvider>
         </DecryptGateContext.Provider>

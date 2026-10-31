@@ -16,6 +16,7 @@ import {
 import { useUserSession } from "../context/UserSessionContext";
 import { saveLocalProfile } from "../db/localProfile";
 import useTheme from "../hooks/useTheme";
+import { confirmBiometric, setBiometrics, setLockDelay, useAppLock, useBiometricInfo, type LockDelay } from "../services/appLock";
 import { haptic } from "../services/haptics";
 import { wipeLocalData } from "../services/localWipe";
 import { setPreference, ThemePreference, usePreferences } from "../services/preferences";
@@ -47,6 +48,7 @@ import {
 import Button from "./Button";
 import FormField from "./FormField";
 import PasswordField from "./PasswordField";
+import PinFlowModal, { type PinFlowMode } from "./PinFlowModal";
 import SegmentedControl from "./SegmentedControl";
 import AppModal from "./ui/AppModal";
 
@@ -65,6 +67,23 @@ export default function SettingsModal({
 }: SettingsModalProps) {
   const { colors, fonts, fontSizes } = useTheme();
   const prefs = usePreferences();
+  const lock = useAppLock();
+  const bio = useBiometricInfo();
+  const [pinFlow, setPinFlow] = useState<PinFlowMode | null>(null);
+  const hasPin = lock.config.pinHash !== null;
+  const lockEnabled = hasPin || lock.config.biometrics;
+
+  const handleBiometricToggle = async (on: boolean) => {
+    if (!on) {
+      setBiometrics(false);
+      return;
+    }
+    const ok = await confirmBiometric(`Enable ${bio.label} for Quill`);
+    if (ok) {
+      setBiometrics(true);
+      haptic.success();
+    }
+  };
   const { session, setSession, clearSession } = useUserSession();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -575,6 +594,128 @@ export default function SettingsModal({
             </>
           )}
         </View>
+        {/* App Lock */}
+        <View
+        style={[
+          styles.group,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+        >
+          <View style={[styles.groupItem, styles.prefRow]}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text
+              style={{
+                color: colors.text,
+                fontFamily: fonts.label,
+                fontSize: fontSizes.md,
+              }}
+              >
+                {bio.label}
+              </Text>
+              {!bio.available && (
+                <Text style={{ color: colors.textMuted, fontSize: fontSizes.sm }}>
+                  Not set up on this device.
+                </Text>
+              )}
+            </View>
+            <Switch
+            value={lock.config.biometrics}
+            disabled={!bio.available && !lock.config.biometrics}
+            onValueChange={handleBiometricToggle}
+            trackColor={{ true: colors.accent, false: colors.border }}
+            />
+          </View>
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <View style={[styles.groupItem, styles.prefRow]}>
+            <Text
+            style={{
+              color: colors.text,
+              fontFamily: fonts.label,
+              fontSize: fontSizes.md,
+            }}
+            >
+              PIN
+            </Text>
+            {hasPin ? (
+              <View style={{ flexDirection: "row", gap: 8 }}>
+                <Button
+                size="sm"
+                variant="outline"
+                label="Change"
+                style={{ width: "auto" }}
+                onPress={() => setPinFlow("change")}
+                />
+                <Button
+                size="sm"
+                variant="outline"
+                label="Remove"
+                style={{ width: "auto" }}
+                onPress={() => setPinFlow("remove")}
+                />
+              </View>
+            ) : (
+              <Button
+              size="sm"
+              label="Set up"
+              style={{ width: "auto" }}
+              onPress={() => setPinFlow("set")}
+              />
+            )}
+          </View>
+          {lockEnabled && (
+            <>
+            <View style={[styles.divider, { backgroundColor: colors.border }]} />
+            <View style={styles.groupItem}>
+              <Text
+              style={{
+                color: colors.text,
+                fontFamily: fonts.label,
+                fontSize: fontSizes.md,
+              }}
+              >
+                Lock after
+              </Text>
+            </View>
+            <SegmentedControl
+            options={[
+              { label: "Now", value: "0" },
+              { label: "15s", value: "15" },
+              { label: "30s", value: "30" },
+              { label: "1m", value: "60" },
+              { label: "5m", value: "300" },
+            ]}
+            selectedValue={String(lock.config.delay)}
+            onSelect={(v) => setLockDelay(Number(v) as LockDelay)}
+            />
+            </>
+          )}
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <View style={[styles.groupItem, styles.prefRow]}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text
+              style={{
+                color: colors.text,
+                fontFamily: fonts.label,
+                fontSize: fontSizes.md,
+              }}
+              >
+                Privacy Screen
+              </Text>
+              <Text style={{ color: colors.textMuted, fontSize: fontSizes.sm }}>
+                Hide Quill in the app switcher and block screenshots.
+              </Text>
+            </View>
+            <Switch
+            value={prefs.privacyScreen}
+            onValueChange={(v) => {
+              setPreference("privacyScreen", v);
+              if (v) haptic.select();
+            }}
+            trackColor={{ true: colors.accent, false: colors.border }}
+            />
+          </View>
+        </View>
+        <PinFlowModal mode={pinFlow} onClose={() => setPinFlow(null)} />
                 {/* Preferences */}
         <View
           style={[

@@ -18,11 +18,11 @@ import { select } from "../services/hapticPatterns";
 import { playEvents as play } from "../services/haptics";
 import type { ViewType } from "../types/diary";
 
-type Option = { label: string; value: ViewType };
+type Option = { label: string; value: string };
 type SegmentedControlProps = {
   options: readonly Option[];
-  selectedValue: ViewType;
-  onSelect: (value: ViewType) => void;
+  selectedValue: string;
+  onSelect: (value: string) => void;
 };
 export default function SegmentedControl({
   options,
@@ -106,7 +106,7 @@ export default function SegmentedControl({
         return (
           <Pressable
             key={o.value}
-            onPress={() => handlePress(o.value)}
+            onPress={() => handlePress(o.value as ViewType)}
             style={[styles.segment]}
           >
             <Text style={{ color }}>{o.label}</Text>
