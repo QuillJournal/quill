@@ -4,15 +4,15 @@ import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import { ViewProps } from "@/src/types/diary";
 import type { EntryWithAuthor } from "@/src/types/entry";
-import { formatEntryDate, toDateKey } from "@/src/utils/dates";
+import { toDateKey } from "@/src/utils/dates";
 import { isMine } from "@/src/utils/entry";
 import { useMemo } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dialog } from "../Dialog/DialogProvider";
-import Pill from "../Pill";
 import EmptyState from "./EmptyState";
 import EntryCard from "./EntryCard";
+import SearchBar from "./SearchBar";
 
 export default function ListView({
   entries,
@@ -78,33 +78,15 @@ export default function ListView({
     />
   );
 
-  const header = selectedDate ? (
-    <View style={styles.header}>
-      <View style={styles.selectedDayRow}>
-        <View style={styles.selectedDayTitle}>
-          <Pill text="Selected Day" />
-          <Text style={styles.selectedDayDate}>
-            {formatEntryDate(selectedDate)}
-          </Text>
-        </View>
-        <Text style={styles.entryCount}>
-          {`${selectedDateEntries.length} ${selectedDateEntries.length === 1 ? "entry" : "entries"}`}
-        </Text>
-      </View>
-      {selectedDateEntries.map((entry) => (
-        <View key={entry.id}>{renderCard(entry)}</View>
-      ))}
-      {otherEntries.length > 0 && <Pill text="Other entries" />}
-    </View>
-  ) : null;
-
   return (
     <View style={{ flex: 1 }}>
+      <View style={styles.searchWrap}>
+        <SearchBar placeholder="Search in diary" />
+      </View>
       <FlatList
         data={otherEntries}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => renderCard(item)}
-        ListHeaderComponent={header}
         contentContainerStyle={[
           styles.listContent,
           // room for the FAB + home indicator
@@ -122,6 +104,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       paddingHorizontal: 16,
       paddingBottom: 50,
     },
+    searchWrap: { paddingHorizontal: 16, paddingBottom: 10 },
     header: { marginBottom: 10 },
     selectedDayRow: {
       flexDirection: "row",
