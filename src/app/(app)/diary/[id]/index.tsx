@@ -10,6 +10,7 @@ import { getPreviewAttachments } from "@/src/db/attachments";
 import { getDiaryById, openDiary } from "@/src/db/diaries";
 import useDiaryMembers from "@/src/hooks/useDiaryMembers";
 import useEntries from "@/src/hooks/useEntries";
+import useEntrySearch from "@/src/hooks/useEntrySearch";
 import useTheme from "@/src/hooks/useTheme";
 import { deleteEntryWithMedia } from "@/src/services/attachments";
 import { useSyncStatus } from "@/src/services/syncEngine";

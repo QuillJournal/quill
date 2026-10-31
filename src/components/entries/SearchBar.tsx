@@ -1,24 +1,35 @@
 import { radius } from "@/src/constants/radius";
 import useTheme from "@/src/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
-import { useState } from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { Pressable, StyleSheet, TextInput, View } from "react-native";
 
-type SearchBarProps = { placeholder: string };
-export default function SearchBar({ placeholder }: SearchBarProps) {
-  const [query, setQuery] = useState("");
+type SearchBarProps = {
+  placeholder: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  onSubmit: () => void;
+};
+export default function SearchBar({
+  placeholder,
+  value,
+  onChangeText,
+  onSubmit,
+}: SearchBarProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
+
   return (
     <View style={styles.container}>
-      <Ionicons size={20} name="search" color={colors.textMuted} />
+      <Pressable onPress={onSubmit} hitSlop={20}>
+        <Ionicons size={20} name="search" color={colors.textMuted} />
+      </Pressable>
       <TextInput
         style={styles.input}
         placeholder={placeholder}
-        value={query}
-        onChangeText={setQuery}
+        value={value}
+        onChangeText={onChangeText}
+        onSubmitEditing={onSubmit}
       />
-      <Ionicons size={20} name="mic" color={colors.textMuted} />
     </View>
   );
 }

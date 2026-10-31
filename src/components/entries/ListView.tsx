@@ -1,5 +1,6 @@
 import { fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
+import useEntrySearch from "@/src/hooks/useEntrySearch";
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import { ViewProps } from "@/src/types/diary";
@@ -27,7 +28,7 @@ export default function ListView({
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors);
   const selectedKey = selectedDate ? toDateKey(selectedDate) : null;
-
+  const { query, setQuery, results, flush } = useEntrySearch(entries);
   const selectedDateEntries = useMemo(() => {
     return selectedDate
       ? entries.filter((e) => e.entryDate === selectedKey)
@@ -81,10 +82,15 @@ export default function ListView({
   return (
     <View style={{ flex: 1 }}>
       <View style={styles.searchWrap}>
-        <SearchBar placeholder="Search in diary" />
+        <SearchBar
+          placeholder="Search in diary"
+          value={query}
+          onChangeText={setQuery}
+          onSubmit={flush}
+        />
       </View>
       <FlatList
-        data={otherEntries}
+        data={results}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => renderCard(item)}
         contentContainerStyle={[
@@ -92,7 +98,7 @@ export default function ListView({
           // room for the FAB + home indicator
           { paddingBottom: 110 + insets.bottom },
         ]}
-        ListEmptyComponent={EmptyState}
+        ListEmptyComponent={<EmptyState accentColor={diaryAccent} />}
       />
     </View>
   );
