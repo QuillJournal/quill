@@ -22,12 +22,12 @@ type Option = { label: string; value: string };
 type SegmentedControlProps = {
   options: readonly Option[];
   selectedValue: string;
-  onSelect: (value: string) => void;
+  onSelect: (value: ViewType) => void;
 };
 export default function SegmentedControl({
   options,
   selectedValue,
-  onSelect,
+  onSelect
 }: SegmentedControlProps) {
   const { colors } = useTheme();
   const [containerWidth, setContainerWidth] = useState(0);

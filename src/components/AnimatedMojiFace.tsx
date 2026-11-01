@@ -11,8 +11,8 @@ import {
 } from "@/src/constants/mojiFaces";
 import { MOODS, type MoodKey } from "@/src/constants/moods";
 import useTheme from "@/src/hooks/useTheme";
-import { useEffect, useRef } from "react";
-import { View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { View, ImageBackground } from "react-native";
 import Animated, {
   cancelAnimation,
   Easing,
@@ -46,6 +46,7 @@ type Props = {
   intro?: boolean;
   introDelay?: number;
   startDelay?: number;
+  onBgChange?: (mood:MoodKey) => void; 
 };
 
 export default function AnimatedMojiFace({
@@ -54,6 +55,7 @@ export default function AnimatedMojiFace({
   intro = false,
   introDelay = 0,
   startDelay: customStartDelay,
+  onBgChange
 }: Props) {
   const { colors, isDark } = useTheme();
   const reduce = useReducedMotion();
@@ -78,6 +80,7 @@ export default function AnimatedMojiFace({
   const mounted = useRef(false);
   const lastMood = useRef<MoodKey>(mood);
 
+  const [background, setBackground] = useState(require("@/assets/images/empty.png")); 
   useEffect(() => {
     if (!mounted.current) return;
 
@@ -114,7 +117,10 @@ export default function AnimatedMojiFace({
     shake.value = 0;
     drop.value = 0;
     exprKind.value = reduce ? "none" : kind;
-    if (reduce || kind === "none") return;
+    if (reduce || kind === "none"){
+      setBackground(require("@/assets/images/empty.png"))
+      return;
+    }
 
     const isInstant = customStartDelay === 0;
     const startDelay = customStartDelay ?? Math.random() * 1200;
@@ -128,6 +134,9 @@ export default function AnimatedMojiFace({
         withTiming(0, { duration: 1100, easing: ease }),
         withTiming(0, { duration: 600 }),
       );
+      //add bg too 
+      setBackground(require("@/assets/images/mood-backgrounds/awesome.webp"))
+
     }
 
     if (kind === "happy") {
@@ -140,6 +149,8 @@ export default function AnimatedMojiFace({
         withTiming(0, { duration: 200, easing: down }),
         withTiming(0, { duration: 1300 }),
       );
+      //add bg too 
+      setBackground(require("@/assets/images/mood-backgrounds/happy.webp"))
     }
 
     if (kind === "calm") {
@@ -147,6 +158,8 @@ export default function AnimatedMojiFace({
         withTiming(1, { duration: 2400, easing: ease }),
         withTiming(0, { duration: 2400, easing: ease }),
       );
+      //add bg too 
+      setBackground(require("@/assets/images/mood-backgrounds/calm.jpg"))
     }
 
     if (kind === "meh") {
@@ -159,6 +172,8 @@ export default function AnimatedMojiFace({
         withTiming(0.5, { duration: 350, easing: ease }),
         withTiming(0.5, { duration: 1800 }),
       );
+      //add bg too 
+      setBackground(require("@/assets/images/mood-backgrounds/meh.jpg"))
     }
 
     if (kind === "sad") {
@@ -179,6 +194,8 @@ export default function AnimatedMojiFace({
           -1,
         ),
       );
+      //add bg too 
+      setBackground(require("@/assets/images/mood-backgrounds/sad.jpg"))
     }
 
     if (kind === "anxious") {
@@ -202,6 +219,8 @@ export default function AnimatedMojiFace({
           -1,
         ),
       );
+      //add bg too 
+      setBackground(require("@/assets/images/mood-backgrounds/anxious.jpg"))
     }
 
     if (kind === "angry") {
@@ -224,6 +243,8 @@ export default function AnimatedMojiFace({
         ),
       );
       shake.value = withRepeat(withTiming(1, { duration: SHAKE_MS }), -1, true);
+      //add bg too 
+      setBackground(require("@/assets/images/mood-backgrounds/angry.webp"))
     }
 
     return () => {
@@ -295,7 +316,8 @@ export default function AnimatedMojiFace({
   const mouthProps = useAnimatedProps(() => ({ d: geo.value.mouth }));
 
   return (
-    <View
+    <ImageBackground
+      source = {background}
       accessible
       accessibilityRole="image"
       accessibilityLabel={`${MOODS[mood].label} face`}
@@ -329,6 +351,6 @@ export default function AnimatedMojiFace({
           fill={ink}
         />
       </Svg>
-    </View>
+    </ImageBackground>
   );
 }

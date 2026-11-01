@@ -94,11 +94,10 @@ export default function Intro(){
         button: { 
             backgroundColor: colors.colors.accent,
             color: colors.colors.text,
-            paddingVertical: spacing.xs,
+            paddingVertical: spacing.md,
             borderRadius: radius.sm,
             marginBottom: 50, 
             alignItems: "center", 
-            paddingVertical: 20,
             textAlign: "center",
             width: width*0.7,
             justifyContent: "center",
