@@ -12,13 +12,12 @@ import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View,
+  View
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -99,8 +98,7 @@ export default function Editor({
   }));
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
-  const { top, bottom } = useSafeAreaInsets();
-  const keyboardVerticalOffset = top;
+  const { bottom } = useSafeAreaInsets();
 
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly ?? false);
   const [title, setTitle] = useState(initialTitle ?? "");
@@ -126,16 +124,27 @@ export default function Editor({
   const [mood, setMood] = useState<MoodKey | null>(initialMood ?? null);
   const [showMoodPicker, setShowMoodPicker] = useState(false);
 
-  const [kbVisible, setKbVisible] = useState(false);
-  useEffect(() => {
+  const [kbVisible, setKbVisible] = useState(() => Keyboard.isVisible());
+  const [kbInset, setKbInset] = useState(0);
+  const toolbarWrapRef = useRef<View>(null);
+    useEffect(() => {
     const ios = Platform.OS === "ios";
     const show = Keyboard.addListener(
       ios ? "keyboardWillShow" : "keyboardDidShow",
-      () => setKbVisible(true),
+      (e) => {
+        setKbVisible(true);
+        // How many px of this screen's bottom the keyboard covers.
+        toolbarWrapRef.current?.measureInWindow((_x, y, _w, h) => {
+          setKbInset(Math.max(0, y + h - e.endCoordinates.screenY));
+        });
+      },
     );
     const hide = Keyboard.addListener(
       ios ? "keyboardWillHide" : "keyboardDidHide",
-      () => setKbVisible(false),
+      () => {
+        setKbVisible(false);
+        setKbInset(0);
+      },
     );
     return () => {
       show.remove();
@@ -513,14 +522,14 @@ export default function Editor({
         />
       </ScrollView>
       {!isReadOnly && (
-        <KeyboardAvoidingView
-          behavior={"padding"}
+        <View
+          ref={toolbarWrapRef}
+          collapsable={false}
           style={styles.toolbarContainer}
-          keyboardVerticalOffset={keyboardVerticalOffset}
         >
-          <Toolbar editor={editor} />
-          {!kbVisible && <View style={{ height: bottom }} />}
-        </KeyboardAvoidingView>
+          <Toolbar editor={editor} hidden={!kbVisible} />
+          <View style={{ height: kbVisible ? kbInset : bottom }} />
+        </View>
       )}
       <MediaViewer
         item={viewing?.item ?? null}
