@@ -1,18 +1,17 @@
-import { fontSizes } from "@/src/constants/typography";
+import { fontSizes, fonts } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import { ViewProps } from "@/src/types/diary";
-import type { Entry, EntryWithAuthor } from "@/src/types/entry";
+import type { EntryWithAuthor } from "@/src/types/entry";
 import { formatEntryDate, toDateKey } from "@/src/utils/dates";
+import { isMine } from "@/src/utils/entry";
 import { useMemo } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dialog } from "../Dialog/DialogProvider";
 import Pill from "../Pill";
-import EmptyState from "./EmptyState";
 import EntryCard from "./EntryCard";
-import { isMine } from "@/src/utils/entry";
 
 export default function ListView({
   entries,
@@ -92,6 +91,11 @@ export default function ListView({
       {selectedDateEntries.map((entry) => (
         <View key={entry.id}>{renderCard(entry)}</View>
       ))}
+      {selectedDateEntries.length === 0 && (
+        <Text style={styles.noEntriesHint}>
+          No memories from this day. Long press this day on the calendar to add an entry.
+        </Text>
+      )}
       {otherEntries.length > 0 && <Pill text="Other entries" />}
     </View>
   ) : null;
@@ -108,7 +112,6 @@ export default function ListView({
           // room for the FAB + home indicator
           { paddingBottom: 110 + insets.bottom },
         ]}
-        ListEmptyComponent={EmptyState}
       />
     </View>
   );
@@ -129,14 +132,20 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       marginBottom: 10,
     },
     selectedDayTitle: { flexDirection: "row", alignItems: "center", gap: 10 },
-    selectedDayDate: {
+    noEntriesHint: {
       color: colors.textMuted,
-      fontWeight: "500",
-      fontSize: fontSizes.xs,
+      fontFamily: fonts.body,
+      fontSize: fontSizes.sm,
+      textAlign: "center",
+      paddingVertical: 16,
     },
     entryCount: {
       color: colors.textMuted,
       fontWeight: "500",
       fontSize: fontSizes.xs,
+    },
+    selectedDayDate: {
+      color: colors.textMuted,
+      fontFamily: fonts.label,
     },
   });

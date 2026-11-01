@@ -1,17 +1,18 @@
+import { isMoodKey } from "@/src/constants/moods";
+import { fonts } from "@/src/constants/typography";
 import usePressAnimation from "@/src/hooks/usePressAnimation";
 import useTheme from "@/src/hooks/useTheme";
 import type { EntryWithAuthor } from "@/src/types/entry";
 import {
-  formatCreatedMeta,
   formatEntryDate,
-  fromDateKey,
+  formatEntryTime,
+  fromDateKey
 } from "@/src/utils/dates";
 import { Ionicons } from "@expo/vector-icons";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import MojiFace from "../MojiFace";
 import AttachmentSummary from "./AttachmentSummary";
 import AuthorPill from "./AuthorPill";
-import { isMoodKey } from "@/src/constants/moods";
-import MojiFace from "../MojiFace";
 
 type EntryCardProps = {
   entry: EntryWithAuthor;
@@ -47,6 +48,8 @@ export default function EntryCard({
 
   return (
     <Pressable
+    accessibilityRole="button"
+    accessibilityLabel={`${entry.title || "Untitled entry"}, ${formatEntryDate(entryDate)}`}
       onPress={onPress}
       onLongPress={() => onLongPress(entry)}
       onPressIn={() => animatePress(true)}
@@ -70,7 +73,7 @@ export default function EntryCard({
           <AttachmentSummary counts={entry.counts} />
           <View style={styles.cardFooterRight}>
             <Text style={styles.cardDate}>
-              {formatCreatedMeta(entry.createdAt, entryDate)}
+              {formatEntryTime(entry.entryTime, entry.createdAt)}
             </Text>
             <AuthorPill
               name={entry.authorName}
@@ -121,17 +124,18 @@ const getStyles = (
       marginRight: 12,
     },
     cardTitle: {
+      fontFamily: fonts.heading,
       fontSize: 16,
-      fontWeight: "600",
       color: colors.text,
       flexShrink: 1,
     },
     cardDate: {
+      fontFamily: fonts.label,
       fontSize: 12,
-      fontWeight: "500",
       color: colors.textMuted,
     },
     cardPreview: {
+      fontFamily: fonts.body,
       fontSize: 14,
       lineHeight: 20,
       color: colors.textMuted,

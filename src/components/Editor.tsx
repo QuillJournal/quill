@@ -8,11 +8,12 @@ import {
 } from "@10play/tentap-editor";
 import { Ionicons } from "@expo/vector-icons";
 import { DatePicker } from "@quidone/react-native-wheel-picker";
+import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import {
   Keyboard,
   KeyboardAvoidingView,
-  Pressable,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -48,11 +49,13 @@ import { fromDateKey, toDateKey } from "../utils/dates";
 import AttachMenu from "./AttachMenu";
 import AudioRow from "./AudioRow";
 import Button from "./Button";
+import { dialog } from "./Dialog/DialogProvider";
 import MediaThumb from "./MediaThumb";
 import MediaViewer, { Rect, ViewerItem } from "./MediaViewer";
 import MojiFace from "./MojiFace";
 import MoodPicker from "./MoodPicker";
 import PressableScale, { IconButton } from "./PressableScale";
+import TimeWheel from "./TimeWheel";
 import VoiceRecorder from "./VoiceRecorder";
 import AppModal from "./ui/AppModal";
 
@@ -63,12 +66,16 @@ interface EditorProps {
   initialReadOnly?: boolean;
   initialAttachments?: Attachment[];
   initialMood?: MoodKey | null;
+  initialTime?: string;
+  authorLabel?: string;
+  canEdit?: boolean;
   onSave: (
     title: string,
     entryDate: string,
     body: string,
     media: { added: PendingAttachment[]; removedIds: number[] },
     mood: MoodKey | null,
+    entryTime: string,
   ) => void;
   onBack?: () => void;
 }
@@ -80,6 +87,9 @@ export default function Editor({
   initialReadOnly,
   initialAttachments,
   initialMood,
+  initialTime,
+  authorLabel,
+  canEdit = true,
   onSave,
   onBack,
 }: EditorProps) {
@@ -89,7 +99,7 @@ export default function Editor({
   }));
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
-  const { top } = useSafeAreaInsets();
+  const { top, bottom } = useSafeAreaInsets();
   const keyboardVerticalOffset = top;
 
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly ?? false);
@@ -98,6 +108,10 @@ export default function Editor({
     initialDate ?? toDateKey(new Date()),
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [entryTime, setEntryTime] = useState(
+    initialTime ?? dayjs().format("HH:mm"),
+  );
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [viewing, setViewing] = useState<{
     key: string;
     item: ViewerItem;
@@ -111,6 +125,40 @@ export default function Editor({
   const [removedIds, setRemovedIds] = useState<number[]>([]);
   const [mood, setMood] = useState<MoodKey | null>(initialMood ?? null);
   const [showMoodPicker, setShowMoodPicker] = useState(false);
+
+  const [kbVisible, setKbVisible] = useState(false);
+  useEffect(() => {
+    const ios = Platform.OS === "ios";
+    const show = Keyboard.addListener(
+      ios ? "keyboardWillShow" : "keyboardDidShow",
+      () => setKbVisible(true),
+    );
+    const hide = Keyboard.addListener(
+      ios ? "keyboardWillHide" : "keyboardDidHide",
+      () => setKbVisible(false),
+    );
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollY = useRef(0);
+  const viewportH = useRef(0);
+  const contentH = useRef(0);
+
+  const handleContentSizeChange = (_w: number, h: number) => {
+    const prev = contentH.current;
+    contentH.current = h;
+    if (isReadOnly || !kbVisible || h <= prev) return;
+    const wasNearBottom = prev - (scrollY.current + viewportH.current) < 80;
+    if (wasNearBottom) {
+      requestAnimationFrame(() =>
+        scrollRef.current?.scrollToEnd({ animated: false }),
+      );
+    }
+  };
 
   const addedRef = useRef(added);
   addedRef.current = added;
@@ -143,9 +191,19 @@ export default function Editor({
     if (picked.length) setAdded((prev) => [...prev, ...picked]);
   };
 
-  const handleDatePress = () => {
-    if (!isReadOnly) setShowDatePicker(true);
-  };
+  const openDatePicker = () => {
+    if (isReadOnly) return;
+    Keyboard.dismiss();
+    editor.blur();
+    setShowDatePicker(true);
+  }
+
+  const openTimePicker = () => {
+    if (isReadOnly) return;
+    Keyboard.dismiss();
+    editor.blur();
+    setShowTimePicker(true);
+  }
 
   const openMoodPicker = () => {
     if (isReadOnly) return;
@@ -191,6 +249,7 @@ export default function Editor({
     body, .ProseMirror {
       font-family: 'Gabarito', sans-serif !important;
     }
+    .ProseMirror { min-height: 240px; outline: none; }
     body {
       background-color: ${colors.background};
       color: ${colors.text};
@@ -208,6 +267,7 @@ export default function Editor({
 
   const editor = useEditorBridge({
     autofocus: !initialReadOnly,
+    dynamicHeight: true,
     avoidIosKeyboard: false,
     initialContent: initialBody ?? "<p></p>",
     editable: !isReadOnly,
@@ -217,14 +277,24 @@ export default function Editor({
     ],
     theme: isDark ? darkEditorTheme : undefined,
   });
+
   const displayDate = fromDateKey(entryDate).toLocaleDateString("en-US", {
     weekday: "short",
     month: "short",
     day: "numeric",
     year: "numeric",
   });
+  const displayTime = dayjs(`2000-01-01T${entryTime}`).format("h:mm A");
 
   const handleSave = async () => {
+    const bodyText = (await editor.getText()).trim();
+    if (!title.trim() && !bodyText && thumbs.length === 0) {
+      dialog.alert(
+        "Nothing to save",
+        "Add a title, some text or a attachment before saving."
+      );
+      return;
+    }
     saveScale.value = withSequence(
       withTiming(0.92, { duration: 60 }),
       withSpring(1, { damping: 4, stiffness: 300 }),
@@ -233,7 +303,7 @@ export default function Editor({
     const contentHtml = await editor.getHTML();
     setIsReadOnly(true);
     handedOffRef.current = true;
-    onSave(title, entryDate, contentHtml, { added, removedIds }, mood);
+    onSave(title, entryDate, contentHtml, { added, removedIds }, mood, entryTime);
   };
 
   const handleStartEditing = () => {
@@ -242,7 +312,7 @@ export default function Editor({
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["bottom", "left", "right"]}>
+    <SafeAreaView style={styles.container} edges={isReadOnly ? ["bottom", "left", "right"] : ["left", "right"]}>
       <View style={styles.topBar}>
         <View style={styles.leftHeaderGroup}>
           <IconButton
@@ -264,7 +334,7 @@ export default function Editor({
           </Text>
         </View>
         {isReadOnly ? (
-          <Animated.View style={saveStyle}>
+          <Animated.View style={[saveStyle, !canEdit && { display: "none" }]}>
             <Button
               label="Edit"
               onPress={handleStartEditing}
@@ -308,21 +378,54 @@ export default function Editor({
         )}
       </View>
 
-      <View style={styles.bodyContainer}>
+      <ScrollView
+        ref={scrollRef}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        scrollEventThrottle={16}
+        onScroll={(e) => {
+          scrollY.current = e.nativeEvent.contentOffset.y;
+        }}
+        onLayout={(e) => {
+          viewportH.current = e.nativeEvent.layout.height;
+        }}
+        onContentSizeChange={handleContentSizeChange}
+      >
         <TextInput
           accessibilityLabel="Entry title"
           style={styles.titleInput}
-          placeholder="Add Title..."
+          placeholder="Add title"
           placeholderTextColor={colors.textMuted}
           value={title}
           onChangeText={setTitle}
           editable={!isReadOnly}
+          returnKeyType="next"
+          onSubmitEditing={() => editor.focus()}
         />
 
-                <View style={styles.metaRow}>
-          <Pressable onLongPress={handleDatePress}>
-            <Text style={styles.dateSubtitle}>{displayDate}</Text>
-          </Pressable>
+        <View style={styles.metaRow}>
+          <PressableScale
+            disabled={isReadOnly}
+            onPress={openDatePicker}
+            accessibilityRole="button"
+            accessibilityLabel={`Date: ${displayDate}`}
+            style={styles.chip}
+          >
+            <Ionicons name="calendar-outline" size={16} color={colors.accent} />
+            <Text style={styles.chipText}>{displayDate}</Text>
+          </PressableScale>
+          <PressableScale
+            disabled={isReadOnly}
+            onPress={openTimePicker}
+            accessibilityRole="button"
+            accessibilityLabel={`Time: ${displayTime}`}
+            style={styles.chip}
+          >
+            <Ionicons name="time-outline" size={16} color={colors.accent} />
+            <Text style={styles.chipText}>{displayTime}</Text>
+          </PressableScale>
           {(mood || !isReadOnly) && (
             <PressableScale
               disabled={isReadOnly}
@@ -331,22 +434,32 @@ export default function Editor({
               accessibilityLabel={
                 mood ? `Mood: ${MOODS[mood].label}. Change mood` : "Add mood"
               }
-              style={styles.moodChip}
+              style={styles.chip}
             >
               {mood ? (
                 <>
-                  <MojiFace mood={mood} size={22} animated intro introDelay={isReadOnly ? 300 : 0} />
-                  <Text style={styles.moodChipText}>{MOODS[mood].label}</Text>
+                  <MojiFace
+                    mood={mood}
+                    size={20}
+                    animated
+                    intro
+                    introDelay={isReadOnly ? 300 : 0}
+                  />
+                  <Text style={styles.chipText}>{MOODS[mood].label}</Text>
                 </>
               ) : (
                 <>
-                  <Ionicons name="happy-outline" size={18} color={colors.textMuted} />
-                  <Text style={styles.moodChipText}>Mood</Text>
+                  <Ionicons name="happy-outline" size={16} color={colors.accent} />
+                  <Text style={styles.chipText}>Mood</Text>
                 </>
               )}
             </PressableScale>
           )}
         </View>
+        {isReadOnly && authorLabel ? (
+          <Text style={styles.authorText}>By {authorLabel}</Text>
+        ) : null}
+
         {visual.length > 0 && (
           <ScrollView
             horizontal
@@ -389,15 +502,24 @@ export default function Editor({
             onRemove={isReadOnly ? undefined : t.remove}
           />
         ))}
-        <RichText editor={editor} style={styles.editor} />
-      </View>
+
+        <View style={styles.divider} />
+        <RichText
+          editor={editor}
+          style={styles.editor}
+          scrollEnabled={false}
+          bounces={false}
+          overScrollMode="never"
+        />
+      </ScrollView>
       {!isReadOnly && (
         <KeyboardAvoidingView
           behavior={"padding"}
-          style={styles.keyboardToolbarContainer}
+          style={styles.toolbarContainer}
           keyboardVerticalOffset={keyboardVerticalOffset}
         >
           <Toolbar editor={editor} />
+          {!kbVisible && <View style={{ height: bottom }} />}
         </KeyboardAvoidingView>
       )}
       <MediaViewer
@@ -411,23 +533,43 @@ export default function Editor({
           onCancel={() => setRecorderOpen(false)}
         />
       )}
-            <MoodPicker
+      <MoodPicker
         isOpen={showMoodPicker}
         value={mood}
         onSelect={setMood}
         onClose={() => setShowMoodPicker(false)}
       />
       <AppModal
-        title="Jump To"
+        title="Entry date"
         isOpen={showDatePicker}
         onClose={() => setShowDatePicker(false)}
       >
         <View style={{ alignItems: "center" }}>
           <DatePicker
+            itemTextStyle={{ color: colors.text }}
             date={entryDate}
             onDateChanged={({ date }: { date: string }) => setEntryDate(date)}
           />
         </View>
+        <Button
+          label="Done"
+          onPress={() => setShowDatePicker(false)}
+          style={{ marginTop: 16 }}
+        />
+      </AppModal>
+      <AppModal
+        title="Entry time"
+        isOpen={showTimePicker}
+        onClose={() => setShowTimePicker(false)}
+      >
+        <View style={{ alignItems: "center" }}>
+          <TimeWheel value={entryTime} onChange={setEntryTime} />
+        </View>
+        <Button
+          label="Done"
+          onPress={() => setShowTimePicker(false)}
+          style={{ marginTop: 16 }}
+        />
       </AppModal>
     </SafeAreaView>
   );
@@ -460,41 +602,24 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       fontWeight: "700",
       color: colors.text,
     },
-    bodyContainer: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
     titleInput: {
       fontFamily: fonts.heading,
-      fontSize: 26,
+      fontSize: 28,
       fontWeight: "700",
       paddingHorizontal: 20,
-      paddingTop: 16,
-      paddingBottom: 4,
+      paddingTop: 20,
+      paddingBottom: 12,
       color: colors.text,
-      marginVertical: 0,
-    },
-    dateSubtitle: {
-      fontFamily: fonts.label,
-      fontSize: 13,
-      fontWeight: "600",
-      color: colors.textMuted,
-      textTransform: "uppercase",
-      letterSpacing: 0.5,
-      paddingHorizontal: 20,
-      paddingBottom: 14,
-      marginVertical: 0,
-    },
-    editor: {
-      flex: 1,
-      backgroundColor: colors.background,
-      marginHorizontal: 20,
-      marginVertical: 0,
     },
     keyboardToolbarContainer: {
       position: "absolute",
       width: "100%",
       bottom: 0,
+      borderTopColor: colors.border,
+      backgroundColor: colors.surface,
+    },
+    toolbarContainer: {
+      borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.border,
       backgroundColor: colors.surface,
     },
@@ -540,28 +665,51 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       alignItems: "center",
       justifyContent: "center",
     },
-        metaRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "space-between",
-      paddingRight: 20,
-      paddingBottom: 14,
+    scroll: {
+      flex: 1,
+      backgroundColor: colors.background
     },
-    moodChip: {
+    scrollContent: {
+      paddingBottom: 24,
+    },
+    metaRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      alignItems: "center",
+      gap: 8,
+      paddingHorizontal: 20,
+      paddingBottom: 12,
+    },
+    chip: {
       flexDirection: "row",
       alignItems: "center",
       gap: 6,
-      paddingHorizontal: 10,
-      paddingVertical: 4,
+      paddingHorizontal: 12,
+      paddingVertical: 7,
       borderRadius: 999,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.surfaceHigh,
     },
-    moodChipText: {
+    chipText: {
       fontFamily: fonts.label,
+      fontSize: 13,
+      color: colors.text,
+    },
+    authorText: {
+      fontFamily: fonts.body,
       fontSize: 12,
-      fontWeight: "600",
       color: colors.textMuted,
+      paddingHorizontal: 20,
+      paddingBottom: 12,
+    },
+    divider: {
+      height: StyleSheet.hairlineWidth,
+      backgroundColor: colors.border,
+      marginHorizontal: 20,
+      marginBottom: 8,
+    },
+    editor: {
+      minHeight: 240,
+      marginHorizontal: 20,
+      backgroundColor: colors.background,
     },
   });

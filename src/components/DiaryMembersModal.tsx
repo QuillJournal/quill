@@ -10,10 +10,9 @@ import useTheme from "@/src/hooks/useTheme";
 import {
   DiaryMemberInfo,
   fetchDiaryMembers,
-  getSharePhotoPreference,
   lookupUserForInvite,
   sendDiaryInvite,
-  updateMyMemberBlob,
+  updateMyMemberBlob
 } from "@/src/services/sharing";
 import type { DiaryRow } from "@/src/types/diary";
 import { Ionicons } from "@expo/vector-icons";
@@ -64,12 +63,15 @@ export default function DiaryMembersModal({
     if (!diary?.remoteId || !session) return;
     setLoading(true);
     try {
-      const [list, pref] = await Promise.all([
-        fetchDiaryMembers(diary.remoteId, diary.keyEpoch, session),
-        getSharePhotoPreference(diary.remoteId),
-      ]);
+      const list = await fetchDiaryMembers(
+        diary.remoteId,
+        diary.keyEpoch,
+        session,
+      );
       setMembers(list);
-      setSharePhoto(pref);
+      setSharePhoto(
+        list.find((m) => m.userId === session.userId)?.sharesPhoto ?? false,
+      );
     } finally {
       setLoading(false);
     }

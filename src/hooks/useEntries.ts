@@ -38,6 +38,12 @@ export default function useEntries(diaryId: number) {
         authorName,
       };
     });
+    formatted.sort(
+      (a, b) =>
+        b.entryDate.localeCompare(a.entryDate) ||
+        (b.entryTime ?? "").localeCompare(a.entryTime ?? "") ||
+        b.id - a.id,
+    );
     setEntries(formatted);
   }, [diaryId, session?.userId, session?.name]);
 

@@ -1,19 +1,19 @@
-import OnBoarding from "../app/onboarding"
 import { resolveDiaryColor } from "@/src/constants/colors";
 import { fonts, fontSizes } from "@/src/constants/typography";
+import { useUserSession } from "@/src/context/UserSessionContext";
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { Entry, EntryWithAuthor } from "@/src/types/entry";
-import { useState, useEffect } from "react";
-import { useUserSession } from "@/src/context/UserSessionContext";
+import { useEffect, useState } from "react";
 import {
+  Dimensions,
   StyleSheet,
   useColorScheme,
-  View,
-  Dimensions
+  View
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import OnBoarding from "../app/onboarding";
 import { ViewType } from "../types/diary";
 import { isSameDay } from "../utils/dates";
 import Calendar from "./calendar/Calendar";
@@ -151,7 +151,7 @@ export default function EntriesList({
       <SegmentedControl
         options={VIEW_OPTIONS}
         selectedValue={selectedView}
-        onSelect={setSelectedView}
+        onSelect={(v) => setSelectedView(v as ViewType)}
       />
       {selectedView != "feed" && (
         <View style={styles.calendarWrap}>

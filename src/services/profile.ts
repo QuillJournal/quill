@@ -72,7 +72,7 @@ export async function propagateNameToDiaries(
       await updateMyMemberBlob(
         d.remoteId,
         d.keyEpoch,
-        await getSharePhotoPreference(d.remoteId),
+        await getSharePhotoPreference(d.remoteId, d.keyEpoch, session),
         session,
       );
     } catch (e) {

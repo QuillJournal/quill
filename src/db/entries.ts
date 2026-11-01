@@ -28,6 +28,7 @@ export const saveEntry = async (
   body: string,
   authorId: string,
   mood: MoodKey | null = null,
+  entryTime: string | null = null,
 ): Promise<number> => {
   const remoteId = Crypto.randomUUID();
   const result = await db.insert(entries).values({
@@ -38,6 +39,7 @@ export const saveEntry = async (
     entryDate,
     body,
     mood,
+    entryTime,
     version: 1,
     keyEpoch: 1,
     deleted: 0,
@@ -52,6 +54,7 @@ export const updateEntry = async (
   entryDate: string,
   body: string,
   mood?: MoodKey | null,
+  entryTime?: string | null,
 ): Promise<void> => {
   const [existing] = await db.select().from(entries).where(eq(entries.id, id));
   if (!existing) return;
@@ -68,6 +71,7 @@ export const updateEntry = async (
       entryDate,
       body,
       mood,
+      entryTime,
       syncState: nextState,
       updatedAt: new Date(),
     })

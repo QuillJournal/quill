@@ -31,7 +31,7 @@ export default function FeedView({
 
   useEffect(() => {
     getPreviewAttachments(ids).then((map) => setMedia(map));
-  });
+  }, [ids]);
 
   const handleOpenMedia = useCallback(
     (item: ViewerItem, origin: Rect) =>
@@ -82,7 +82,7 @@ export default function FeedView({
     />
   );
   return (
-    <View>
+    <View style={{ flex: 1 }}>
       <FlatList
         data={entries}
         keyExtractor={(item) => item.id.toString()}

@@ -114,7 +114,7 @@ function ensureSchema(): void {
     author_id TEXT,
     title TEXT NOT NULL,
     body TEXT,
-    entry_date TEXT NOT NULL,
+    entry_date TEXT,
     mood TEXT,
     version INTEGER NOT NULL DEFAULT 1,
     key_epoch INTEGER NOT NULL DEFAULT 1,
