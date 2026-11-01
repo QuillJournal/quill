@@ -10,13 +10,13 @@ import { getPreviewAttachments } from "@/src/db/attachments";
 import { getDiaryById, openDiary } from "@/src/db/diaries";
 import useDiaryMembers from "@/src/hooks/useDiaryMembers";
 import useEntries from "@/src/hooks/useEntries";
-import useEntrySearch from "@/src/hooks/useEntrySearch";
 import useTheme from "@/src/hooks/useTheme";
 import { deleteEntryWithMedia } from "@/src/services/attachments";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { Attachment } from "@/src/types/attachment";
 import type { DiaryRow } from "@/src/types/diary";
 import { toDateKey } from "@/src/utils/dates";
+import { pluralize } from "@/src/utils/pluralize";
 import { supabase } from "@/src/utils/supabase";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -174,7 +174,7 @@ export default function DiaryScreen() {
           </View>
           <View style={styles.subtitleRow}>
             <Text style={styles.entryCountSubtitle}>
-              {entries.length} {entries.length === 1 ? "entry" : "entries"}
+              {entries.length} {pluralize(entries.length, "entry", "entries")}
             </Text>
             {isSyncing && (
               <View style={styles.syncInline}>

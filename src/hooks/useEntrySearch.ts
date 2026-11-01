@@ -5,6 +5,8 @@ import useDebounced from "./useDebouncedValue";
 export default function useEntrySearch(entries: EntryWithAuthor[]) {
   const [query, setQuery] = useState("");
   const { debouncedValue, flush } = useDebounced(query, 200);
+  console.log(query);
+  console.log(debouncedValue);
   const lowerCaseDebounced = debouncedValue.toLowerCase();
   const results = useMemo(() => {
     return entries.filter((e) =>

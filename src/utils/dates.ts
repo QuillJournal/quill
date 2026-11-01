@@ -1,4 +1,7 @@
 import dayjs from "dayjs";
+import weekOfYear from "dayjs/plugin/weekOfYear";
+
+dayjs.extend(weekOfYear);
 
 export const getWeekHeaders = (weekStartOn: number): string[] => {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -65,4 +68,16 @@ export const formatCreatedMeta = (createdAt: Date, entryDate: Date): string => {
     day: "numeric",
   });
   return `Created ${createdDateStr}`;
+};
+
+export const getWeekOfYear = (date: Date) => dayjs(date).week();
+
+export const getWeekRange = (date: Date) => {
+  const baseDate = dayjs(date);
+  const firstDay = baseDate.startOf("week");
+  const lastDay = baseDate.endOf("week");
+  return {
+    firstDay: firstDay.format("MMM D"),
+    lastDay: lastDay.format("MMM D"),
+  };
 };
