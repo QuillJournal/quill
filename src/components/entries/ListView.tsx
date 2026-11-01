@@ -14,6 +14,7 @@ import { dialog } from "../Dialog/DialogProvider";
 import EmptyState from "./EmptyState";
 import EntryCard from "./EntryCard";
 import EntryWeekHeader from "./EntryWeekHeader";
+import FilterPills from "./FilterPills";
 import SearchBar from "./SearchBar";
 
 export default function ListView({
@@ -91,6 +92,7 @@ export default function ListView({
           onSubmit={flush}
         />
       </View>
+      <FilterPills diaryAccent={diaryAccent} />
       <SectionList
         sections={data}
         keyExtractor={(item) => item.id.toString()}
