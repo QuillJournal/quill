@@ -1,4 +1,5 @@
 import * as SecureStore from "expo-secure-store";
+import { clearTrackedItems, setTrackedItem } from "./storage/trackedStore";
 
 export async function checkAndPinBundle(
   userId: string,
@@ -11,6 +12,8 @@ export async function checkAndPinBundle(
   if (existing && existing !== combined) {
     return true;
   }
-  await SecureStore.setItemAsync(storeKey, combined);
+  await setTrackedItem(storeKey, combined);
   return false;
 }
+
+export const clearKeyPins = () => clearTrackedItems("quill_pin_");

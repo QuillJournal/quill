@@ -839,3 +839,19 @@ async function pullInvites(currentUserId: string) {
       .onConflictDoNothing();
   }
 }
+
+export function waitForSyncIdle(timeoutMs = 10_000): Promise<void> {
+  if (!isSyncRunning) return Promise.resolve();
+  return new Promise((resolve) => {
+    const finish = () => {
+      syncListeners.delete(onChange);
+      clearTimeout(timer);
+      resolve();
+    };
+    const onChange = (syncing: boolean) => {
+      if (!syncing) finish();
+    };
+    const timer = setTimeout(finish, timeoutMs);
+    syncListeners.add(onChange);
+  });
+}

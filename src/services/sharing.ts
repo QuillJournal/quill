@@ -19,6 +19,7 @@ import {
 } from "../utils/crypto";
 import { supabase } from "../utils/supabase";
 import { checkAndPinBundle } from "./keyPins";
+import { setTrackedItem } from "./storage/trackedStore";
 import { runSync } from "./syncEngine";
 
 export interface LookedUpUser {
@@ -337,7 +338,7 @@ export async function acceptDiaryInvite(
   });
   if (error) throw new Error(error.message);
 
-  await SecureStore.setItemAsync(
+  await setTrackedItem(
     `quill_share_photo_${invite.diaryRemoteId}`,
     sharePhoto ? "1" : "0",
   );
@@ -485,7 +486,7 @@ export async function updateMyMemberBlob(
 
   if (error) throw new Error(error.message);
 
-  await SecureStore.setItemAsync(
+  await setTrackedItem(
     `quill_share_photo_${diaryRemoteId}`,
     sharePhoto ? "1" : "0",
   );

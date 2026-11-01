@@ -3,6 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import { clearLocalDatabase } from "../db";
 import { clearLocalAvatarCache } from "../utils/photoCrypto";
 import { removeAllMedia } from "./attachments";
+import { clearTrackedItems } from "./storage/trackedStore";
 
 const PENDING_KEY = "quill.wipe.pending";
 const OPTIONS: SecureStore.SecureStoreOptions = {
@@ -15,6 +16,7 @@ async function runWipe(): Promise<void> {
     clearLocalDatabase(),
     removeAllMedia(),
     clearLocalAvatarCache(),
+    clearTrackedItems("quill_share_photo_"),
     cache
       ? FileSystem.deleteAsync(`${cache}DocumentPicker`, { idempotent: true })
       : Promise.resolve(),
