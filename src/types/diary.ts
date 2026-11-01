@@ -8,7 +8,7 @@ export type Diary = DiaryRow & { entryCount: number; memberCount: number };
 export type DiaryFormData = { name: string; color: DiaryColorKey };
 export type ViewProps = {
   entries: EntryWithAuthor[];
-  media: Attachment[];
+  media: Map<number, Attachment[]>;
   selectedDate: Date | null;
   onSelectEntry?: (entry: Entry) => void;
   onDeleteEntry?: (id: number) => void;

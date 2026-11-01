@@ -27,7 +27,7 @@ interface EntriesListProps {
   onClose?: () => void;
   onDeleteEntry?: (id: number) => void;
   onOpenMembers?: () => void;
-  media: Attachment[];
+  media: Map<number, Attachment[]>;
   closing?: boolean;
   first?: boolean;
 }

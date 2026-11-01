@@ -5,9 +5,10 @@ import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import { ViewProps } from "@/src/types/diary";
 import type { EntryWithAuthor } from "@/src/types/entry";
+import { FilterValue } from "@/src/types/filter";
 import { toDateKey } from "@/src/utils/dates";
-import { groupByWeek, isMine } from "@/src/utils/entry";
-import { useMemo } from "react";
+import { filterEntries, groupByWeek, isMine } from "@/src/utils/entry";
+import { useMemo, useState } from "react";
 import { SectionList, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dialog } from "../Dialog/DialogProvider";
@@ -31,7 +32,16 @@ export default function ListView({
   const styles = getStyles(colors);
   const selectedKey = selectedDate ? toDateKey(selectedDate) : null;
   const { query, setQuery, results, flush } = useEntrySearch(entries);
-  const data = useMemo(() => groupByWeek(results), [results]);
+  const [selectedFilter, setSelectedFilter] = useState<FilterValue>("all");
+  const data = useMemo(
+    () => groupByWeek(filterEntries(results, selectedFilter, session?.userId)),
+    [results, selectedFilter],
+  );
+
+  const handleSelectFilter = (filter: FilterValue) => {
+    setSelectedFilter(filter);
+  };
+
   const selectedDateEntries = useMemo(() => {
     return selectedDate
       ? entries.filter((e) => e.entryDate === selectedKey)
@@ -92,8 +102,13 @@ export default function ListView({
           onSubmit={flush}
         />
       </View>
-      <FilterPills diaryAccent={diaryAccent} />
+      <FilterPills
+        diaryAccent={diaryAccent}
+        selectedFilter={selectedFilter}
+        onSelectFilter={handleSelectFilter}
+      />
       <SectionList
+        style={{ flex: 1 }}
         sections={data}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => renderCard(item)}

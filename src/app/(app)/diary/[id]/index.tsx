@@ -43,7 +43,7 @@ export default function DiaryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { entries, refresh } = useEntries(diaryId);
-  const [media, setMedia] = useState<Map<number, Attachment[]>>();
+  const [media, setMedia] = useState<Map<number, Attachment[]>>(new Map());
   const ids = useMemo(() => entries.map((e) => e.id), [entries]);
   useEffect(() => {
     getPreviewAttachments(ids).then((map) => setMedia(map));

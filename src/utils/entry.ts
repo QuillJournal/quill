@@ -1,5 +1,6 @@
 import type { EntrySection } from "../types/entry";
 import { EntryWithAuthor } from "../types/entry";
+import { FilterValue } from "../types/filter";
 import {
   fromDateKey,
   getWeekOfYear,
@@ -39,4 +40,21 @@ export const groupByWeek = (entries: EntryWithAuthor[]) => {
     ...s,
     subtitle: `${s.data.length} ${pluralize(entries.length, "entry", "entries")} · ${words} ${pluralize(words, "word", "words")}`,
   }));
+};
+
+export const filterEntries = (
+  entries: EntryWithAuthor[],
+  filter: FilterValue,
+  currentUserId?: string,
+): EntryWithAuthor[] => {
+  switch (filter) {
+    case "media":
+      return entries.filter((e) => e.counts.image > 0 || e.counts.video > 0);
+    case "audio":
+      return entries.filter((e) => e.counts.audio > 0);
+    case "mine":
+      return entries.filter((e) => isMine(e.authorId, currentUserId));
+    default:
+      return entries;
+  }
 };
