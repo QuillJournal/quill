@@ -23,7 +23,7 @@ import { setPreference, ThemePreference, usePreferences } from "../services/pref
 import { changeAccountName, propagateNameToDiaries } from "../services/profile";
 import {
   clearDerivedKey,
-  getStoredDerivedKey,
+  getStoredVaultKey,
 } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import {
@@ -281,7 +281,7 @@ export default function SettingsModal({
       }
       const newLocalUri = result.assets[0].uri;
 
-      const derivedKey = await getStoredDerivedKey();
+      const derivedKey = await getStoredVaultKey();
       if (!derivedKey) {
         throw new Error("Encryption key not found. Please login again.");
       }

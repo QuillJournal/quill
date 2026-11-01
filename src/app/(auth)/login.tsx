@@ -7,7 +7,8 @@ import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import useTheme from "@/src/hooks/useTheme";
-import { saveDerivedKey } from "@/src/services/storage/secureKeyStore";
+import { adoptVaultKey } from "@/src/services/profile";
+import { saveDerivedKey, saveVaultKey } from "@/src/services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "@/src/services/storage/SupabaseStorageAdapter";
 import {
   checkUsernameAvailable,
@@ -20,6 +21,7 @@ import {
 } from "@/src/utils/auth";
 import {
   bytesToHex,
+  DecryptedProfile,
   decryptKeyBundle,
   decryptUserProfile,
   deriveAuthAndEncKeys,
@@ -27,11 +29,12 @@ import {
   generateDualSignKeyPair,
   generateHybridKemKeyPair,
   generateRecoveryKey,
+  generateVaultKey,
   hexToBytes,
   parseRecoveryKey,
   signPublicBundle,
   UserSecretKeyBundle,
-  wrapKeyBundles
+  wrapKeyBundles,
 } from "@/src/utils/crypto";
 import { MIN_PASSWORD_LENGTH, validatePassword } from "@/src/utils/passwordPolicy";
 import { downloadAndDecryptPhoto } from "@/src/utils/photoCrypto";
@@ -134,11 +137,8 @@ export default function Auth() {
 
         await saveDerivedKey(localEncKey);
         const profile = await getUserProfileRecord(user.id);
-        const decryptedProfile = decryptUserProfile(
-          profile.encrypted_profile,
-          profile.profile_nonce,
-          localEncKey,
-        );
+        let vaultKey: Uint8Array;
+        let decryptedProfile: DecryptedProfile;
 
         let kemKeys: { x25519Priv: Uint8Array; mlkem768Priv: Uint8Array; publicKeyHex: string };
         let signKeys: { ed25519Priv: Uint8Array; mldsa65Priv: Uint8Array; publicKeyHex: string };
@@ -159,11 +159,13 @@ export default function Auth() {
             signPair.mldsa65Priv
           );
 
+          vaultKey = generateVaultKey();
           const secretBundle: UserSecretKeyBundle = {
             kemX25519Priv: bytesToHex(kemPair.x25519Priv),
             kemMlkem768Priv: bytesToHex(kemPair.mlkem768Priv),
             signEd25519Priv: bytesToHex(signPair.ed25519Priv),
             signMldsa65Priv: bytesToHex(signPair.mldsa65Priv),
+            vaultKey: bytesToHex(vaultKey),
           };
 
           const { encryptedKeyBundle, recoveryKeyBundle } = wrapKeyBundles(
@@ -178,13 +180,13 @@ export default function Auth() {
             encryptedKeyBundle,
             recoveryKeyBundle,
           });
-          console.log("MADE IT")
+          decryptedProfile = await adoptVaultKey(profile, localEncKey, vaultKey);
           dialog.alert(
             "Save your recovery key.",
-            `Please, write this down and store it safely. It will NEVER be shown again:\n\n${recKeyDisplay}`,
+            `Please, write this down and store it safely. You will lose your data without it:\n\n${recKeyDisplay}`,
             [
               {
-                text: 'Copy to clipboard',
+                text: 'Copy',
                 style: 'default',
                 onPress: async () => {
                 Clipboard.setStringAsync(`${recKeyDisplay}`);
@@ -213,6 +215,12 @@ export default function Auth() {
           }
 
           const bundle = decryptKeyBundle(profile.encrypted_key_bundle, localEncKey);
+          vaultKey = hexToBytes(bundle.vaultKey);
+          decryptedProfile = decryptUserProfile(
+            profile.encrypted_profile,
+            profile.profile_nonce,
+            vaultKey,
+          );
           kemKeys = {
             x25519Priv: hexToBytes(bundle.kemX25519Priv),
             mlkem768Priv: hexToBytes(bundle.kemMlkem768Priv),
@@ -225,13 +233,14 @@ export default function Auth() {
           };
         }
 
+        await saveVaultKey(vaultKey);
         let decryptedPhotoUri: string | null = null;
         if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
           try {
             decryptedPhotoUri = await downloadAndDecryptPhoto(
               decryptedProfile.photoPath,
               decryptedProfile.photoNonce,
-              localEncKey,
+              vaultKey,
               new SupabaseStorageAdapter("avatars")
             );
           } catch (e) {
