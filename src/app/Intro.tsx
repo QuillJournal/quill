@@ -1,8 +1,9 @@
-import React, {useState} from "react"
+import React, {useState, useRef} from "react"
 import EmptyArt from "@/assets/images/empty.png";
 import useTheme from "@/src/hooks/useTheme";
 import { radius } from "@/src/constants/radius";
 import { spacing } from "@/src/constants/spacings";
+import { fontSizes, fonts } from "@/src/constants/typography";
 import { useRouter } from "expo-router";
 import { 
     FlatList, 
@@ -16,6 +17,7 @@ import {
 const height:number = Dimensions.get("window").height;
 const width:number = Dimensions.get("window").width;
 export default function Intro(){
+    const activeRef = useRef<FlatList>(null)
     const router = useRouter();
     const colors = useTheme();
     const pages = [
@@ -24,6 +26,11 @@ export default function Intro(){
         {photo: EmptyArt, text: "inspiring3", subtext: "inspiring3"},
         {photo: EmptyArt, text: "inspiring4", subtext: "inspiring4"},
         {photo: EmptyArt, text: "inspiring5", subtext: "inspiring5"},
+    ]
+    const plusonepages = [
+        pages[pages.length - 1],
+        ...pages,
+        pages[0]
     ]
     const [active, setActive] = useState(0)
     const animate = ({item}:{item: typeof pages[number]}) => {
@@ -37,21 +44,23 @@ export default function Intro(){
     }
     const styles = StyleSheet.create({
         activedot:{
-            width: 30, 
-            height: 10,
+            width: 40, 
+            height: 20,
             backgroundColor: colors.colors.accentPressed, 
             borderRadius: 30
         }, 
         normaldot: {
-            width: 10, 
-            height: 10,
+            width: 20, 
+            height: 20,
             backgroundColor: colors.colors.accent, 
             borderRadius: 30, 
             opacity: 0.3
         },
         container: {
-            width: 500, 
-            height: 500
+            paddingTop: 60,
+            height: height * 0.65,
+            width: width, 
+            alignItems: "center"
         },
         card:{
             width: width,
@@ -64,6 +73,7 @@ export default function Intro(){
         page:{
             flex: 1, 
             backgroundColor: colors.colors.background,
+            gap: 50,
         }, 
         scrollers:{ 
             display: "flex", 
@@ -88,22 +98,33 @@ export default function Intro(){
             borderRadius: radius.sm,
             marginBottom: 50, 
             alignItems: "center", 
+            paddingVertical: 20,
             textAlign: "center",
+            width: width*0.7,
+            justifyContent: "center",
+            alignSelf: "center"
         }
     });
-
+    const changePage = (index:number, animated:boolean) => {
+        setActive(index)
+        activeRef.current?.scrollToIndex({
+            index:index + 1,
+            animated:animated
+        });
+    };
     return(
         <View style = {styles.page}>
             <View style = {styles.container}>
                 <FlatList
-                    data = {pages}
+                    ref = {activeRef}
+                    data = {plusonepages}
                     renderItem = {animate}
                     keyExtractor = {(_,index) =>index.toString()}
                     pagingEnabled
 
                     horizontal
                     showsHorizontalScrollIndicator = {false}
-                    initialScrollIndex= {0}
+                    initialScrollIndex= {1}
                     decelerationRate = "fast"
                     snapToAlignment = "center"
                     directionalLockEnabled
@@ -111,7 +132,16 @@ export default function Intro(){
                     onMomentumScrollEnd = {(event) => {
                         {/* can scroll in any direction. check based on scroll position */}
                         const index = Math.round(event.nativeEvent.contentOffset.x /width)
-                        setActive(index)
+                        if(index === plusonepages.length - 1){
+                            //element 7 go back to element 1 
+                            changePage(0, true);
+
+                        }else if(index === 0 ){
+                            //element 0, go back to element 6 
+                            changePage(plusonepages.length - 3, true);
+                        }else{
+                            setActive(index - 1)
+                        }
                     }}
                     getItemLayout = {(_, index) => ({
                         length: width,
@@ -125,15 +155,18 @@ export default function Intro(){
             <View style = {styles.scrollers}> 
                 {pages.map((_, index) => {
                     return(
-                        <View 
-                            key = {index}
-                            style = {index === active? styles.activedot:styles.normaldot}
+                        <Pressable 
+                            hitSlop = {5}
+                            key = {index} 
+                            onPress = {() => {changePage(index, true)}}
                         >
-                        </View>
+                            <View style = {index === active? styles.activedot:styles.normaldot}>
+                            </View>
+                        </Pressable>
                     );
                 })}    
             </View> 
-            <Pressable onPress = {() => {router.replace("/(auth)/login")}} style = {styles.button}><Text>Start</Text></Pressable>
+            <Pressable onPress = {() => {router.replace("/(auth)/login")}} style = {styles.button}><Text style = {{fontSize: fontSizes.xl, fontFamily: fonts.heading}}>Start</Text></Pressable>
         </View>
     );
 
