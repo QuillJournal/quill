@@ -527,7 +527,7 @@ export default function Editor({
           collapsable={false}
           style={styles.toolbarContainer}
         >
-          <Toolbar editor={editor} hidden={!kbVisible} />
+          <Toolbar editor={editor} />
           <View style={{ height: kbVisible ? kbInset : bottom }} />
         </View>
       )}
