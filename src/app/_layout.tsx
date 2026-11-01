@@ -273,7 +273,8 @@ function AppNavigator() {
           });
         }
       } catch (e) {
-        console.error("Fast restore failed: ", e);
+        console.log();
+        console.error("ERROR: ", e);
       } finally {
         setIsAuthLoading(false);
       }

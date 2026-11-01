@@ -50,8 +50,8 @@ export default function Intro(){
             opacity: 0.3
         },
         container: {
-        flex: 1,
-        backgroundColor: colors.colors.background,
+            width: 500, 
+            height: 500
         },
         card:{
             width: width,
@@ -63,7 +63,7 @@ export default function Intro(){
         },
         page:{
             flex: 1, 
-            backgroundColor: colors.colors.shadow
+            backgroundColor: colors.colors.background,
         }, 
         scrollers:{ 
             display: "flex", 
@@ -82,10 +82,13 @@ export default function Intro(){
 
         }, 
         button: { 
-             backgroundColor: colors.colors.accent,
+            backgroundColor: colors.colors.accent,
             color: colors.colors.text,
             paddingVertical: spacing.xs,
-            borderRadius: radius.sm
+            borderRadius: radius.sm,
+            marginBottom: 50, 
+            alignItems: "center", 
+            textAlign: "center",
         }
     });
 
@@ -101,6 +104,10 @@ export default function Intro(){
                     horizontal
                     showsHorizontalScrollIndicator = {false}
                     initialScrollIndex= {0}
+                    decelerationRate = "fast"
+                    snapToAlignment = "center"
+                    directionalLockEnabled
+                    disableIntervalMomentum = {true}
                     onMomentumScrollEnd = {(event) => {
                         {/* can scroll in any direction. check based on scroll position */}
                         const index = Math.round(event.nativeEvent.contentOffset.x /width)
