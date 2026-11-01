@@ -13,6 +13,7 @@ type Props = {
     animated?: boolean;
     intro?: boolean;
     introDelay?: number;
+    onBgChange?: (mood:MoodKey) => void; 
 };
 
 export default function MojiFace({
@@ -21,6 +22,7 @@ export default function MojiFace({
     animated = false,
     intro,
     introDelay,
+    onBgChange
 }: Props) {
     if (animated) {
         return (
@@ -29,6 +31,7 @@ export default function MojiFace({
             size={size}
             intro={intro}
             introDelay={introDelay}
+            onBgChange = {onBgChange}
             />
         );
     }
