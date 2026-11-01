@@ -86,6 +86,7 @@ export default function FeedView({
           { paddingBottom: 200 + insets.bottom },
         ]}
       />
+      
       <MediaViewer
         item={viewing?.item ?? null}
         origin={viewing?.origin ?? null}

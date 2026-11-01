@@ -41,7 +41,7 @@ export default function Pill({
       >
         {icon && (
           <Ionicons
-            size={16}
+            size={18}
             name={icon}
             color={iconColor ?? colors.textMuted}
           />
@@ -59,9 +59,12 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
       justifyContent: "center",
-      alignItems: "center",
+      alignItems: "baseline",
       flexDirection: "row",
       gap: 10,
     },
-    text: { color: colors.textMuted, fontWeight: 600 },
+    text: {
+      color: colors.textMuted,
+      fontWeight: 600,
+    },
   });
