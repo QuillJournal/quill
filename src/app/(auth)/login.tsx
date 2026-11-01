@@ -284,7 +284,7 @@ export default function Auth() {
       await sendPasswordResetEmail(email.trim());
       dialog.alert(
         "Check your inbox",
-        "We've sent a password reset link to your email.",
+        "We've sent a reset link to your email. Open it on this phone, then enter your recovery key; the link alone can't unlock your diaries.",
       );
     } catch (err: any) {
       dialog.alert("Reset Error", err.message || "Failed to send reset email.");

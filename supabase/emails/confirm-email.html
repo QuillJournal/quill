@@ -1,0 +1,42 @@
+<head>
+  <meta name="color-scheme" content="light dark" />
+  <meta name="supported-color-schemes" content="light dark" />
+  <style>
+    div {
+      text-align: center;
+      font-family: sans-serif;
+      margin: 5%;
+    }
+    button {
+      font-size: 18px;
+      background-color: rgb(0 128 0);
+      color: white;
+      border-radius: 12px;
+      border: 0px;
+      padding: 12px;
+      box-shadow: 10px;
+    }
+    @media (prefers-color-scheme: dark) {
+      div {
+        color: white;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>Verify your email</h1>
+    <p>
+      Welcome to Quill! Confirm your email by clicking the button below and
+      start writing your memories into Quill's high security, zero-knowledge
+      encrypted environment. This ensures that no one except you and the people
+      you choose, not even us can read or see your memories,
+    </p>
+    <a href="{{ .ConfirmationURL }}"><button>Confirm email</button></a>
+    <p>
+      If you didn't request to signup, go to
+      <a href="https://QuillJournal.github.io">this link</a> and download Quill
+      to try it out. It's free :P
+    </p>
+  </div>
+</body>

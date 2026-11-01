@@ -61,7 +61,7 @@ import {
 } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import { getSyncRuns } from "../services/syncEngine";
-import { getUserProfileRecord, subscribeToAuthState } from "../utils/auth";
+import { getUserProfileRecord, isRecoveryMode, subscribeToAuthState, useRecoveryMode, } from "../utils/auth";
 import { decryptUserProfile, type DecryptedProfile } from "../utils/crypto";
 import {
   downloadAndDecryptPhoto,
@@ -103,6 +103,7 @@ function AppNavigator() {
   const [decryptBaseline, setDecryptBaseline] = useState<number | null>(null);
   const [gateChecked, setGateChecked] = useState(false);
   const decryptGateDone = useRef(false);
+  const isRecovering = useRecoveryMode();
 
   let cachedPhotoUri: string | null = null;
 
@@ -122,6 +123,10 @@ function AppNavigator() {
 
   useEffect(() => {
     const unsubscribe = subscribeToAuthState(async (newSession) => {
+      if (newSession && isRecoveryMode()) {
+        setIsAuthLoading(false);
+        return;
+      }
       setSupabaseSession(newSession);
 
       if (!newSession) {
@@ -299,7 +304,8 @@ function AppNavigator() {
   }, []);
 
   const isSignedIn = supabaseSession !== null;
-  const isNavReady = isFontsLoaded && isDbMigrated && !isAuthLoading;
+  const isNavReady =
+   isFontsLoaded && isDbMigrated && !isAuthLoading && !isRecovering;
 
   const closeDecryptGate = useCallback(() => {
     decryptGateDone.current = true;
