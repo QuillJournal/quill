@@ -1,4 +1,3 @@
-import { play } from "@/modules/haptic-engine";
 import {
   CoreBridge,
   darkEditorTheme,
@@ -43,6 +42,7 @@ import {
   resolveAttachmentUri,
 } from "../services/attachments";
 import { celebrate } from "../services/hapticPatterns";
+import { playEvents as play } from "../services/haptics";
 import type { Attachment } from "../types/attachment";
 import { fromDateKey, toDateKey } from "../utils/dates";
 import AttachMenu from "./AttachMenu";

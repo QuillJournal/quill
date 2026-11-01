@@ -2,7 +2,7 @@
   "expo": {
     "name": "Quill",
     "slug": "quill",
-    "version": "0.5.0",
+    "version": "0.6.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "quill",
@@ -54,7 +54,11 @@
           "microphonePermission": "Microphone permission to record voice notes."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-local-authentication",
+        { "faceIDPermission": "Quill uses Face ID to support app lock." }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

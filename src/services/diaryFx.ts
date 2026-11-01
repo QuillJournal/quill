@@ -1,7 +1,7 @@
 import * as engine from "@/modules/haptic-engine";
 import { createAudioPlayer, setAudioModeAsync } from "expo-audio";
 import { collapse, confirm, expand } from "./hapticPatterns";
-import { haptic, play as playFallback } from "./haptics";
+import { haptic, isHapticsEnabled, play as playFallback } from "./haptics";
 
 export const T = {
   slide: 160,
@@ -34,7 +34,10 @@ const sound = (k: keyof typeof players) => {
 const tick = (
   events: Parameters<typeof engine.play>[0],
   fallback: () => void,
-) => (engine.isSupported() ? engine.play(events) : fallback());
+) => {
+  if (!isHapticsEnabled()) return;
+  return engine.isSupported() ? engine.play(events) : fallback();
+};
 
 export const fx = {
   openSlide: () => {

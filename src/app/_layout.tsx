@@ -42,6 +42,7 @@ export {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-get-random-values";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import AppLockScreen from "../components/AppLocalScreen";
 import { DialogProvider } from "../components/Dialog/DialogProvider";
 import {
   UserSessionProvider,
@@ -50,6 +51,7 @@ import {
 } from "../context/UserSessionContext";
 import { diariesTable } from "../db/schema";
 import useTheme from "../hooks/useTheme";
+import "../services/preferences";
 import {
   clearDerivedKey,
   getStoredDerivedKey,
@@ -397,6 +399,7 @@ function AppNavigator() {
                 options={{ animation: "fade", gestureEnabled: false }}
                 />
               </Stack>
+              <AppLockScreen />
             </View>
           </DiaryTransitionProvider>
         </DecryptGateContext.Provider>
