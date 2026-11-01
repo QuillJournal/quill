@@ -1,4 +1,3 @@
-import { spacing } from "@/src/constants/spacings";
 import { fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import useEntrySearch from "@/src/hooks/useEntrySearch";
@@ -6,21 +5,15 @@ import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import { ViewProps } from "@/src/types/diary";
 import type { EntryWithAuthor } from "@/src/types/entry";
-import {
-  fromDateKey,
-  getWeekOfYear,
-  getWeekRange,
-  toDateKey,
-} from "@/src/utils/dates";
-import { isMine } from "@/src/utils/entry";
-import { pluralize } from "@/src/utils/pluralize";
-import { countWords, stripHtml } from "@/src/utils/string";
+import { toDateKey } from "@/src/utils/dates";
+import { groupByWeek, isMine } from "@/src/utils/entry";
 import { useMemo } from "react";
-import { SectionList, StyleSheet, Text, View } from "react-native";
+import { SectionList, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dialog } from "../Dialog/DialogProvider";
 import EmptyState from "./EmptyState";
 import EntryCard from "./EntryCard";
+import EntryWeekHeader from "./EntryWeekHeader";
 import SearchBar from "./SearchBar";
 
 export default function ListView({
@@ -37,28 +30,7 @@ export default function ListView({
   const styles = getStyles(colors);
   const selectedKey = selectedDate ? toDateKey(selectedDate) : null;
   const { query, setQuery, results, flush } = useEntrySearch(entries);
-  const data = Object.values(
-    results.reduce((acc, item) => {
-      const entryDate = fromDateKey(item.entryDate);
-      const title = getWeekOfYear(entryDate);
-      const { firstDay, lastDay } = getWeekRange(entryDate);
-      const headerText = `Week ${title} · ${firstDay} - ${lastDay}`;
-      if (!acc[title]) {
-        acc[title] = {
-          title: headerText.toUpperCase(),
-          subtitle: "",
-          data: [],
-        };
-      }
-      acc[title].data.push(item);
-      const wordCount = acc[title].data.reduce((sum, item) => {
-        return sum + countWords(stripHtml(item.body));
-      }, 0);
-      acc[title].subtitle =
-        `${acc[title].data.length} ${pluralize(entries.length, "entry", "entries")} · ${wordCount} ${pluralize(wordCount, "word", "words")}`;
-      return acc;
-    }, {}),
-  );
+  const data = useMemo(() => groupByWeek(results), [results]);
   const selectedDateEntries = useMemo(() => {
     return selectedDate
       ? entries.filter((e) => e.entryDate === selectedKey)
@@ -124,33 +96,7 @@ export default function ListView({
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => renderCard(item)}
         renderSectionHeader={({ section }) => (
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: spacing.sm,
-            }}
-          >
-            <Text
-              style={{
-                fontWeight: "bold",
-                fontSize: fontSizes.sm,
-                color: colors.textMuted,
-              }}
-            >
-              {section.title}
-            </Text>
-            <Text
-              style={{
-                color: colors.textMuted,
-                fontSize: fontSizes.xs,
-                fontWeight: "light",
-              }}
-            >
-              {section.subtitle}
-            </Text>
-          </View>
+          <EntryWeekHeader title={section.title} subtitle={section.subtitle} />
         )}
         contentContainerStyle={[
           styles.listContent,
@@ -158,6 +104,7 @@ export default function ListView({
           { paddingBottom: 110 + insets.bottom },
         ]}
         ListEmptyComponent={<EmptyState accentColor={diaryAccent} />}
+        stickySectionHeadersEnabled
       />
     </View>
   );

@@ -13,6 +13,10 @@ export const isSameDay = (date1: Date, date2: Date) => {
   return dayjs(date1).isSame(dayjs(date2), "day");
 };
 
+export const isCurrentYear = (date: Date) => {
+  return dayjs(date).isSame(dayjs(), "year");
+};
+
 export const getMonthWeeks = (
   monthStart: Date,
   weekStartOn: number,
@@ -70,7 +74,11 @@ export const formatCreatedMeta = (createdAt: Date, entryDate: Date): string => {
   return `Created ${createdDateStr}`;
 };
 
-export const getWeekOfYear = (date: Date) => dayjs(date).week();
+export const getWeekOfYear = (date: Date) => {
+  const baseDate = dayjs(date);
+  const weekNumber = baseDate.week();
+  return baseDate.format(`YYYY - [Week] ${weekNumber}`);
+};
 
 export const getWeekRange = (date: Date) => {
   const baseDate = dayjs(date);
