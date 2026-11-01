@@ -43,6 +43,7 @@ export {
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "react-native-get-random-values";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import AppLockScreen from "../components/AppLocalScreen";
 import { DialogProvider } from "../components/Dialog/DialogProvider";
 import {
   UserSessionProvider,
@@ -335,7 +336,7 @@ function AppNavigator() {
   useEffect(() => {
     if (!isNavReady) return;
     if (!isSignedIn) {
-      router.replace("/(auth)/login");
+      router.replace("/Intro");
       return;
     }
     if (!gateChecked) return;
@@ -349,17 +350,17 @@ function AppNavigator() {
     );
   }, [isSignedIn, isNavReady, gateChecked, decryptBaseline]);
 
-  useEffect(() => {
+  /*useEffect(() => {
     if (!isNavReady) return;
     if (!isSignedIn) {
-      router.replace("/(auth)/login");
+      router.replace("/components/intro");
       return;
     }
     const resumeDiaryId = getResumeDiaryId();
     router.replace(
       resumeDiaryId === null ? "/(app)" : `/(app)/diary/${resumeDiaryId}`,
     );
-  }, [isSignedIn, isNavReady]);
+  }, [isSignedIn, isNavReady]);*/
 
   useEffect(() => {
     if (isFontsLoaded && isDbMigrated) {
@@ -397,11 +398,13 @@ function AppNavigator() {
               >
                 <Stack.Screen name="(app)" />
                 <Stack.Screen name="(auth)" />
+                <Stack.Screen name = "Intro"/>
                 <Stack.Screen
                   name="decrypting"
                   options={{ animation: "fade", gestureEnabled: false }}
                 />
               </Stack>
+              <AppLockScreen />
             </View>
           </DiaryTransitionProvider>
         </DecryptGateContext.Provider>
