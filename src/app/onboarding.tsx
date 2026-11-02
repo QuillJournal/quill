@@ -4,7 +4,6 @@ import { radius } from "@/src/constants/radius";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
-import { supabase } from "@/src/utils/supabase";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -14,11 +13,10 @@ import Animated, {
   withRepeat, 
 } from "react-native-reanimated";
 type props = {
-    position?:[number, number]; 
     index2: number;
-    userid: string; 
+    onSkip: () => void;
 }
-export default function Onboarding({position = [100,50], index2, userid}:props) { // top n left
+export default function Onboarding({index2, onSkip}:props) {
     const saveScale = useSharedValue(1);
     const saveStyle = useAnimatedStyle(() => ({
         transform: [{ scale: saveScale.value }],
@@ -29,17 +27,11 @@ export default function Onboarding({position = [100,50], index2, userid}:props) 
             withSpring(1, { damping: 4, stiffness: 300 }),
         ),Infinity);
     }, [])
-    async function onboardingCompleted() {
-        setVisible(false)
-        const { error} = await supabase.from("profiles").update({onboarding: true}).eq("id", userid)
-        if(error){
-            console.error("Onboarding Status Change Error"+ error.message)
-            return;
-        }
+    function skipOnboarding() {
+        onSkip();
     }
     const colors = useTheme()
     const [index, setIndex] = useState(0)
-    const [visible, setVisible] = useState(true); 
     const pages = [
         {
             title: "Start a new diary here!",
@@ -63,43 +55,34 @@ export default function Onboarding({position = [100,50], index2, userid}:props) 
             title: "Click here to invite a collaborator!",
             description: "share notes together!",
             image: require("../../assets/images/onboarding.png"),
-            text: "Finish!"
+            text: "Skip All →"
         },
     ]
     useEffect(() => {
         if(index2>= 0 && index2 < pages.length){
             setIndex(index2)
-        }else{
-            onboardingCompleted()
         }
     }, [index2])
     const styles = StyleSheet.create({
     scrollContent: {
-        zIndex: 10, 
-        elevation: 10, 
         width: 300,
-        height: 100,
-        position: "absolute", 
-        left: position[0],
-        top: position[1],
-        paddingHorizontal: spacing.lg,
-        paddingTop: spacing.xs,
-        paddingBottom: spacing.xs,
+        padding: spacing.lg,
         justifyContent: "center",
         backgroundColor: colors.colors.background, 
         alignItems: "center",
-        marginVertical: spacing.xl,
+        borderRadius: radius.md,
+        gap: 10,
+        overflow: "visible"
     },
     title: {
         color: colors.colors.text,
-        fontSize: fontSizes.xl,
+        fontSize: fontSizes.md,
         fontFamily: fonts.heading,
         fontWeight: "700",
-        marginBottom: spacing.xs,
     },
     subtitle: {
-        color: colors.colors.textMuted,
-        fontSize: fontSizes.sm,
+        color: colors.colors.text,
+        fontSize: fontSizes.xs,
         fontFamily: fonts.body,
         lineHeight: 20,
     },
@@ -118,7 +101,6 @@ export default function Onboarding({position = [100,50], index2, userid}:props) 
     }
     });
     return(
-        visible && 
             <Animated.View style = {[styles.scrollContent, saveStyle]}>
             <Image style = {styles.image} source = {pages[index].image}/>
             <Text style = {styles.title}> {pages[index].title} </Text>
@@ -130,12 +112,11 @@ export default function Onboarding({position = [100,50], index2, userid}:props) 
                         backgroundColor: pressed? colors.colors.accentPressed:colors.colors.accent,
                     },
                     ]}
-                onPress = {() => onboardingCompleted()}> 
+                onPress={skipOnboarding}>
                 <Text style = {styles.subtitle}>
                     {pages[index].text}
                 </Text>
             </Pressable>
         </Animated.View>
-        
     );
 }

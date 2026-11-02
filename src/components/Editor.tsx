@@ -17,7 +17,8 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  View
+  View,
+  ImageBackground
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -92,6 +93,7 @@ export default function Editor({
   onSave,
   onBack,
 }: EditorProps) {
+  const [background, setBackground] = useState(require("@/assets/images/onboarding.png")); 
   const saveScale = useSharedValue(1);
   const saveStyle = useAnimatedStyle(() => ({
     transform: [{ scale: saveScale.value }],
@@ -260,7 +262,7 @@ export default function Editor({
     }
     .ProseMirror { min-height: 240px; outline: none; }
     body {
-      background-color: ${colors.background};
+      background-color: ${colors.backgroundopacity};
       color: ${colors.text};
       padding: 0px;
       margin: 0px;
@@ -321,6 +323,7 @@ export default function Editor({
   };
 
   return (
+    <ImageBackground source={background} style={{ flex: 1 }} resizeMode="cover">
     <SafeAreaView style={styles.container} edges={isReadOnly ? ["bottom", "left", "right"] : ["left", "right"]}>
       <View style={styles.topBar}>
         <View style={styles.leftHeaderGroup}>
@@ -453,6 +456,33 @@ export default function Editor({
                     animated
                     intro
                     introDelay={isReadOnly ? 300 : 0}
+                    onBgChange = {(newMood:MoodKey) => {
+                    switch(newMood){
+                      case "angry":
+                        setBackground(require("@/assets/images/mood-backgrounds/angry.jpg"))
+                        break;
+                      case "anxious":
+                        setBackground(require("@/assets/images/mood-backgrounds/anxious.jpg"))
+                        break;
+                      case "awesome":
+                        setBackground(require("@/assets/images/mood-backgrounds/awesome.jpg"))
+                        break;
+                      case "calm":
+                        setBackground(require("@/assets/images/mood-backgrounds/calm.jpg"))
+                        break;
+                      case "happy":
+                        setBackground(require("@/assets/images/mood-backgrounds/happy.jpg"))
+                        break;
+                      case "meh":
+                        setBackground(require("@/assets/images/mood-backgrounds/meh.jpg"))
+                        break;
+                      case "sad":
+                        setBackground(require("@/assets/images/mood-backgrounds/sad.jpg"))
+                        break;
+                      default:
+                        setBackground(require("@/assets/images/onboarding.png"))
+                    }
+                  }}
                   />
                   <Text style={styles.chipText}>{MOODS[mood].label}</Text>
                 </>
@@ -581,6 +611,7 @@ export default function Editor({
         />
       </AppModal>
     </SafeAreaView>
+    </ImageBackground>
   );
 }
 
@@ -588,7 +619,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
   StyleSheet.create({
     container: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.backgroundopacity,
     },
     topBar: {
       flexDirection: "row",
@@ -599,7 +630,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       gap: 4,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
-      backgroundColor: colors.background,
+      backgroundColor: colors.backgroundopacity,
     },
     backBtn: {
       paddingVertical: 4,
@@ -625,12 +656,12 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       width: "100%",
       bottom: 0,
       borderTopColor: colors.border,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.backgroundopacity,
     },
     toolbarContainer: {
       borderTopWidth: StyleSheet.hairlineWidth,
       borderTopColor: colors.border,
-      backgroundColor: colors.surface,
+      backgroundColor: colors.backgroundopacity,
     },
     leftHeaderGroup: {
       flexDirection: "row",
@@ -676,7 +707,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     },
     scroll: {
       flex: 1,
-      backgroundColor: colors.background
+      backgroundColor: colors.backgroundopacity,
     },
     scrollContent: {
       paddingBottom: 24,
@@ -719,6 +750,6 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
     editor: {
       minHeight: 240,
       marginHorizontal: 20,
-      backgroundColor: colors.background,
+      backgroundColor: colors.backgroundopacity,
     },
   });

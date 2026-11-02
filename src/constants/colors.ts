@@ -28,6 +28,7 @@ const primitives = {
 export const colors = {
   light: {
     background: "#F9F9FF",
+    backgroundopacity: "#F9F9FF4E",
     surface: "#F3F3FA",
     surfaceHigh: "#E7E8EE",
     card: "#EDEDF4",
@@ -55,6 +56,7 @@ export const colors = {
   },
   dark: {
     background: "#111318",
+    backgroundopacity: "#11131842",
     surface: "#191C20",
     surfaceHigh: "#282A2F",
     card: "#1D2024",

@@ -1,20 +1,26 @@
 import { fontSizes, fonts } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
+import useEntrySearch from "@/src/hooks/useEntrySearch";
 import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import { ViewProps } from "@/src/types/diary";
 import type { EntryWithAuthor } from "@/src/types/entry";
-import { formatEntryDate, toDateKey } from "@/src/utils/dates";
-import { isMine } from "@/src/utils/entry";
-import { useMemo } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { FilterValue } from "@/src/types/filter";
+import { toDateKey } from "@/src/utils/dates";
+import { filterEntries, groupByWeek, isMine } from "@/src/utils/entry";
+import { useMemo, useState } from "react";
+import { SectionList, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dialog } from "../Dialog/DialogProvider";
-import Pill from "../Pill";
+import EmptyState from "./EmptyState";
 import EntryCard from "./EntryCard";
+import EntryWeekHeader from "./EntryWeekHeader";
+import FilterPills from "./FilterPills";
+import SearchBar from "./SearchBar";
 
 export default function ListView({
   entries,
+  media,
   selectedDate,
   onSelectEntry,
   onDeleteEntry,
@@ -25,6 +31,16 @@ export default function ListView({
   const insets = useSafeAreaInsets();
   const styles = getStyles(colors);
   const selectedKey = selectedDate ? toDateKey(selectedDate) : null;
+  const { query, setQuery, results, flush } = useEntrySearch(entries);
+  const [selectedFilter, setSelectedFilter] = useState<FilterValue>("all");
+  const data = useMemo(
+    () => groupByWeek(filterEntries(results, selectedFilter, session?.userId)),
+    [results, selectedFilter],
+  );
+
+  const handleSelectFilter = (filter: FilterValue) => {
+    setSelectedFilter(filter);
+  };
 
   const selectedDateEntries = useMemo(() => {
     return selectedDate
@@ -68,6 +84,7 @@ export default function ListView({
   const renderCard = (entry: EntryWithAuthor) => (
     <EntryCard
       entry={entry}
+      media={media?.get(entry.id) ?? []}
       onPress={() => onSelectEntry?.(entry)}
       onLongPress={handleLongPress}
       diaryAccent={diaryAccent}
@@ -75,43 +92,36 @@ export default function ListView({
     />
   );
 
-  const header = selectedDate ? (
-    <View style={styles.header}>
-      <View style={styles.selectedDayRow}>
-        <View style={styles.selectedDayTitle}>
-          <Pill text="Selected Day" />
-          <Text style={styles.selectedDayDate}>
-            {formatEntryDate(selectedDate)}
-          </Text>
-        </View>
-        <Text style={styles.entryCount}>
-          {`${selectedDateEntries.length} ${selectedDateEntries.length === 1 ? "entry" : "entries"}`}
-        </Text>
-      </View>
-      {selectedDateEntries.map((entry) => (
-        <View key={entry.id}>{renderCard(entry)}</View>
-      ))}
-      {selectedDateEntries.length === 0 && (
-        <Text style={styles.noEntriesHint}>
-          No memories from this day. Long press this day on the calendar to add an entry.
-        </Text>
-      )}
-      {otherEntries.length > 0 && <Pill text="Other entries" />}
-    </View>
-  ) : null;
-
   return (
     <View style={{ flex: 1 }}>
-      <FlatList
-        data={otherEntries}
+      <View style={styles.searchWrap}>
+        <SearchBar
+          placeholder="Search in diary"
+          value={query}
+          onChangeText={setQuery}
+          onSubmit={flush}
+        />
+      </View>
+      <FilterPills
+        diaryAccent={diaryAccent}
+        selectedFilter={selectedFilter}
+        onSelectFilter={handleSelectFilter}
+      />
+      <SectionList
+        style={{ flex: 1 }}
+        sections={data}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => renderCard(item)}
-        ListHeaderComponent={header}
+        renderSectionHeader={({ section }) => (
+          <EntryWeekHeader title={section.title} subtitle={section.subtitle} />
+        )}
         contentContainerStyle={[
           styles.listContent,
           // room for the FAB + home indicator
           { paddingBottom: 110 + insets.bottom },
         ]}
+        ListEmptyComponent={<EmptyState accentColor={diaryAccent} />}
+        stickySectionHeadersEnabled
       />
     </View>
   );
@@ -123,6 +133,7 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       paddingHorizontal: 16,
       paddingBottom: 50,
     },
+    searchWrap: { paddingHorizontal: 16, paddingBottom: 10 },
     header: { marginBottom: 10 },
     selectedDayRow: {
       flexDirection: "row",

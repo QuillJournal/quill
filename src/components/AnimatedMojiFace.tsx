@@ -11,7 +11,7 @@ import {
 } from "@/src/constants/mojiFaces";
 import { MOODS, type MoodKey } from "@/src/constants/moods";
 import useTheme from "@/src/hooks/useTheme";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { View } from "react-native";
 import Animated, {
   cancelAnimation,
@@ -46,6 +46,7 @@ type Props = {
   intro?: boolean;
   introDelay?: number;
   startDelay?: number;
+  onBgChange?: (mood:MoodKey) => void; 
 };
 
 export default function AnimatedMojiFace({
@@ -54,6 +55,7 @@ export default function AnimatedMojiFace({
   intro = false,
   introDelay = 0,
   startDelay: customStartDelay,
+  onBgChange
 }: Props) {
   const { colors, isDark } = useTheme();
   const reduce = useReducedMotion();
@@ -79,8 +81,10 @@ export default function AnimatedMojiFace({
   const lastMood = useRef<MoodKey>(mood);
 
   useEffect(() => {
+    onBgChange?.(mood);
+  }, [mood]) 
+  useEffect(() => {
     if (!mounted.current) return;
-
     if (lastMood.current === mood) {
       fromFill.value = fill;
       toFill.value = fill;

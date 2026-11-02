@@ -4,6 +4,7 @@ import {
   Gabarito_700Bold,
 } from "@expo-google-fonts/gabarito";
 import { Roboto_400Regular } from "@expo-google-fonts/roboto";
+import { SpaceGrotesk_300Light } from "@expo-google-fonts/space-grotesk";
 import type { Session } from "@supabase/supabase-js";
 import "expo-blob";
 import { useFonts } from "expo-font";
@@ -32,7 +33,7 @@ import {
   hexToBytes,
   signPublicBundle,
   wrapKeyBundles,
-  type UserSecretKeyBundle
+  type UserSecretKeyBundle,
 } from "../utils/crypto";
 
 export {
@@ -93,6 +94,7 @@ function AppNavigator() {
     Gabarito_400Regular,
     Gabarito_500Medium,
     Gabarito_700Bold,
+    SpaceGrotesk_300Light,
   });
   const { setSession } = useUserSession();
   useSyncLifecycle();
@@ -199,7 +201,11 @@ function AppNavigator() {
               signMldsa65Priv: bytesToHex(signPair.mldsa65Priv),
               vaultKey: bytesToHex(vaultKey),
             };
-            const wrappedBundles = wrapKeyBundles(secretBundle, derivedKey, recKeyBytes);
+            const wrappedBundles = wrapKeyBundles(
+              secretBundle,
+              derivedKey,
+              recKeyBytes,
+            );
             await initKeysRpc({
               kemPublicKey: kemPubHex,
               signPublicKey: signPubHex,
@@ -295,7 +301,8 @@ function AppNavigator() {
           });
         }
       } catch (e) {
-        console.error("Fast restore failed: ", e);
+        console.log();
+        console.error("ERROR: ", e);
       } finally {
         setIsAuthLoading(false);
       }
@@ -310,7 +317,7 @@ function AppNavigator() {
   const closeDecryptGate = useCallback(() => {
     decryptGateDone.current = true;
     setDecryptBaseline(null);
-  }, [])
+  }, []);
 
   useEffect(() => {
     if (!isNavReady) return;
@@ -326,9 +333,9 @@ function AppNavigator() {
     let cancelled = false;
     (async () => {
       const [anyDiary] = await db
-      .select({ id: diariesTable.id })
-      .from(diariesTable)
-      .limit(1);
+        .select({ id: diariesTable.id })
+        .from(diariesTable)
+        .limit(1);
       if (cancelled) return;
       if (anyDiary) decryptGateDone.current = true;
       else setDecryptBaseline((prev) => prev ?? baseline);
@@ -401,22 +408,22 @@ function AppNavigator() {
     <SafeAreaProvider>
       <DialogProvider>
         <DecryptGateContext.Provider
-        value={{ baseline: decryptBaseline, finish: closeDecryptGate }}
+          value={{ baseline: decryptBaseline, finish: closeDecryptGate }}
         >
           <DiaryTransitionProvider>
-            <View style={{flex: 1}}>
+            <View style={{ flex: 1 }}>
               <Stack
-              screenOptions={{
-                contentStyle: { backgroundColor: colors.background },
-                headerShown: false,
-              }}
+                screenOptions={{
+                  contentStyle: { backgroundColor: colors.background },
+                  headerShown: false,
+                }}
               >
                 <Stack.Screen name="(app)" />
                 <Stack.Screen name="(auth)" />
                 <Stack.Screen name = "Intro"/>
                 <Stack.Screen
-                name="decrypting"
-                options={{ animation: "fade", gestureEnabled: false }}
+                  name="decrypting"
+                  options={{ animation: "fade", gestureEnabled: false }}
                 />
               </Stack>
               <AppLockScreen />

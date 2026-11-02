@@ -1,4 +1,7 @@
 import dayjs from "dayjs";
+import weekOfYear from "dayjs/plugin/weekOfYear";
+
+dayjs.extend(weekOfYear);
 
 export const getWeekHeaders = (weekStartOn: number): string[] => {
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -8,6 +11,10 @@ export const getWeekHeaders = (weekStartOn: number): string[] => {
 
 export const isSameDay = (date1: Date, date2: Date) => {
   return dayjs(date1).isSame(dayjs(date2), "day");
+};
+
+export const isCurrentYear = (date: Date) => {
+  return dayjs(date).isSame(dayjs(), "year");
 };
 
 export const getMonthWeeks = (
@@ -74,3 +81,19 @@ export const formatEntryTime = (
   entryTime
     ? dayjs(`2000-01-01T${entryTime}`).format("h:mm A")
     : dayjs(fallback).format("h:mm A");
+
+export const getWeekOfYear = (date: Date) => {
+  const baseDate = dayjs(date);
+  const weekNumber = baseDate.week();
+  return baseDate.format(`YYYY - [Week] ${weekNumber}`);
+};
+
+export const getWeekRange = (date: Date) => {
+  const baseDate = dayjs(date);
+  const firstDay = baseDate.startOf("week");
+  const lastDay = baseDate.endOf("week");
+  return {
+    firstDay: firstDay.format("MMM D"),
+    lastDay: lastDay.format("MMM D"),
+  };
+};

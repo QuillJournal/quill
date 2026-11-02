@@ -1,21 +1,24 @@
 import { isMoodKey } from "@/src/constants/moods";
-import { fonts } from "@/src/constants/typography";
+import { radius } from "@/src/constants/radius";
+import { fonts, fontSizes } from "@/src/constants/typography";
 import usePressAnimation from "@/src/hooks/usePressAnimation";
 import useTheme from "@/src/hooks/useTheme";
+import { resolveAttachmentUri } from "@/src/services/attachments";
+import { Attachment } from "@/src/types/attachment";
 import type { EntryWithAuthor } from "@/src/types/entry";
-import {
-  formatEntryDate,
-  formatEntryTime,
-  fromDateKey
-} from "@/src/utils/dates";
+import { formatEntryDate, fromDateKey } from "@/src/utils/dates";
+import { splitMedia } from "@/src/utils/media";
 import { Ionicons } from "@expo/vector-icons";
+import { useMemo } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import MediaThumb from "../MediaThumb";
 import MojiFace from "../MojiFace";
-import AttachmentSummary from "./AttachmentSummary";
 import AuthorPill from "./AuthorPill";
+import DateBadge from "./DateBadge";
 
 type EntryCardProps = {
   entry: EntryWithAuthor;
+  media: Attachment[];
   onPress: () => void;
   onLongPress: (entry: EntryWithAuthor) => void;
   diaryAccent: string;
@@ -24,6 +27,7 @@ type EntryCardProps = {
 
 export default function EntryCard({
   entry,
+  media,
   onPress,
   onLongPress,
   diaryAccent,
@@ -33,18 +37,24 @@ export default function EntryCard({
   const styles = getStyles(colors, diaryAccent);
   const entryDate = fromDateKey(entry.entryDate);
   const mood = isMoodKey(entry.mood) ? entry.mood : null;
-
+  const { visuals, audios } = useMemo(() => {
+    const { visuals, audios } = splitMedia(media);
+    return {
+      visuals: visuals.map((v) => ({
+        uri: resolveAttachmentUri(v.relPath),
+        kind: v.kind as "image" | "video",
+      })),
+      audios: audios.map((a) => ({
+        uri: resolveAttachmentUri(a.relPath),
+        name: a.name ?? "Audio",
+        durationMs: a.durationMs,
+      })),
+    };
+  }, [media]);
   const { animatePress, animatedColor } = usePressAnimation(
     colors.card,
     colors.cardPressed,
   );
-  const cleanPreview =
-    entry.body
-      ?.replace(/<br\s*\/?>/gi, "\n")
-      ?.replace(/<\/p>|<\/div>/gi, "\n")
-      ?.replace(/<[^>]+>/g, "")
-      ?.replace(/\n\s*\n/g, "\n\n")
-      .trim() || "Empty entry.";
 
   return (
     <Pressable
@@ -56,35 +66,75 @@ export default function EntryCard({
       onPressOut={() => animatePress(false)}
     >
       <Animated.View style={[styles.card, { backgroundColor: animatedColor }]}>
-                <View style={styles.cardHeader}>
-          <View style={styles.cardTitleRow}>
-            {mood && <MojiFace mood={mood} size={22} />}
-            <Text style={styles.cardTitle} numberOfLines={1}>
-              {entry.title || "Untitled Entry"}
-            </Text>
-          </View>
-          <Text style={styles.cardDate}>{formatEntryDate(entryDate)}</Text>
-        </View>
-        <Text style={styles.cardPreview} numberOfLines={3}>
-          {cleanPreview}
-        </Text>
-        <View style={styles.hr}></View>
-        <View style={styles.cardFooter}>
-          <AttachmentSummary counts={entry.counts} />
-          <View style={styles.cardFooterRight}>
-            <Text style={styles.cardDate}>
-              {formatEntryTime(entry.entryTime, entry.createdAt)}
-            </Text>
-            <AuthorPill
-              name={entry.authorName}
-              isMe={isMe}
-              diaryAccent={diaryAccent}
-            />
-            <Ionicons
-              size={16}
-              color={colors.textMuted}
-              name="chevron-forward-outline"
-            />
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <View style={styles.cardHeader}>
+            <DateBadge date={entry.entryDate} />
+            <View
+              style={{ alignSelf: "stretch", flex: 1, gap: 5, minWidth: 0 }}
+            >
+              <Text
+                style={styles.cardTitle}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {entry.title}
+              </Text>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <AuthorPill
+                  name={entry.authorName}
+                  isMe={isMe}
+                  diaryAccent={diaryAccent}
+                />
+                {mood && <MojiFace mood={mood} size={22} />}
+                {audios.length > 0 && (
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      flexShrink: 0,
+                      borderRadius: radius.lg,
+                      paddingHorizontal: 5,
+                      backgroundColor: colors.cardPressed,
+                    }}
+                  >
+                    <Ionicons
+                      name="mic-outline"
+                      color={colors.secondaryAccent}
+                      size={18}
+                      accessibilityLabel={`mic icon`}
+                    />
+                    {audios[0]?.durationMs && (
+                      <Text>{audios[0]?.durationMs / 1000}s</Text>
+                    )}
+                  </View>
+                )}
+              </View>
+            </View>
+            {visuals.length > 0 && (
+              <View style={{ flexShrink: 0, height: 56, width: 56 }}>
+                <MediaThumb
+                  uri={visuals[0].uri}
+                  kind={visuals[0].kind}
+                  borderRadius={5}
+                  onOpen={onPress}
+                  label={visuals[0].kind === "image" ? "Photo" : "Video"}
+                  hidden={false}
+                />
+              </View>
+            )}
           </View>
         </View>
       </Animated.View>
@@ -99,22 +149,17 @@ const getStyles = (
   StyleSheet.create({
     card: {
       backgroundColor: colors.card,
-      borderRadius: 14,
       padding: 16,
-      marginBottom: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
       shadowColor: colors.shadow,
       shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.05,
       shadowRadius: 4,
       elevation: 2,
     },
-        cardHeader: {
+    cardHeader: {
       flexDirection: "row",
-      justifyContent: "space-between",
       alignItems: "center",
-      marginBottom: 8,
+      gap: 10,
     },
     cardTitleRow: {
       flex: 1,
@@ -124,9 +169,9 @@ const getStyles = (
       marginRight: 12,
     },
     cardTitle: {
-      fontFamily: fonts.heading,
-      fontSize: 16,
+      fontSize: fontSizes.lg,
       color: colors.text,
+      fontFamily: fonts.body,
       flexShrink: 1,
     },
     cardDate: {
