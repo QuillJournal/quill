@@ -1,5 +1,6 @@
 export const fonts = {
   heading: "Gabarito_500Medium",
+  new: "SpaceGrotesk_400Light",
   label: "Gabarito_500Medium",
   body: "Gabarito_400Regular",
 } as const;

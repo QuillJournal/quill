@@ -1,11 +1,9 @@
 import { useUserSession } from "@/src/context/UserSessionContext";
-import { getPreviewAttachments } from "@/src/db/attachments";
 import { haptic } from "@/src/services/haptics";
-import type { Attachment } from "@/src/types/attachment";
 import { ViewProps } from "@/src/types/diary";
 import type { EntryWithAuthor } from "@/src/types/entry";
 import { isMine } from "@/src/utils/entry";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { dialog } from "../Dialog/DialogProvider";
@@ -15,12 +13,11 @@ import FeedEntryCard from "./FeedEntryCard";
 
 export default function FeedView({
   entries,
+  media,
   onSelectEntry,
   onDeleteEntry,
   diaryAccent,
 }: ViewProps) {
-  const [media, setMedia] = useState<Map<number, Attachment[]>>();
-  const ids = useMemo(() => entries.map((e) => e.id), [entries]);
   const insets = useSafeAreaInsets();
   const [viewing, setViewing] = useState<{
     key: string;
@@ -28,10 +25,6 @@ export default function FeedView({
     origin: Rect;
   } | null>(null);
   const { session } = useUserSession();
-
-  useEffect(() => {
-    getPreviewAttachments(ids).then((map) => setMedia(map));
-  });
 
   const handleOpenMedia = useCallback(
     (item: ViewerItem, origin: Rect) =>
@@ -93,6 +86,7 @@ export default function FeedView({
           { paddingBottom: 200 + insets.bottom },
         ]}
       />
+      
       <MediaViewer
         item={viewing?.item ?? null}
         origin={viewing?.origin ?? null}

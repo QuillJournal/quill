@@ -7,6 +7,7 @@ import { Attachment } from "@/src/types/attachment";
 import type { EntryWithAuthor } from "@/src/types/entry";
 import { formatCreatedMeta, fromDateKey } from "@/src/utils/dates";
 import { splitMedia } from "@/src/utils/media";
+import { countWords, stripHtml } from "@/src/utils/string";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo } from "react";
 import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
@@ -43,13 +44,8 @@ export default function FeedEntryCard({
     colors.cardPressed,
     200,
   );
-  const cleanPreview =
-    entry.body
-      ?.replace(/<br\s*\/?>/gi, "\n")
-      ?.replace(/<\/p>|<\/div>/gi, "\n")
-      ?.replace(/<[^>]+>/g, "")
-      ?.replace(/\n\s*\n/g, "\n\n")
-      .trim() || "Empty entry.";
+  const cleanPreview = stripHtml(entry.body ?? "");
+
   const entryDate = fromDateKey(entry.entryDate);
   const formatter = new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
@@ -72,13 +68,6 @@ export default function FeedEntryCard({
       })),
     };
   }, [media]);
-
-  const countWords = (str: string) => {
-    return str
-      .trim()
-      .split(/\s+/)
-      .filter((word: string) => word.length > 0).length;
-  };
 
   const isMe = true;
   const mood = isMoodKey(entry.mood) ? entry.mood : null;
