@@ -98,7 +98,7 @@ const styles = StyleSheet.create({
   swatchRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: "spacing.sm",
+    gap: spacing.sm,
   },
   swatch: {
     width: 36,

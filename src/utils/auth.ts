@@ -1,5 +1,6 @@
 import { Session, User } from "@supabase/supabase-js";
 import * as Linking from "expo-linking";
+import { useSyncExternalStore } from "react";
 import { supabase } from "./supabase";
 
 export const redirectAuthUrl = Linking.createURL("login-callback");
@@ -57,18 +58,84 @@ export async function signOut(): Promise<void> {
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
-export function handleAuthUrl(url: string) {
-  const parsed = Linking.parse(url);
-  if (parsed.path === "login-callback") {
-    const params = parsed.queryParams;
-    if (params?.access_token && params?.refresh_token) {
-      supabase.auth.setSession({
-        access_token: String(params.access_token),
-        refresh_token: String(params.refresh_token),
-      });
-    }
+
+let recoveryMode = false;
+const recoveryListeners = new Set<() => void>();
+
+export function setRecoveryMode(value: boolean) {
+  if (recoveryMode === value) return;
+  recoveryMode = value;
+  recoveryListeners.forEach((listener) => listener());
+}
+
+export function isRecoveryMode(): boolean {
+  return recoveryMode;
+}
+
+export function useRecoveryMode(): boolean {
+  return useSyncExternalStore(
+    (onChange) => {
+      recoveryListeners.add(onChange);
+      return () => {
+        recoveryListeners.delete(onChange);
+      };
+    },
+    () => recoveryMode,
+  );
+}
+
+function getUrlParams(url: string): Record<string, string> {
+  const params: Record<string, string> = {};
+  const [beforeHash, hash = ""] = url.split("#");
+  const query = beforeHash.split("?")[1] ?? "";
+  new URLSearchParams(`${query}&${hash}`).forEach((value, key) => {
+    params[key] = value;
+  });
+  return params;
+}
+
+let authLinkError: string | null = null;
+
+export function getAuthLinkError(): string | null {
+  return authLinkError;
+}
+
+function getUrlPath(url: string): string {
+  const withoutScheme = url.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");
+  const [path] = withoutScheme.split(/[?#]/);
+  return path.replace(/^\/+|\/+$/g, "");
+}
+
+export async function handleAuthUrl(url: string) {
+  const path = getUrlPath(url);
+  const params = getUrlParams(url);
+  const isRecovery =
+    path.endsWith("reset-password") || params.type === "recovery";
+  const isCallback = path.endsWith("login-callback");
+  if (!isRecovery && !isCallback) return;
+
+  if (isRecovery) setRecoveryMode(true);
+  authLinkError = params.error_description ?? null;
+
+  console.log("[auth-link]", {
+    path,
+    isRecovery,
+    hasTokens: Boolean(params.access_token && params.refresh_token),
+    errorCode: params.error_code ?? null,
+  });
+
+  if (!params.access_token || !params.refresh_token) return;
+
+  const { error } = await supabase.auth.setSession({
+    access_token: params.access_token,
+    refresh_token: params.refresh_token,
+  });
+  if (error) {
+    authLinkError = error.message;
+    console.warn("Auth link session failed: ", error.message);
   }
 }
+
 export function subscribeToAuthState(
   onSessionChange: (session: Session | null) => void,
 ) {

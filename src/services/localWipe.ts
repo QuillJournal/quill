@@ -3,7 +3,6 @@ import * as SecureStore from "expo-secure-store";
 import { clearLocalDatabase } from "../db";
 import { clearLocalAvatarCache } from "../utils/photoCrypto";
 import { removeAllMedia } from "./attachments";
-
 const PENDING_KEY = "quill.wipe.pending";
 const OPTIONS: SecureStore.SecureStoreOptions = {
   keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,

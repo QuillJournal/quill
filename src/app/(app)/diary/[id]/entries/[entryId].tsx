@@ -1,7 +1,6 @@
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import Editor from "@/src/components/Editor";
 import { isMoodKey, type MoodKey } from "@/src/constants/moods";
-import { fonts, fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import { db } from "@/src/db";
 import { getAttachmentsByEntryId } from "@/src/db/attachments";
@@ -16,11 +15,10 @@ import { moodHaptics } from "@/src/services/moodHaptics";
 import { runSync } from "@/src/services/syncEngine";
 import { Attachment } from "@/src/types/attachment";
 import { Entry } from "@/src/types/entry";
-import { Ionicons } from "@expo/vector-icons";
+import dayjs from "dayjs";
 import { eq } from "drizzle-orm";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function EntryEditScreen() {
@@ -87,6 +85,7 @@ export default function EntryEditScreen() {
     body: string,
     media: { added: PendingAttachment[]; removedIds: number[] },
     mood: MoodKey | null,
+    entryTime: string,
   ) => {
     if (!isAuthor) {
       dialog.alert("Read Only", "Only the author of this entry can edit it.");
@@ -100,6 +99,7 @@ export default function EntryEditScreen() {
         body,
         media,
         mood,
+        entryTime,
       );
       if (session?.kemKeys && session?.signKeys) {
         runSync({
@@ -121,54 +121,23 @@ export default function EntryEditScreen() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      <View
-      style={{
-        flexDirection: "row",
-        alignItems: "center",
-        justifyContent: "space-between",
-        paddingHorizontal: 18,
-        paddingVertical: 8,
-        backgroundColor: colors.surface,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: colors.border,
-      }}
-      >
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <Ionicons
-          name="sparkles-outline"
-          size={14}
-          color={isAuthor ? colors.accent : colors.secondaryAccent}
-          />
-          <Text
-          style={{
-            fontSize: fontSizes.xs,
-            fontFamily: fonts.label,
-            fontWeight: "700",
-            color: isAuthor ? colors.accent : colors.text,
-          }}
-          >
-            Created by {authorLabel}
-          </Text>
-        </View>
-        {!isAuthor && (
-          <Text
-          style={{
-            fontSize: 11,
-            fontFamily: fonts.label,
-            color: colors.textMuted,
-          }}
-          >
-            Read-only
-          </Text>
-        )}
-      </View>
+    <SafeAreaView 
+    style={{ flex: 1, backgroundColor: colors.background }}
+    edges={["top", "left", "right"]}
+    >
       <Editor
         initialAttachments={attachments}
         initialMood={initialMood}
         initialTitle={entry?.title}
         initialBody={entry?.body ?? undefined}
         initialDate={entry?.entryDate}
+        initialTime={
+          entry
+            ? (entry.entryTime ?? dayjs(entry.createdAt).format("HH:mm"))
+            : undefined
+        }
+        authorLabel={authorLabel}
+        canEdit={isAuthor}
         initialReadOnly={true}
         onSave={handleSave}
         onBack={() => {

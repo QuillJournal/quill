@@ -1,3 +1,4 @@
+import { fonts } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, View } from "react-native";
@@ -8,7 +9,7 @@ export default function EmptyState({ accentColor }: EmptyStateProps) {
   const styles = getStyles(colors);
   return (
     <View style={styles.emptyWrap}>
-      <Ionicons name="book-outline" size={44} color={colors.textMuted} />
+      <Ionicons name="book-outline" size={44} color={accentColor} />
       <Text style={styles.emptyTitle}>No Memories Yet</Text>
       <Text style={styles.emptySubtitle}>
         Tap the button below or long-press any calendar day to capture a moment.
@@ -26,12 +27,13 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       paddingHorizontal: 32,
     },
     emptyTitle: {
+      fontFamily: fonts.heading,
       fontSize: 18,
-      fontWeight: "600",
       color: colors.text,
       marginTop: 8,
     },
     emptySubtitle: {
+      fontFamily: fonts.body,
       fontSize: 14,
       color: colors.textMuted,
       textAlign: "center",

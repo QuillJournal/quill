@@ -75,7 +75,7 @@ export default function FeedView({
     />
   );
   return (
-    <View>
+    <View style={{ flex: 1 }}>
       <FlatList
         data={entries}
         keyExtractor={(item) => item.id.toString()}

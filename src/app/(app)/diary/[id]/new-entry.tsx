@@ -28,6 +28,7 @@ export default function NewEntryScreen() {
     body: string,
     media: { added: PendingAttachment[]; removedIds: number[] },
     mood: MoodKey | null,
+    entryTime: string,
   ) => {
     const userId = session?.userId;
     try {
@@ -44,6 +45,7 @@ export default function NewEntryScreen() {
         body,
         media.added,
         mood,
+        entryTime,
       );
     } catch (e) {
       console.error("Save failed:", e);
@@ -72,7 +74,7 @@ export default function NewEntryScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1 }} edges={["top", "left", "right"]}>
       <Editor
         initialDate={entryDate}
         initialReadOnly={false}

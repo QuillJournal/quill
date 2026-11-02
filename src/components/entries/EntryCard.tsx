@@ -6,7 +6,7 @@ import useTheme from "@/src/hooks/useTheme";
 import { resolveAttachmentUri } from "@/src/services/attachments";
 import { Attachment } from "@/src/types/attachment";
 import type { EntryWithAuthor } from "@/src/types/entry";
-import { fromDateKey } from "@/src/utils/dates";
+import { formatEntryDate, fromDateKey } from "@/src/utils/dates";
 import { splitMedia } from "@/src/utils/media";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo } from "react";
@@ -58,6 +58,8 @@ export default function EntryCard({
 
   return (
     <Pressable
+    accessibilityRole="button"
+    accessibilityLabel={`${entry.title || "Untitled entry"}, ${formatEntryDate(entryDate)}`}
       onPress={onPress}
       onLongPress={() => onLongPress(entry)}
       onPressIn={() => animatePress(true)}
@@ -173,11 +175,12 @@ const getStyles = (
       flexShrink: 1,
     },
     cardDate: {
+      fontFamily: fonts.label,
       fontSize: 12,
-      fontWeight: "500",
       color: colors.textMuted,
     },
     cardPreview: {
+      fontFamily: fonts.body,
       fontSize: 14,
       lineHeight: 20,
       color: colors.textMuted,

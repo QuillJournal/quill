@@ -29,6 +29,7 @@ import {
   generateDualSignKeyPair,
   generateHybridKemKeyPair,
   generateRecoveryKey,
+  generateVaultKey,
   hexToBytes,
   signPublicBundle,
   wrapKeyBundles,
@@ -53,14 +54,16 @@ import {
 import { diariesTable } from "../db/schema";
 import useTheme from "../hooks/useTheme";
 import "../services/preferences";
+import { adoptVaultKey } from "../services/profile";
 import {
   clearDerivedKey,
   getStoredDerivedKey,
+  saveVaultKey
 } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import { getSyncRuns } from "../services/syncEngine";
-import { getUserProfileRecord, subscribeToAuthState } from "../utils/auth";
-import { decryptUserProfile } from "../utils/crypto";
+import { getUserProfileRecord, isRecoveryMode, subscribeToAuthState, useRecoveryMode, } from "../utils/auth";
+import { decryptUserProfile, type DecryptedProfile } from "../utils/crypto";
 import {
   downloadAndDecryptPhoto,
   getValidAvatarUrl,
@@ -102,6 +105,7 @@ function AppNavigator() {
   const [decryptBaseline, setDecryptBaseline] = useState<number | null>(null);
   const [gateChecked, setGateChecked] = useState(false);
   const decryptGateDone = useRef(false);
+  const isRecovering = useRecoveryMode();
 
   let cachedPhotoUri: string | null = null;
 
@@ -121,6 +125,10 @@ function AppNavigator() {
 
   useEffect(() => {
     const unsubscribe = subscribeToAuthState(async (newSession) => {
+      if (newSession && isRecoveryMode()) {
+        setIsAuthLoading(false);
+        return;
+      }
       setSupabaseSession(newSession);
 
       if (!newSession) {
@@ -156,11 +164,8 @@ function AppNavigator() {
       try {
         if (derivedKey) {
           const profileRecord = await getUserProfileRecord(newSession.user.id);
-          const decryptedProfile = decryptUserProfile(
-            profileRecord.encrypted_profile,
-            profileRecord.profile_nonce,
-            derivedKey,
-          );
+          let vaultKey: Uint8Array;
+          let decryptedProfile: DecryptedProfile;
 
           let kemKeys: {
             x25519Priv: Uint8Array;
@@ -188,11 +193,13 @@ function AppNavigator() {
               signPair.ed25519Priv,
               signPair.mldsa65Priv,
             );
+            vaultKey = generateVaultKey();
             const secretBundle: UserSecretKeyBundle = {
               kemX25519Priv: bytesToHex(kemPair.x25519Priv),
               kemMlkem768Priv: bytesToHex(kemPair.mlkem768Priv),
               signEd25519Priv: bytesToHex(signPair.ed25519Priv),
               signMldsa65Priv: bytesToHex(signPair.mldsa65Priv),
+              vaultKey: bytesToHex(vaultKey),
             };
             const wrappedBundles = wrapKeyBundles(
               secretBundle,
@@ -207,10 +214,16 @@ function AppNavigator() {
               recoveryKeyBundle: wrappedBundles.recoveryKeyBundle,
             });
 
+            decryptedProfile = await adoptVaultKey(
+              profileRecord,
+              derivedKey,
+              vaultKey,
+            );
+
             setTimeout(() => {
               dialog.alert(
                 "Save your recovery key",
-                `Please write this down and store it safely. It will NEVER be shown again and your diaries and entries will be gone if you lose it:\n\n${recKeyDisplay}`,
+                `Please write this down and store it safely. Your diaries and entries will be gone if you lose it:\n\n${recKeyDisplay}`,
               );
             }, 500);
 
@@ -236,6 +249,12 @@ function AppNavigator() {
               profileRecord.encrypted_key_bundle,
               derivedKey,
             );
+            vaultKey = hexToBytes(bundle.vaultKey);
+            decryptedProfile = decryptUserProfile(
+              profileRecord.encrypted_profile,
+              profileRecord.profile_nonce,
+              vaultKey,
+            );
             kemKeys = {
               x25519Priv: hexToBytes(bundle.kemX25519Priv),
               mlkem768Priv: hexToBytes(bundle.kemMlkem768Priv),
@@ -248,6 +267,7 @@ function AppNavigator() {
             };
           }
 
+          await saveVaultKey(vaultKey);
           let decryptedPhotoUri: string | null = null;
           if (decryptedProfile.photoPath && decryptedProfile.photoNonce) {
             const storage = new SupabaseStorageAdapter("avatars");
@@ -291,7 +311,8 @@ function AppNavigator() {
   }, []);
 
   const isSignedIn = supabaseSession !== null;
-  const isNavReady = isFontsLoaded && isDbMigrated && !isAuthLoading;
+  const isNavReady =
+   isFontsLoaded && isDbMigrated && !isAuthLoading && !isRecovering;
 
   const closeDecryptGate = useCallback(() => {
     decryptGateDone.current = true;

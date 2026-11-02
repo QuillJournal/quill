@@ -13,22 +13,22 @@ import Animated, {
 } from "react-native-reanimated";
 import { radius } from "../constants/radius";
 import { spacing } from "../constants/spacings";
+import { fonts, fontSizes } from "../constants/typography";
 import useTheme from "../hooks/useTheme";
 import { select } from "../services/hapticPatterns";
 import { playEvents as play } from "../services/haptics";
-import type { ViewType } from "../types/diary";
 
-type Option = { label: string; value: string };
-type SegmentedControlProps = {
-  options: readonly Option[];
-  selectedValue: string;
-  onSelect: (value: ViewType) => void;
+type Option<T extends string> = { label: string; value: T };
+type SegmentedControlProps<T extends string> = {
+  options: readonly Option<T>[];
+  selectedValue: T;
+  onSelect: (value: T) => void;
 };
-export default function SegmentedControl({
+export default function SegmentedControl<T extends string>({
   options,
   selectedValue,
-  onSelect
-}: SegmentedControlProps) {
+  onSelect,
+}: SegmentedControlProps<T>) {
   const { colors } = useTheme();
   const [containerWidth, setContainerWidth] = useState(0);
   const highlightPillWidth = Math.max(
@@ -59,7 +59,7 @@ export default function SegmentedControl({
       style={[
         {
           width: highlightPillWidth,
-          backgroundColor: colors.background,
+          backgroundColor: colors.accentContainer,
           margin: 2,
           borderRadius: radius.md,
           position: "absolute",
@@ -83,7 +83,7 @@ export default function SegmentedControl({
     ></Animated.View>
   );
 
-  const handlePress = (value: ViewType) => {
+  const handlePress = (value: T) => {
     play(select);
     onSelect(value);
   };
@@ -101,15 +101,16 @@ export default function SegmentedControl({
     >
       {highlightPill}
       {options.map((o, index) => {
-        const color = o.value == selectedValue ? colors.text : colors.textMuted;
+        const color = 
+        o.value === selectedValue ? colors.onAccentContainer : colors.textMuted;
 
         return (
           <Pressable
             key={o.value}
-            onPress={() => handlePress(o.value as ViewType)}
+            onPress={() => handlePress(o.value)}
             style={[styles.segment]}
           >
-            <Text style={{ color }}>{o.label}</Text>
+            <Text style={{ color, fontFamily: fonts.label, fontSize: fontSizes.sm }}>{o.label}</Text>
           </Pressable>
         );
       })}

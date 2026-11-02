@@ -114,7 +114,8 @@ function ensureSchema(): void {
     author_id TEXT,
     title TEXT NOT NULL,
     body TEXT,
-    entry_date TEXT NOT NULL,
+    entry_date TEXT,
+    entry_time TEXT,
     mood TEXT,
     version INTEGER NOT NULL DEFAULT 1,
     key_epoch INTEGER NOT NULL DEFAULT 1,
@@ -156,6 +157,7 @@ function ensureSchema(): void {
     `);
   migrateAttachmentSync();
   migrateEntryMood();
+  migrateEntryTime();
 }
 
 function migrateAttachmentSync(): void {
@@ -184,6 +186,14 @@ function migrateEntryMood(): void {
   );
   if (!cols.some((c) => c.name === "mood")) {
     sqlite.execSync("ALTER TABLE entries ADD COLUMN mood TEXT;");
+  }
+}
+function migrateEntryTime(): void {
+  const cols = sqlite.getAllSync<{ name: string }>(
+    "PRAGMA table_info(entries);",
+  );
+  if (!cols.some((c) => c.name === "entry_time")) {
+    sqlite.execSync("ALTER TABLE entries ADD COLUMN entry_time TEXT;");
   }
 }
 

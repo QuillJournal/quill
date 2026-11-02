@@ -41,6 +41,7 @@ export interface UserSecretKeyBundle {
   kemMlkem768Priv: string;
   signEd25519Priv: string;
   signMldsa65Priv: string;
+  vaultKey: string;
   recoveryKey?: string;
 }
 
@@ -134,6 +135,10 @@ export function generateRecoveryKey(): {
 } {
   const rawKey = Crypto.getRandomValues(new Uint8Array(32));
   return { rawKey, formattedKey: formatRecoveryKey(rawKey) };
+}
+
+export function generateVaultKey(): Uint8Array {
+  return Crypto.getRandomValues(new Uint8Array(32));
 }
 
 export function wrapKeyBundles(

@@ -1,4 +1,4 @@
-import { fontSizes } from "@/src/constants/typography";
+import { fontSizes, fonts } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import useEntrySearch from "@/src/hooks/useEntrySearch";
 import useTheme from "@/src/hooks/useTheme";
@@ -143,14 +143,20 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       marginBottom: 10,
     },
     selectedDayTitle: { flexDirection: "row", alignItems: "center", gap: 10 },
-    selectedDayDate: {
+    noEntriesHint: {
       color: colors.textMuted,
-      fontWeight: "500",
-      fontSize: fontSizes.xs,
+      fontFamily: fonts.body,
+      fontSize: fontSizes.sm,
+      textAlign: "center",
+      paddingVertical: 16,
     },
     entryCount: {
       color: colors.textMuted,
       fontWeight: "500",
       fontSize: fontSizes.xs,
+    },
+    selectedDayDate: {
+      color: colors.textMuted,
+      fontFamily: fonts.label,
     },
   });

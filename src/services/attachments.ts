@@ -186,6 +186,7 @@ export async function createEntryWithMedia(
   body: string,
   added: PendingAttachment[],
   mood: MoodKey | null = null,
+  entryTime: string | null = null,
 ): Promise<number> {
   const entryId = await saveEntry(
     diaryId,
@@ -194,6 +195,7 @@ export async function createEntryWithMedia(
     body,
     authorId,
     mood,
+    entryTime,
   );
   try {
     if (added.length) await persistAttachments(entryId, added);
@@ -213,6 +215,7 @@ export async function updateEntryWithMedia(
   body: string,
   media: { added: PendingAttachment[]; removedIds: number[] },
   mood?: MoodKey | null,
+  entryTime?: string | null,
 ): Promise<void> {
   await updateEntry(entryId, title, entryDate, body, mood);
 

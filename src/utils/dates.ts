@@ -74,6 +74,14 @@ export const formatCreatedMeta = (createdAt: Date, entryDate: Date): string => {
   return `Created ${createdDateStr}`;
 };
 
+export const formatEntryTime = (
+  entryTime: string | null | undefined,
+  fallback: Date,
+): string =>
+  entryTime
+    ? dayjs(`2000-01-01T${entryTime}`).format("h:mm A")
+    : dayjs(fallback).format("h:mm A");
+
 export const getWeekOfYear = (date: Date) => {
   const baseDate = dayjs(date);
   const weekNumber = baseDate.week();

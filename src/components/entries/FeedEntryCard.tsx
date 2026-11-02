@@ -5,7 +5,7 @@ import useTheme from "@/src/hooks/useTheme";
 import { resolveAttachmentUri } from "@/src/services/attachments";
 import { Attachment } from "@/src/types/attachment";
 import type { EntryWithAuthor } from "@/src/types/entry";
-import { formatCreatedMeta, fromDateKey } from "@/src/utils/dates";
+import { formatEntryTime, fromDateKey } from "@/src/utils/dates";
 import { splitMedia } from "@/src/utils/media";
 import { countWords, stripHtml } from "@/src/utils/string";
 import { Ionicons } from "@expo/vector-icons";
@@ -53,7 +53,7 @@ export default function FeedEntryCard({
     year: "numeric",
   });
 
-  const cardHeader = `${formatter.format(entryDate)} • ${formatCreatedMeta(entry.createdAt, entryDate)}`;
+  const cardHeader = `${formatter.format(entryDate)} • ${formatEntryTime(entry.entryTime, entry.createdAt)}`;
   const { visuals, audios } = useMemo(() => {
     const { visuals, audios } = splitMedia(media);
     return {

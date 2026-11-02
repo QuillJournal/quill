@@ -447,6 +447,7 @@ async function pushOfflineEntryQueue(session: FullSession) {
           title: entry.title,
           body: entry.body,
           entryDate: entry.entryDate,
+          entryTime: entry.entryTime ?? null,
           mood: entry.mood ?? null,
           attachments,
         },
@@ -504,6 +505,7 @@ async function pushOfflineEntryQueue(session: FullSession) {
           title: entry.title,
           body: entry.body,
           entryDate: entry.entryDate,
+          entryTime: entry.entryTime ?? null,
           mood: entry.mood ?? null,
           attachments,
         },
@@ -741,6 +743,7 @@ async function pullRemoteEntries(session: FullSession) {
         title: string;
         body: string;
         entryDate: string;
+        entryTime?: string | null;
         mood?: string | null;
         attachments?: ManifestItem[];
       };
@@ -765,6 +768,7 @@ async function pullRemoteEntries(session: FullSession) {
           title: payload.title,
           body: payload.body,
           entryDate: payload.entryDate,
+          entryTime: payload.entryTime ?? null,
           mood: remoteMood,
           version: remote.version,
           keyEpoch: remote.key_epoch,
@@ -793,6 +797,7 @@ async function pullRemoteEntries(session: FullSession) {
               title: payload.title,
               body: payload.body,
               entryDate: payload.entryDate,
+              entryTime: payload.entryTime ?? null,
               mood: remoteMood,
               version: remote.version,
               changeSeq: seq,
@@ -838,4 +843,20 @@ async function pullInvites(currentUserId: string) {
       })
       .onConflictDoNothing();
   }
+}
+
+export function waitForSyncIdle(timeoutMs = 10_000): Promise<void> {
+  if (!isSyncRunning) return Promise.resolve();
+  return new Promise((resolve) => {
+    const finish = () => {
+      syncListeners.delete(onChange);
+      clearTimeout(timer);
+      resolve();
+    };
+    const onChange = (syncing: boolean) => {
+      if (!syncing) finish();
+    };
+    const timer = setTimeout(finish, timeoutMs);
+    syncListeners.add(onChange);
+  });
 }

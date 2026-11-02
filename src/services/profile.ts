@@ -3,12 +3,17 @@ import { db } from "../db";
 import { saveLocalProfile } from "../db/localProfile";
 import { diariesTable } from "../db/schema";
 import {
-    getUserProfileRecord,
-    updateUserEncryptedProfile,
+  getUserProfileRecord,
+  updateUserEncryptedProfile,
+  type UserProfileRecord,
 } from "../utils/auth";
-import { decryptUserProfile, encryptUserProfile } from "../utils/crypto";
+import {
+  decryptUserProfile,
+  encryptUserProfile,
+  type DecryptedProfile,
+} from "../utils/crypto";
 import { getSharePhotoPreference, updateMyMemberBlob } from "./sharing";
-import { getStoredDerivedKey } from "./storage/secureKeyStore";
+import { getStoredVaultKey } from "./storage/secureKeyStore";
 
 export const NAME_MAX = 40;
 
@@ -25,7 +30,7 @@ export async function changeAccountName(
   rawName: string,
 ): Promise<string> {
   const name = validateName(rawName);
-  const derivedKey = await getStoredDerivedKey();
+  const derivedKey = await getStoredVaultKey();
   if (!derivedKey)
     throw new Error("Encryption key not found. Please login again.");
 
@@ -67,7 +72,7 @@ export async function propagateNameToDiaries(
       await updateMyMemberBlob(
         d.remoteId,
         d.keyEpoch,
-        await getSharePhotoPreference(d.remoteId),
+        await getSharePhotoPreference(d.remoteId, d.keyEpoch, session),
         session,
       );
     } catch (e) {
@@ -76,4 +81,23 @@ export async function propagateNameToDiaries(
     }
   }
   return failed;
+}
+
+export async function adoptVaultKey(
+  record: UserProfileRecord,
+  kek: Uint8Array,
+  vaultKey: Uint8Array,
+): Promise<DecryptedProfile> {
+  const current = decryptUserProfile(
+    record.encrypted_profile,
+    record.profile_nonce,
+    kek,
+  );
+  const enc = encryptUserProfile(current, vaultKey);
+  await updateUserEncryptedProfile(
+    record.id,
+    enc.encryptedProfileHex,
+    enc.profileNonceHex,
+  );
+  return current;
 }

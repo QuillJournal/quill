@@ -7,16 +7,18 @@ import FormField from "./FormField";
 type PasswordFieldProps = {
   password: string;
   onChangePassword: (newPassword: string) => void;
+  label?: string;
 };
 export default function PasswordField({
   password,
   onChangePassword,
+  label,
 }: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
   const { colors } = useTheme();
   return (
     <FormField
-      label="PASSWORD"
+      label={label || "PASSWORD"}
       placeholder="******"
       value={password}
       onChangeText={onChangePassword}

@@ -1,6 +1,5 @@
 import { eq } from "drizzle-orm";
 import * as FileSystem from "expo-file-system/legacy";
-import * as SecureStore from "expo-secure-store";
 import { UserSessionData } from "../context/UserSessionContext";
 import { db } from "../db";
 import { getDiaryById, getDiaryKey, saveDiaryKey } from "../db/diaries";
@@ -53,6 +52,7 @@ export interface DiaryMemberInfo {
   photoDataUri: string | null;
   safetyNumber: string;
   pinChanged: boolean;
+  sharesPhoto: boolean;
 }
 
 async function encodePhotoDataUri(
@@ -337,11 +337,6 @@ export async function acceptDiaryInvite(
   });
   if (error) throw new Error(error.message);
 
-  await SecureStore.setItemAsync(
-    `quill_share_photo_${invite.diaryRemoteId}`,
-    sharePhoto ? "1" : "0",
-  );
-
   await db.delete(diaryInvitesTable).where(eq(diaryInvitesTable.id, invite.id));
   await runSync({
     userId: session.userId,
@@ -384,6 +379,7 @@ export async function fetchDiaryMembers(
     const isMe = row.user_id === session.userId;
     let name = isMe ? session.name || row.username : row.username;
     let photoDataUri: string | null = isMe ? session.photoUri : null;
+    let sharesPhoto = false;
 
     if (row.member_blob) {
       try {
@@ -393,11 +389,13 @@ export async function fetchDiaryMembers(
           { diaryId: diaryRemoteId, keyEpoch },
         );
         if (dec.name && dec.name !== "Owner") name = dec.name;
-        if (dec.photo) photoDataUri = dec.photo;
+        if (dec.photo) {
+          photoDataUri = dec.photo;
+          sharesPhoto = true;
+        }
       } catch {}
     } else if (isMe) {
-      const sharePref = await getSharePhotoPreference(diaryRemoteId);
-      updateMyMemberBlob(diaryRemoteId, keyEpoch, sharePref, session).catch(
+      updateMyMemberBlob(diaryRemoteId, keyEpoch, false, session).catch(
         () => {},
       );
     }
@@ -427,6 +425,7 @@ export async function fetchDiaryMembers(
       photoDataUri,
       safetyNumber,
       pinChanged,
+      sharesPhoto,
     });
 
     await db.insert(diaryMembersTable).values({
@@ -451,11 +450,28 @@ export async function fetchDiaryMembers(
 
 export async function getSharePhotoPreference(
   diaryRemoteId: string,
+  keyEpoch: number,
+  session: UserSessionData,
 ): Promise<boolean> {
-  const v = await SecureStore.getItemAsync(
-    `quill_share_photo_${diaryRemoteId}`,
+  const keyHex = await getDiaryKey(diaryRemoteId, keyEpoch);
+  if (!keyHex) throw new Error("Diary key missing");
+
+  const { data, error } = await supabase.rpc("get_diary_members", {
+    p_diary_id: diaryRemoteId,
+  });
+  if (error || !Array.isArray(data)) {
+    throw new Error(error?.message ?? "Could not load diary members");
+  }
+
+  const mine = data.find((row: any) => row.user_id === session.userId);
+  if (!mine?.member_blob) return false;
+
+  const dec = decryptBlob<{ photo?: string | null }>(
+    mine.member_blob,
+    hexToBytes(keyHex),
+    { diaryId: diaryRemoteId, keyEpoch },
   );
-  return v === "1";
+  return Boolean(dec.photo);
 }
 
 export async function updateMyMemberBlob(
@@ -484,9 +500,4 @@ export async function updateMyMemberBlob(
     .eq("user_id", session.userId);
 
   if (error) throw new Error(error.message);
-
-  await SecureStore.setItemAsync(
-    `quill_share_photo_${diaryRemoteId}`,
-    sharePhoto ? "1" : "0",
-  );
 }

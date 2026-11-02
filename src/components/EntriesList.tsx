@@ -147,7 +147,7 @@ export default function EntriesList({
       <SegmentedControl
         options={VIEW_OPTIONS}
         selectedValue={selectedView}
-        onSelect={setSelectedView}
+        onSelect={(v) => setSelectedView(v as ViewType)}
       />
       {/* {selectedView == "list" && (
         <View style={styles.calendarWrap}>

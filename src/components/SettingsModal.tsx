@@ -18,20 +18,18 @@ import { saveLocalProfile } from "../db/localProfile";
 import useTheme from "../hooks/useTheme";
 import { confirmBiometric, setBiometrics, setLockDelay, useAppLock, useBiometricInfo, type LockDelay } from "../services/appLock";
 import { haptic } from "../services/haptics";
-import { wipeLocalData } from "../services/localWipe";
 import { setPreference, ThemePreference, usePreferences } from "../services/preferences";
 import { changeAccountName, propagateNameToDiaries } from "../services/profile";
+import { endLocalSession } from "../services/sessionTeardown";
 import {
-  clearDerivedKey,
-  getStoredDerivedKey,
+  getStoredVaultKey
 } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import {
   deleteAccount,
   getUserProfileRecord,
   rewrapKeysRpc,
-  signOut,
-  updateUserEncryptedProfile,
+  updateUserEncryptedProfile
 } from "../utils/auth";
 import {
   decryptKeyBundle,
@@ -237,16 +235,7 @@ export default function SettingsModal({
             setIsDeletingAccount(true);
             try {
               await deleteAccount();
-
-              await clearDerivedKey();
-              clearSession();
-
-              await wipeLocalData().catch((e) =>
-              console.error("Local wipe incomplete, will retry on next launch: ", e),
-            );
-
-              await signOut().catch(() => {});
-
+              await endLocalSession(clearSession, { accountDeleted: true });
               onClose();
               if (onLogoutSuccess) onLogoutSuccess();
             } catch (err: any) {
@@ -281,7 +270,7 @@ export default function SettingsModal({
       }
       const newLocalUri = result.assets[0].uri;
 
-      const derivedKey = await getStoredDerivedKey();
+      const derivedKey = await getStoredVaultKey();
       if (!derivedKey) {
         throw new Error("Encryption key not found. Please login again.");
       }
@@ -373,12 +362,7 @@ export default function SettingsModal({
         onPress: async () => {
           setIsLoggingOut(true);
           try {
-            await clearDerivedKey();
-            await signOut();
-            clearSession(); 
-            await wipeLocalData().catch((e) => 
-            console.error("Local wipe incomplete, will retry on next launch:", e),
-          );
+            await endLocalSession(clearSession);
             onClose();
             if (onLogoutSuccess) onLogoutSuccess();
           } catch (err: any) {

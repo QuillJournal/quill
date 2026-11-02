@@ -6,16 +6,13 @@ import { useUserSession } from "../context/UserSessionContext";
 import useTheme from "../hooks/useTheme";
 import {
     MAX_PIN_ATTEMPTS,
-    resetAppLock,
     unlockWithBiometrics,
     unlockWithPin,
     useAppLock,
-    useBiometricInfo,
+    useBiometricInfo
 } from "../services/appLock";
 import { haptic } from "../services/haptics";
-import { wipeLocalData } from "../services/localWipe";
-import { clearDerivedKey } from "../services/storage/secureKeyStore";
-import { signOut } from "../utils/auth";
+import { endLocalSession } from "../services/sessionTeardown";
 import Button from "./Button";
 import PinPad from "./PinPad";
 
@@ -84,13 +81,7 @@ function LockContent() {
     const forceSignOut = async () => {
         if (signingOut) return;
         setSigningOut(true);
-        await clearDerivedKey().catch(() => {});
-        clearSession();
-        await signOut().catch(() => {});
-        resetAppLock();
-        await wipeLocalData().catch((e) =>
-        console.error("Local wipe incomplete, will retry on next launch: ", e),
-    );
+        await endLocalSession(clearSession);
     };
 
     // last wrong attempt. kill da app :fire: :hot_face:
