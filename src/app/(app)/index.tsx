@@ -13,43 +13,22 @@ import { useDiaryTransition } from "@/src/context/DiaryTransitionContext";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import { getDiaryById } from "@/src/db/diaries";
 import useDiaries from "@/src/hooks/useDiaries";
+import useOnboarding from "@/src/hooks/useOnboarding";
 import useTheme from "@/src/hooks/useTheme";
 import useUserEmail from "@/src/hooks/useUserEmail";
 import { fetchDiaryMembers } from "@/src/services/sharing";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { DiaryFormData } from "@/src/types/diary";
 import { Stack, useFocusEffect } from "expo-router";
-import { useState , useEffect } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View, Dimensions, Image } from "react-native";
+import { useState } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, Text, View, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { supabase } from "@/src/utils/supabase";
 import Tooltip from "react-native-walkthrough-tooltip"
 
 export default function Home() {
   const { colors } = useTheme();
   const { session } = useUserSession();
-  const [first, setFirst] = useState(false);
-  //set first value
-  useEffect(() => {
-      const checkfirst = async() => {
-          if(!session?.userId){
-            setFirst(false)
-            return;
-          }
-        const {data, error} = await supabase.from("profiles").select("onboarding").eq("id", session.userId).maybeSingle();
-        if(error){
-          console.error("Profile Onboarding Error"+ error.message)
-          return;
-        }
-        if(!data){
-          console.error("Error. There is no data for the onboarding table.")
-          setFirst(false)
-          return;
-        }
-        setFirst(data.onboarding !== true)
-      }
-      checkfirst()
-    }, [session?.userId])
+  const onboarding = useOnboarding();
   const styles = getStyles(colors);
 
   const firstName = session?.name
@@ -64,20 +43,45 @@ export default function Home() {
   const isSyncing = useSyncStatus();
   const { open } = useDiaryTransition();
 
-  const [index, setIndex] = useState(0);  
-  const height2:number = Dimensions.get("window").height;
-  const [show, setShow] = useState(0)
-  const handleAddDiary = (data: DiaryFormData) => {
-    const name = data.name.trim();
-    if (!name) return;
-    addDiary(name, data.color).catch((e) =>
-      console.error("Failed to create diary: ", e),
-    );
-    setShowDiaryForm(false);
-    setIndex(1)
-    setShow(1)
+  const skipOnboarding = () => {
+    onboarding.finish().catch((error) => {
+      console.error("Failed to complete onboarding:", error);
+      dialog.alert("Couldn't save progress", "Please try again.");
+    });
   };
 
+  const handleAddDiary = async (data: DiaryFormData) => {
+    const name = data.name.trim();
+    if (!name) return;
+    setShowDiaryForm(false);
+    let diaryId: number;
+    try {
+      diaryId = await addDiary(name, data.color);
+    } catch (error) {
+      console.error("Failed to create diary:", error);
+      dialog.alert("Couldn't create diary", "Please try again.");
+      return;
+    }
+
+    const targetDiaryExists = diaries.some(
+      (diary) => diary.id === onboarding.progress.diaryId,
+    );
+    if (
+      onboarding.isFirstTime &&
+      (onboarding.progress.step === 0 ||
+        (onboarding.progress.step === 1 && !targetDiaryExists))
+    ) {
+      try {
+        await onboarding.setStep(1, diaryId);
+      } catch (error) {
+        console.error("Diary created, but onboarding progress could not advance:", error);
+        dialog.alert(
+          "Diary created",
+          "The diary was created, but onboarding progress could not be updated.",
+        );
+      }
+    }
+  };
   const handleDeleteDiary = async (id: number) => {
     const row = await getDiaryById(id);
     if (!row) return;
@@ -139,66 +143,108 @@ export default function Home() {
             </Text>
           </View>
         )}
+        <FlatList
+          data={diaries}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.listContent}
+          ListHeaderComponent={
+            <>
+          <GreetingHeader name={firstName} photoUri={session?.photoUri} onAvatarPress={() => setIsSettingsOpen(true)} />
+            <PendingInvitesBanner onJoined={refresh} />
+            </>
+        }
+          ListEmptyComponent={
+            <View style={styles.emptyList}>
+              <Image source = {EmptyArt} style = {{width:220, height:220}}/>
+              <Text style={styles.noDiaryText}>No Diaries Yet.</Text>
+              <Text style={{ color: colors.textMuted }}>
+                Join or create a new one.
+              </Text>
+            </View>
+          }
+          renderItem={({ item, index: cardIndex }) => (
+            <Tooltip
+              isVisible={
+                !onboarding.loading &&
+                onboarding.isFirstTime &&
+                onboarding.progress.step === 1 &&
+                onboarding.progress.diaryId === item.id
+              }
+              closeOnChildInteraction={false}
+              closeOnBackgroundInteraction
+              closeOnContentInteraction={false}
+              content = {
+                <OnBoarding
+                  index2 = {1}
+                  onSkip={skipOnboarding}
+                />
+              }
+              contentStyle = {{ padding: 0, backgroundColor: "transparent",overflow: "visible"}}
+              placement = "bottom"
+              onClose={skipOnboarding}
+            >
+              <DiaryCard
+                diary={item}
+                isFirst={cardIndex === 0}
+                onPress={async (origin) => {
+                  if (
+                    onboarding.isFirstTime &&
+                    onboarding.progress.step === 1 &&
+                    onboarding.progress.diaryId === item.id
+                  ) {
+                    try {
+                      await onboarding.setStep(2, item.id);
+                    } catch (error) {
+                      console.error("Failed to advance onboarding:", error);
+                      dialog.alert(
+                        "Couldn't save progress",
+                        "Please try opening the diary again.",
+                      );
+                      return;
+                    }
+                  }
+                  open(item, origin);
+                }}
+                onDelete={handleDeleteDiary}
+              />
+            </Tooltip>
+          )}
+        />
+        <DiaryForm
+          isOpen={showDiaryForm}
+          onClose={() => setShowDiaryForm(false)}
+          onSubmit={handleAddDiary}
+        />
         <SettingsModal
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
           userEmail={email}
         />
+        <Tooltip
+          isVisible={
+            !onboarding.loading &&
+            onboarding.isFirstTime &&
+            onboarding.progress.step === 0
+          }
+          closeOnChildInteraction={false}
+          closeOnBackgroundInteraction
+          closeOnContentInteraction={false}
+          content = {
+            <OnBoarding
+              index2 = {0}
+              onSkip={skipOnboarding}
+            />
+          }
+          contentStyle = {{ padding: 0, backgroundColor: "transparent",overflow: "visible"}}
+          placement = "bottom"
+          onClose={skipOnboarding}
+        >
         <FloatingActionButton
           onPress={() => {
             setShowDiaryForm(true);
           }}
         />
-        {first && session?.userId != null &&(
-          <Tooltip
-              content = {
-                <OnBoarding 
-                  index2 = {index}
-                  userid = {session.userId}
-                />
-              } 
-              placement = "left"
-          >
-            {show === 0 && (
-              <DiaryForm
-                isOpen={showDiaryForm}
-                onClose={() => setShowDiaryForm(false)}
-                onSubmit={handleAddDiary}
-              />
-            )}
-            {show === 1 && (
-              <FlatList
-                data={diaries}
-                keyExtractor={(item) => item.id.toString()}
-                contentContainerStyle={styles.listContent}
-                ListHeaderComponent={
-                    <>
-                      <GreetingHeader name={firstName} photoUri={session?.photoUri} onAvatarPress={() => setIsSettingsOpen(true)} />
-                      <PendingInvitesBanner onJoined={refresh} />
-                    </>
-                }
-                ListEmptyComponent={
-                  <View style={styles.emptyList}>
-                    <Image source = {EmptyArt} style = {{width:220, height:220}}/>
-                    <Text style={styles.noDiaryText}>No Diaries Yet.</Text>
-                    <Text style={{ color: colors.textMuted }}>
-                      Join or create a new one.
-                    </Text>
-                  </View>
-                }
-                renderItem={({ item, index }) => (
-                  <DiaryCard
-                    diary={item}
-                    isFirst={index === 0}
-                    onPress={(origin) => open(item, origin)}
-                    onDelete={handleDeleteDiary}
-              />
-          )}
-        />
-            )}
-
-          </Tooltip>
-        )}
+        </Tooltip>
       </View>
     </SafeAreaView>
   );

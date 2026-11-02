@@ -6,6 +6,10 @@ import {
   createEntryWithMedia,
   PendingAttachment,
 } from "@/src/services/attachments";
+import {
+  getOnboardingProgress,
+  saveOnboardingProgress,
+} from "@/src/services/onboarding";
 import { toDateKey } from "@/src/utils/dates";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,15 +29,16 @@ export default function NewEntryScreen() {
     media: { added: PendingAttachment[]; removedIds: number[] },
     mood: MoodKey | null,
   ) => {
+    const userId = session?.userId;
     try {
-      if (!session?.userId) {
+      if (!userId) {
         throw new Error(
           "Authentication required. Please sign in to save your entry.",
         );
       }
       await createEntryWithMedia(
         diaryId,
-        session.userId,
+        userId,
         title,
         entryDate,
         body,
@@ -45,6 +50,23 @@ export default function NewEntryScreen() {
       dialog.alert(
         "Couldn't save",
         e instanceof Error ? e.message : "Please try again.",
+      );
+      return;
+    }
+
+    try {
+      const progress = await getOnboardingProgress(userId);
+      if (progress.step === 2 && progress.diaryId === diaryId) {
+        await saveOnboardingProgress(userId, {
+          step: 3,
+          diaryId,
+        });
+      }
+    } catch (error) {
+      console.error("Entry saved, but onboarding progress could not advance:", error);
+      dialog.alert(
+        "Entry saved",
+        "Your entry was saved, but onboarding progress could not be updated.",
       );
     }
   };

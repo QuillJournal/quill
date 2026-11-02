@@ -1,4 +1,4 @@
-import useDiaries from "@/src/hooks/useDiaries";
+import OnBoarding from "../../../../app/onboarding"
 import DiaryMembersModal from "@/src/components/DiaryMembersModal";
 import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
@@ -9,13 +9,14 @@ import { setResumeDiaryId } from "@/src/db/appState";
 import { getDiaryById, openDiary } from "@/src/db/diaries";
 import useDiaryMembers from "@/src/hooks/useDiaryMembers";
 import useEntries from "@/src/hooks/useEntries";
+import useOnboarding from "@/src/hooks/useOnboarding";
 import useTheme from "@/src/hooks/useTheme";
 import { deleteEntryWithMedia } from "@/src/services/attachments";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { DiaryRow } from "@/src/types/diary";
 import { toDateKey } from "@/src/utils/dates";
 import { Ionicons } from "@expo/vector-icons";
-import { useUserSession } from "@/src/context/UserSessionContext";
+import Tooltip from "react-native-walkthrough-tooltip"
 import {
   Stack,
   useFocusEffect,
@@ -32,12 +33,9 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { supabase } from "@/src/utils/supabase";
-import { FA5Style } from "@expo/vector-icons/build/FontAwesome5";
-import { useBridgeState } from "@10play/tentap-editor";
+import { dialog } from "@/src/components/Dialog/DialogProvider";
 
 export default function DiaryScreen() {
-  const { diaries } = useDiaries();
   const { id } = useLocalSearchParams<{ id: string }>();
   const diaryId = Number(id);
   const { colors } = useTheme();
@@ -45,34 +43,19 @@ export default function DiaryScreen() {
   const router = useRouter();
   const { entries, refresh } = useEntries(diaryId);
   const diaryMembers = useDiaryMembers(diaryId);
+  const onboarding = useOnboarding();
   const [diaryRow, setDiaryRow] = useState<DiaryRow>();
   const [showMembers, setShowMembers] = useState(false);
   const { close, closing, reportReady } = useDiaryTransition();
   const isSyncing = useSyncStatus();
-  const { session } = useUserSession();
-  const [first, setFirst] = useState(false);
-  //set first value
-  useEffect(() => {
-    const checkfirst = async() => {
-        if(!session?.userId){
-          setFirst(false)
-          return;
-        }
-      const {data, error} = await supabase.from("profiles").select("onboarding").eq("id", session.userId).maybeSingle();
-      if(error){
-        console.error("Profile Onboarding Error"+ error.message)
-        return;
-      }
-      if(!data){
-        console.error("Error. There is no data for the onboarding table.")
-        setFirst(false)
-        return;
-      }
-      setFirst(data.onboarding !== true)
-    }
-    checkfirst()
-  }, [session?.userId])
-
+  const isOnboardingDiary =
+    onboarding.isFirstTime && onboarding.progress.diaryId === diaryId;
+  const skipOnboarding = () => {
+    onboarding.finish().catch((error) => {
+      console.error("Failed to complete onboarding:", error);
+      dialog.alert("Couldn't save progress", "Please try again.");
+    });
+  };
 
   const closeDiary = useCallback(() => {
     setResumeDiaryId(null);
@@ -80,15 +63,6 @@ export default function DiaryScreen() {
   }, [router]);
 
   const handleClose = useCallback(async () => {
-    //if the user closes the tab it kicks them out of onboarding
-    if(session?.userId && first){
-      const {error} = await supabase.from("profiles").update({onboarding: true}).eq("id", session.userId)
-      setFirst(false)
-      if(error){
-        console.error("Onboarding Status Change Error"+ error.message)
-        return;
-      }
-    }
     if (!diaryRow) return closeDiary();
     setResumeDiaryId(null);
     close({
@@ -96,7 +70,7 @@ export default function DiaryScreen() {
       entryCount: entries.length,
       memberCount: diaryMembers.size,
     });
-  }, [diaryRow, entries.length, close, closeDiary, session?.userId]);
+  }, [diaryRow, entries.length, close, closeDiary, diaryMembers.size]);
 
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const diaryAccent = resolveDiaryColor(diaryRow?.color ?? "white", scheme);
@@ -174,6 +148,27 @@ export default function DiaryScreen() {
             )}
           </View>
         </View>
+        <Tooltip
+              useReactNativeModal
+              allowChildInteraction = {true}
+              closeOnChildInteraction = {false}
+              closeOnBackgroundInteraction
+              closeOnContentInteraction={false}
+              isVisible={
+                !onboarding.loading &&
+                isOnboardingDiary &&
+                onboarding.progress.step === 3
+              }
+              content = {
+                <OnBoarding
+                  index2 = {3}
+                  onSkip={skipOnboarding}
+                />
+              }
+              contentStyle = {{ padding: 0, backgroundColor: "transparent",overflow: "visible"}}
+              placement = {"top"}
+              onClose={skipOnboarding}
+      >
         <TouchableOpacity
           style={[styles.iconButton, styles.membersButton]}
           onPress={() => setShowMembers(true)}
@@ -183,6 +178,7 @@ export default function DiaryScreen() {
         >
           <Ionicons name="people" size={18} color={"blue"} />
         </TouchableOpacity>
+      </Tooltip>
       </View>
       <EntriesList
         entries={entries}
@@ -193,37 +189,53 @@ export default function DiaryScreen() {
         onOpenMembers={() => setShowMembers(true)}
         onNewEntry={handleAddEntry}
         onSelectEntry={(entry) => {
-          if(entries.length == 1 && first){
-            //created a new entry instead of following the path 
-            const checkfirst = async() => {
-              if(!session?.userId){
-                setFirst(false)
-                return;
-              }
-            const { error} = await supabase.from("profiles").update({onboarding: true}).eq("id", session.userId)
-              if(error){
-                console.error("Onboarding Status Change Error"+ error.message)
-                return;
-              }
-            }
-            checkfirst(); 
-            setFirst(false);
-          }
           router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
         }}
         onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
-        first = {first?? false}
       />
       <View
         pointerEvents="box-none"
         style={[StyleSheet.absoluteFill, { bottom: insets.bottom }]}
       >
-        <FloatingActionButton onPress={() => handleAddEntry()} />
+      <Tooltip
+              useReactNativeModal
+              allowChildInteraction = {true}
+              closeOnChildInteraction={false}
+              closeOnBackgroundInteraction
+              closeOnContentInteraction={false}
+              isVisible={
+                !onboarding.loading &&
+                isOnboardingDiary &&
+                onboarding.progress.step === 2
+              }
+              parentWrapperStyle={{
+                position: "absolute",
+                right: 24,
+                bottom: 30,
+                width: 54,
+                height: 54,
+              }}
+              content = {
+                <OnBoarding
+                  index2 = {2}
+                  onSkip={skipOnboarding}
+                />
+              }
+              contentStyle = {{ padding: 0, backgroundColor: "transparent",overflow: "visible"}}
+              placement = {"top"}
+              onClose={skipOnboarding}
+      >
+      <FloatingActionButton
+        onPress={() => handleAddEntry()}
+        positioned={false}
+      />
+      </Tooltip>
       </View>
       <DiaryMembersModal
         visible={showMembers}
         onClose={() => setShowMembers(false)}
         diary={diaryRow}
+        onInviteSent={skipOnboarding}
       />
     </View>
   );

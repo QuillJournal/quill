@@ -43,11 +43,16 @@ export default function useDiaries() {
   const addDiary = async (
     name: string,
     color: DiaryColorKey,
-  ): Promise<void> => {
-    await addDiaryToDb(name, color);
+  ): Promise<number> => {
+    const { localId } = await addDiaryToDb(name, color);
     await refresh();
-    await triggerSync();
-    await refresh();
+    try {
+      await triggerSync();
+      await refresh();
+    } catch (error) {
+      console.error("Failed to sync newly created diary:", error);
+    }
+    return localId;
   };
   const deleteDiary = async (diaryId: number): Promise<void> => {
     const diary = await getDiaryById(diaryId);

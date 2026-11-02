@@ -1,4 +1,4 @@
-import OnBoarding from "../app/onboarding"
+
 import { resolveDiaryColor } from "@/src/constants/colors";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
@@ -23,6 +23,7 @@ import ListView from "./entries/ListView";
 import TimelineView from "./entries/TimelineView";
 import SegmentedControl from "./SegmentedControl";
 
+
 interface EntriesListProps {
   entries: EntryWithAuthor[];
   diaryName?: string;
@@ -33,7 +34,6 @@ interface EntriesListProps {
   onDeleteEntry?: (id: number) => void;
   onOpenMembers?: () => void;
   closing?: boolean;
-  first?:boolean;
 }
 
 export default function EntriesList({
@@ -46,11 +46,9 @@ export default function EntriesList({
   onDeleteEntry,
   onOpenMembers,
   closing,
-  first
 }: EntriesListProps) {
   const height2:number = Dimensions.get("window").height;
   const width2:number = Dimensions.get("window").width;
-  const [position, setPosition] = useState([0, height2-250])
   const { session } = useUserSession();
   const { colors } = useTheme();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -83,13 +81,11 @@ export default function EntriesList({
     // 2 if there is 0 entries, 3 if there is one entry . 
     if(entries.length === 0){
       setIndex(2);
-      setPosition([0, height2-250])
     }
     else if(entries.length === 1){ 
       setIndex(3);
-      setPosition([width2/2, -height2+250])
     }
-    //else user made two entries instead of following the path . handled in DiaryScrenn.
+    //else user made two entries instead of following the path . handled in DiaryScreen.
   }, [entries.length])
   const handleDayLongPress = (date: Date) => {
     onNewEntry(date);
@@ -167,13 +163,6 @@ export default function EntriesList({
         <SelectedComponent {...ViewProps} />
       ) : (
         <EmptyState accentColor={diaryAccent} />
-      )}
-      {first && session?.userId != null && (
-        <OnBoarding 
-          position = {[0, 150]}
-          index2 = {index}
-          userid = {session!.userId}
-        /> 
       )}
     </View>
   );

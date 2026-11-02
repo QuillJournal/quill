@@ -38,12 +38,14 @@ import {
 interface DiaryMembersModalProps {
   visible: boolean;
   onClose: () => void;
+  onInviteSent?: () => void | Promise<void>;
   diary?: DiaryRow;
 }
 
 export default function DiaryMembersModal({
   visible,
   onClose,
+  onInviteSent,
   diary,
 }: DiaryMembersModalProps) {
   const { colors } = useTheme();
@@ -121,6 +123,7 @@ export default function DiaryMembersModal({
               await sendDiaryInvite(diary.id, target, session);
               setInviteUsername("");
               dialog.alert("Invite Sent", `@${target.username} has been invited.`);
+              await onInviteSent?.();
             } catch (err: any) {
               dialog.alert("Invite Error", err.message || "Could not send invite.");
             } finally {

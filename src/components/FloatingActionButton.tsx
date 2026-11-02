@@ -5,8 +5,10 @@ import useTheme from "../hooks/useTheme";
 
 export default function FloatingActionButton({
   onPress,
+  positioned = true,
 }: {
   onPress: () => void;
+  positioned?: boolean;
 }) {
   const { colors } = useTheme();
   const { animatePress, animatedColor } = usePressAnimation(
@@ -15,7 +17,10 @@ export default function FloatingActionButton({
   );
   return (
     <Pressable
-      style={styles.fabContainer}
+      style={[
+        styles.fabContainer,
+        !positioned && styles.inlineFabContainer,
+      ]}
       onPress={onPress}
       onPressIn={() => animatePress(true)}
       onPressOut={() => animatePress(false)}
@@ -39,6 +44,11 @@ const styles = StyleSheet.create({
     bottom: 30,
     width: 54,
     height: 54,
+  },
+  inlineFabContainer: {
+    position: "relative",
+    right: 0,
+    bottom: 0,
   },
   fab: {
     height: "100%",
