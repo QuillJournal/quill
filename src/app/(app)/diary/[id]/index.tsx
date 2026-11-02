@@ -1,48 +1,63 @@
 import OnBoarding from "../../../../app/onboarding"
-import EmptyArt from "@/assets/images/empty.png";
-import { dialog } from "@/src/components/Dialog/DialogProvider";
-import DiaryCard, { STACK_SIDE_PADDING } from "@/src/components/DiaryCard";
-import DiaryForm from "@/src/components/DiaryForm";
+import DiaryMembersModal from "@/src/components/DiaryMembersModal";
+import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
-import GreetingHeader from "@/src/components/GreetingHeader";
-import PendingInvitesBanner from "@/src/components/PendingInvitesBanner";
-import SettingsModal from "@/src/components/SettingsModal";
-import { spacing } from "@/src/constants/spacings";
+import { resolveDiaryColor } from "@/src/constants/colors";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import { useDiaryTransition } from "@/src/context/DiaryTransitionContext";
-import { useUserSession } from "@/src/context/UserSessionContext";
-import { getDiaryById } from "@/src/db/diaries";
-import useDiaries from "@/src/hooks/useDiaries";
+import { setResumeDiaryId } from "@/src/db/appState";
+import { getPreviewAttachments } from "@/src/db/attachments";
+import { getDiaryById, openDiary } from "@/src/db/diaries";
+import useDiaryMembers from "@/src/hooks/useDiaryMembers";
+import useEntries from "@/src/hooks/useEntries";
 import useOnboarding from "@/src/hooks/useOnboarding";
 import useTheme from "@/src/hooks/useTheme";
-import useUserEmail from "@/src/hooks/useUserEmail";
-import { fetchDiaryMembers } from "@/src/services/sharing";
+import { deleteEntryWithMedia } from "@/src/services/attachments";
 import { useSyncStatus } from "@/src/services/syncEngine";
-import type { DiaryFormData } from "@/src/types/diary";
-import { Stack, useFocusEffect } from "expo-router";
-import { useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View, Image } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import type { Attachment } from "@/src/types/attachment";
+import type { DiaryRow } from "@/src/types/diary";
+import { toDateKey } from "@/src/utils/dates";
+import { pluralize } from "@/src/utils/pluralize";
+import { Ionicons } from "@expo/vector-icons";
 import Tooltip from "react-native-walkthrough-tooltip"
+import {
+  Stack,
+  useFocusEffect,
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { dialog } from "@/src/components/Dialog/DialogProvider";
 
-export default function Home() {
+export default function DiaryScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const diaryId = Number(id);
   const { colors } = useTheme();
-  const { session } = useUserSession();
+  const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const { entries, refresh } = useEntries(diaryId);
+  const [media, setMedia] = useState<Map<number, Attachment[]>>(new Map());
+  const ids = useMemo(() => entries.map((e) => e.id), [entries]);
+  useEffect(() => {
+    getPreviewAttachments(ids).then((map) => setMedia(map));
+  }, [ids]);
+  const diaryMembers = useDiaryMembers(diaryId);
   const onboarding = useOnboarding();
-  const styles = getStyles(colors);
-
-  const firstName = session?.name
-    ? session.name.trim().split(" ")[0]
-    : "Friend";
-
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [showDiaryForm, setShowDiaryForm] = useState(false);
-
-  const email = useUserEmail();
-  const { diaries, refresh, deleteDiary, addDiary } = useDiaries();
+  const [diaryRow, setDiaryRow] = useState<DiaryRow>();
+  const [showMembers, setShowMembers] = useState(false);
+  const { close, closing, reportReady } = useDiaryTransition();
   const isSyncing = useSyncStatus();
-  const { open } = useDiaryTransition();
-
+  const isOnboardingDiary =
+    onboarding.isFirstTime && onboarding.progress.diaryId === diaryId;
   const skipOnboarding = () => {
     onboarding.finish().catch((error) => {
       console.error("Failed to complete onboarding:", error);
@@ -50,223 +65,269 @@ export default function Home() {
     });
   };
 
-  const handleAddDiary = async (data: DiaryFormData) => {
-    const name = data.name.trim();
-    if (!name) return;
-    setShowDiaryForm(false);
-    let diaryId: number;
-    try {
-      diaryId = await addDiary(name, data.color);
-    } catch (error) {
-      console.error("Failed to create diary:", error);
-      dialog.alert("Couldn't create diary", "Please try again.");
-      return;
-    }
+  const closeDiary = useCallback(() => {
+    setResumeDiaryId(null);
+    router.replace("/(app)");
+  }, [router]);
 
-    const targetDiaryExists = diaries.some(
-      (diary) => diary.id === onboarding.progress.diaryId,
-    );
-    if (
-      onboarding.isFirstTime &&
-      (onboarding.progress.step === 0 ||
-        (onboarding.progress.step === 1 && !targetDiaryExists))
-    ) {
-      try {
-        await onboarding.setStep(1, diaryId);
-      } catch (error) {
-        console.error("Diary created, but onboarding progress could not advance:", error);
-        dialog.alert(
-          "Diary created",
-          "The diary was created, but onboarding progress could not be updated.",
-        );
-      }
-    }
-  };
-  const handleDeleteDiary = async (id: number) => {
-    const row = await getDiaryById(id);
-    if (!row) return;
+  const handleClose = useCallback(async () => {
+    if (!diaryRow) return closeDiary();
+    setResumeDiaryId(null);
+    close({
+      ...diaryRow,
+      entryCount: entries.length,
+      memberCount: diaryMembers.size,
+    });
+  }, [diaryRow, entries.length, close, closeDiary, diaryMembers.size]);
 
-    if (row.ownerId && session?.userId && row.ownerId !== session.userId) {
-      dialog.alert(
-        "Cannot Delete Diary",
-        "Only the owner of a shared diary can delete it.",
-      );
-      return;
-    }
+  const scheme = useColorScheme() === "dark" ? "dark" : "light";
+  const diaryAccent = resolveDiaryColor(diaryRow?.color ?? "white", scheme);
+  const styles = getStyles(colors, diaryAccent, insets.top);
 
-    if (row.remoteId && session) {
-      const members = await fetchDiaryMembers(row.remoteId, row.keyEpoch, session);
-      if (members.length > 1) {
-        dialog.alert(
-          "Delete Shared Diary?",
-          `This diary is shared with ${members.length - 1} other ${members.length - 1 === 1 ? "member" : "members"
-          }. Deleting it will permanently remote if for everyone.`,
-          [
-            { text: "Cancel", style: "cancel" },
-            {
-              text: "Delete for Everyone",
-              style: "destructive",
-              onPress: () =>
-                deleteDiary(id).catch((e) =>
-                  console.error("Failed to delete diary: ", e),
-                ),
-            },
-          ],
-        );
-        return;
-      }
-    }
+  useEffect(() => {
+    if (!Number.isInteger(diaryId) || !openDiary(diaryId)) closeDiary();
+  }, [diaryId, closeDiary]);
 
-    deleteDiary(id).catch((e) => console.error("Failed to delete diary: ", e));
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      getDiaryById(diaryId).then((diary) => {
+        if (active && diary) setDiaryRow(diary);
+      });
+      return () => {
+        active = false;
+      };
+    }, [diaryId]),
+  );
+
+  const handleAddEntry = (date?: Date) => {
+    router.push({
+      pathname: `/(app)/diary/[id]/new-entry`,
+      params: date ? { id: diaryId, date: toDateKey(date) } : { id: diaryId },
+    });
   };
 
+  const handleDeleteEntry = async (entryId: number) => {
+    await deleteEntryWithMedia(entryId);
+    refresh();
+  };
+
+  // No SafeAreaView here: EntriesList handles the top inset itself and the
+  // list scrolls to the bottom edge. Wrapping both caused doubled insets.
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <View
+      style={styles.screen}
+      onLayout={() =>
+        requestAnimationFrame(() => requestAnimationFrame(reportReady))
+      }
+    >
       <Stack.Screen options={{ animation: "none" }} />
-      <View style={styles.screen}>
-        {isSyncing && (
-          <View
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 6,
-              paddingVertical: 6,
-              backgroundColor: colors.card,
-              borderBottomWidth: StyleSheet.hairlineWidth,
-              borderBottomColor: colors.border,
-            }}
+      <View style={styles.topBar}>
+        {handleClose && (
+          <TouchableOpacity
+            style={[styles.iconButton, closing && styles.hidden]}
+            onPress={handleClose}
+            accessibilityRole="button"
+            accessibilityLabel="Close diary"
+            hitSlop={12}
           >
-            <ActivityIndicator size='small' color={colors.accent} />
-            <Text style={{ fontSize: fontSizes.xs, fontFamily: fonts.label, color: colors.textMuted }}>
-              Syncing...
-            </Text>
-          </View>
+            <Ionicons name="close" size={20} color={colors.text} />
+          </TouchableOpacity>
         )}
-        <FlatList
-          data={diaries}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-          ListHeaderComponent={
-            <>
-          <GreetingHeader name={firstName} photoUri={session?.photoUri} onAvatarPress={() => setIsSettingsOpen(true)} />
-            <PendingInvitesBanner onJoined={refresh} />
-            </>
-        }
-          ListEmptyComponent={
-            <View style={styles.emptyList}>
-              <Image source = {EmptyArt} style = {{width:220, height:220}}/>
-              <Text style={styles.noDiaryText}>No Diaries Yet.</Text>
-              <Text style={{ color: colors.textMuted }}>
-                Join or create a new one.
-              </Text>
-            </View>
-          }
-          renderItem={({ item, index: cardIndex }) => (
-            <Tooltip
-              isVisible={
-                !onboarding.loading &&
-                onboarding.isFirstTime &&
-                onboarding.progress.step === 1 &&
-                onboarding.progress.diaryId === item.id
-              }
-              closeOnChildInteraction={false}
+        <View style={styles.titleContainer}>
+          <View style={[styles.titleRow, closing && styles.hidden]}>
+            <View style={styles.diaryDot} />
+            <Text style={styles.diaryHeading} numberOfLines={1}>
+              {diaryRow?.name}
+            </Text>
+            {diaryMembers.size == 1 && (
+              <Ionicons name="lock-closed-outline" size={16} />
+            )}
+          </View>
+          <View style={styles.subtitleRow}>
+            <Text style={styles.entryCountSubtitle}>
+              {entries.length} {pluralize(entries.length, "entry", "entries")}
+            </Text>
+            {isSyncing && (
+              <View style={styles.syncInline}>
+                <ActivityIndicator size="small" color={diaryAccent} />
+                <Text style={styles.syncInlineText}>Syncing</Text>
+              </View>
+            )}
+          </View>
+        </View>
+        <Tooltip
+              useReactNativeModal
+              allowChildInteraction = {true}
+              closeOnChildInteraction = {false}
               closeOnBackgroundInteraction
               closeOnContentInteraction={false}
+              isVisible={
+                !onboarding.loading &&
+                isOnboardingDiary &&
+                onboarding.progress.step === 3
+              }
               content = {
                 <OnBoarding
-                  index2 = {1}
+                  index2 = {3}
                   onSkip={skipOnboarding}
                 />
               }
               contentStyle = {{ padding: 0, backgroundColor: "transparent",overflow: "visible"}}
-              placement = "bottom"
+              placement = {"top"}
               onClose={skipOnboarding}
-            >
-              <DiaryCard
-                diary={item}
-                isFirst={cardIndex === 0}
-                onPress={async (origin) => {
-                  if (
-                    onboarding.isFirstTime &&
-                    onboarding.progress.step === 1 &&
-                    onboarding.progress.diaryId === item.id
-                  ) {
-                    try {
-                      await onboarding.setStep(2, item.id);
-                    } catch (error) {
-                      console.error("Failed to advance onboarding:", error);
-                      dialog.alert(
-                        "Couldn't save progress",
-                        "Please try opening the diary again.",
-                      );
-                      return;
-                    }
-                  }
-                  open(item, origin);
-                }}
-                onDelete={handleDeleteDiary}
-              />
-            </Tooltip>
-          )}
-        />
-        <DiaryForm
-          isOpen={showDiaryForm}
-          onClose={() => setShowDiaryForm(false)}
-          onSubmit={handleAddDiary}
-        />
-        <SettingsModal
-          isOpen={isSettingsOpen}
-          onClose={() => setIsSettingsOpen(false)}
-          userEmail={email}
-        />
-        <Tooltip
-          isVisible={
-            !onboarding.loading &&
-            onboarding.isFirstTime &&
-            onboarding.progress.step === 0
-          }
-          closeOnChildInteraction={false}
-          closeOnBackgroundInteraction
-          closeOnContentInteraction={false}
-          content = {
-            <OnBoarding
-              index2 = {0}
-              onSkip={skipOnboarding}
-            />
-          }
-          contentStyle = {{ padding: 0, backgroundColor: "transparent",overflow: "visible"}}
-          placement = "bottom"
-          onClose={skipOnboarding}
+      >
+        <TouchableOpacity
+          style={[styles.iconButton, styles.membersButton]}
+          onPress={() => setShowMembers(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Diary members"
+          hitSlop={12}
         >
-        <FloatingActionButton
-          onPress={() => {
-            setShowDiaryForm(true);
-          }}
-        />
-        </Tooltip>
+          <Ionicons name="people" size={18} color={"blue"} />
+        </TouchableOpacity>
+      </Tooltip>
       </View>
-    </SafeAreaView>
+      <EntriesList
+        entries={entries}
+        media={media}
+        closing={closing}
+        onClose={handleClose}
+        diaryName={diaryRow?.name}
+        diaryColor={diaryRow?.color}
+        onOpenMembers={() => setShowMembers(true)}
+        onNewEntry={handleAddEntry}
+        onSelectEntry={(entry) => {
+          router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
+        }}
+        onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
+      />
+      <View
+        pointerEvents="box-none"
+        style={[StyleSheet.absoluteFill, { bottom: insets.bottom }]}
+      >
+      <Tooltip
+              useReactNativeModal
+              allowChildInteraction = {true}
+              closeOnChildInteraction={false}
+              closeOnBackgroundInteraction
+              closeOnContentInteraction={false}
+              isVisible={
+                !onboarding.loading &&
+                isOnboardingDiary &&
+                onboarding.progress.step === 2
+              }
+              parentWrapperStyle={{
+                position: "absolute",
+                right: 24,
+                bottom: 30,
+                width: 54,
+                height: 54,
+              }}
+              content = {
+                <OnBoarding
+                  index2 = {2}
+                  onSkip={skipOnboarding}
+                />
+              }
+              contentStyle = {{ padding: 0, backgroundColor: "transparent",overflow: "visible"}}
+              placement = {"top"}
+              onClose={skipOnboarding}
+      >
+      <FloatingActionButton
+        onPress={() => handleAddEntry()}
+        positioned={false}
+      />
+      </Tooltip>
+      </View>
+      <DiaryMembersModal
+        visible={showMembers}
+        onClose={() => setShowMembers(false)}
+        diary={diaryRow}
+        onInviteSent={skipOnboarding}
+      />
+    </View>
   );
 }
 
-const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
+const getStyles = (
+  colors: ReturnType<typeof useTheme>["colors"],
+  diaryAccent: string,
+  topInset: number,
+) =>
   StyleSheet.create({
-    screen: { flex: 1 },
-    listContent: {
-      paddingHorizontal: STACK_SIDE_PADDING,
-      paddingBottom: 96,
-    },
-    emptyList: {
+    screen: { flex: 1, backgroundColor: colors.background },
+    topBar: {
+      flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: 24,
-      paddingVertical: spacing.xl,
+      paddingHorizontal: 20,
+      paddingTop: topInset + 10,
+      paddingBottom: 12,
+      backgroundColor: colors.surface,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      gap: 12,
     },
-    noDiaryText: {
-      fontSize: fontSizes.xl,
-      fontWeight: "600",
-      fontFamily: fonts.label,
+    iconButton: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    membersButton: {
+      borderColor: diaryAccent,
+    },
+    titleContainer: {
+      flex: 1,
+    },
+    titleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+    },
+    diaryDot: {
+      width: 10,
+      height: 10,
+      borderRadius: 5,
+      backgroundColor: diaryAccent,
+    },
+    diaryHeading: {
+      fontFamily: fonts.heading,
+      fontSize: fontSizes.lg,
+      fontWeight: "700",
       color: colors.text,
+      flexShrink: 1,
+    },
+    subtitleRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginTop: 2,
+    },
+    entryCountSubtitle: {
+      fontSize: fontSizes.xs,
+      fontFamily: fonts.body,
+      color: colors.textMuted,
+    },
+    syncInline: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+    },
+    syncInlineText: {
+      fontSize: 11,
+      fontFamily: fonts.label,
+      fontWeight: "700",
+      color: diaryAccent,
+    },
+    calendarWrap: {
+      marginVertical: 10,
+    },
+    hidden: {
+      opacity: 0,
     },
   });
-  
