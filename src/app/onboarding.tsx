@@ -14,11 +14,10 @@ import Animated, {
   withRepeat, 
 } from "react-native-reanimated";
 type props = {
-    position?:[number, number]; 
     index2: number;
     userid: string; 
 }
-export default function Onboarding({position = [100,50], index2, userid}:props) { // top n left
+export default function Onboarding({index2, userid}:props) { 
     const saveScale = useSharedValue(1);
     const saveStyle = useAnimatedStyle(() => ({
         transform: [{ scale: saveScale.value }],
@@ -80,8 +79,6 @@ export default function Onboarding({position = [100,50], index2, userid}:props) 
         width: 300,
         height: 100,
         position: "absolute", 
-        left: position[0],
-        top: position[1],
         paddingHorizontal: spacing.lg,
         paddingTop: spacing.xs,
         paddingBottom: spacing.xs,
@@ -98,7 +95,7 @@ export default function Onboarding({position = [100,50], index2, userid}:props) 
         marginBottom: spacing.xs,
     },
     subtitle: {
-        color: colors.colors.textMuted,
+        color: colors.colors.text,
         fontSize: fontSizes.sm,
         fontFamily: fonts.body,
         lineHeight: 20,

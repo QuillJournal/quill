@@ -84,7 +84,7 @@ export default function Editor({
   onSave,
   onBack,
 }: EditorProps) {
-  const [background, setBackground] = useState(require("@/assets/images/empty.png")); 
+  const [background, setBackground] = useState(require("@/assets/images/onboarding.png")); 
   const saveScale = useSharedValue(1);
   const saveStyle = useAnimatedStyle(() => ({
     transform: [{ scale: saveScale.value }],
@@ -342,19 +342,19 @@ export default function Editor({
                   onBgChange = {(newMood:MoodKey) => {
                     switch(newMood){
                       case "angry":
-                        setBackground(require("@/assets/images/mood-backgrounds/angry.webp"))
+                        setBackground(require("@/assets/images/mood-backgrounds/angry.jpg"))
                         break;
                       case "anxious":
                         setBackground(require("@/assets/images/mood-backgrounds/anxious.jpg"))
                         break;
                       case "awesome":
-                        setBackground(require("@/assets/images/mood-backgrounds/awesome.webp"))
+                        setBackground(require("@/assets/images/mood-backgrounds/awesome.jpg"))
                         break;
                       case "calm":
                         setBackground(require("@/assets/images/mood-backgrounds/calm.jpg"))
                         break;
                       case "happy":
-                        setBackground(require("@/assets/images/mood-backgrounds/happy.webp"))
+                        setBackground(require("@/assets/images/mood-backgrounds/happy.jpg"))
                         break;
                       case "meh":
                         setBackground(require("@/assets/images/mood-backgrounds/meh.jpg"))
@@ -363,7 +363,7 @@ export default function Editor({
                         setBackground(require("@/assets/images/mood-backgrounds/sad.jpg"))
                         break;
                       default:
-                        setBackground(require("@/assets/images/empty.png"))
+                        setBackground(require("@/assets/images/onboarding.png"))
                     }
                   }}/>
                   <Text style={styles.moodChipText}>{MOODS[mood].label}</Text>

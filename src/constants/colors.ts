@@ -42,7 +42,7 @@ const primitives = {
 export const colors = {
   light: {
     background: primitives.cream,
-    backgroundopacity:"#fff9f081",
+    backgroundopacity:"#fff9f04e",
     surface: primitives.snow,
     card: primitives.cardLight,
     cardPressed: "#FFF1DE",
@@ -62,7 +62,7 @@ export const colors = {
   },
   dark: {
     background: primitives.plumDeep,
-    backgroundopacity: "#17132a76",
+    backgroundopacity: "#17132a42",
     surface: primitives.plumSurface,
     card: primitives.plumCard,
     cardPressed: primitives.plumPressed,

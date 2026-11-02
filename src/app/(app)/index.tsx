@@ -23,6 +23,7 @@ import { useState , useEffect } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, View, Dimensions, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { supabase } from "@/src/utils/supabase";
+import Tooltip from "react-native-walkthrough-tooltip"
 
 export default function Home() {
   const { colors } = useTheme();
@@ -65,7 +66,7 @@ export default function Home() {
 
   const [index, setIndex] = useState(0);  
   const height2:number = Dimensions.get("window").height;
-  const [position, setPosition] = useState<[number,number]>([0, height2-250])
+  const [show, setShow] = useState(0)
   const handleAddDiary = (data: DiaryFormData) => {
     const name = data.name.trim();
     if (!name) return;
@@ -74,7 +75,7 @@ export default function Home() {
     );
     setShowDiaryForm(false);
     setIndex(1)
-    setPosition([0, height2/2-250])
+    setShow(1)
   };
 
   const handleDeleteDiary = async (id: number) => {
@@ -138,39 +139,6 @@ export default function Home() {
             </Text>
           </View>
         )}
-        <FlatList
-          data={diaries}
-          keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={styles.listContent}
-          ListHeaderComponent={
-            <>
-          <GreetingHeader name={firstName} photoUri={session?.photoUri} onAvatarPress={() => setIsSettingsOpen(true)} />
-            <PendingInvitesBanner onJoined={refresh} />
-            </>
-        }
-          ListEmptyComponent={
-            <View style={styles.emptyList}>
-              <Image source = {EmptyArt} style = {{width:220, height:220}}/>
-              <Text style={styles.noDiaryText}>No Diaries Yet.</Text>
-              <Text style={{ color: colors.textMuted }}>
-                Join or create a new one.
-              </Text>
-            </View>
-          }
-          renderItem={({ item, index }) => (
-            <DiaryCard
-              diary={item}
-              isFirst={index === 0}
-              onPress={(origin) => open(item, origin)}
-              onDelete={handleDeleteDiary}
-            />
-          )}
-        />
-        <DiaryForm
-          isOpen={showDiaryForm}
-          onClose={() => setShowDiaryForm(false)}
-          onSubmit={handleAddDiary}
-        />
         <SettingsModal
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
@@ -181,12 +149,56 @@ export default function Home() {
             setShowDiaryForm(true);
           }}
         />
-        {first && session?.userId != null && (
-          <OnBoarding 
-            position = {position}
-            index2 = {index}
-            userid = {session.userId}
-          /> )}
+        {first && session?.userId != null &&(
+          <Tooltip
+              content = {
+                <OnBoarding 
+                  index2 = {index}
+                  userid = {session.userId}
+                />
+              } 
+              placement = "left"
+          >
+            {show === 0 && (
+              <DiaryForm
+                isOpen={showDiaryForm}
+                onClose={() => setShowDiaryForm(false)}
+                onSubmit={handleAddDiary}
+              />
+            )}
+            {show === 1 && (
+              <FlatList
+                data={diaries}
+                keyExtractor={(item) => item.id.toString()}
+                contentContainerStyle={styles.listContent}
+                ListHeaderComponent={
+                    <>
+                      <GreetingHeader name={firstName} photoUri={session?.photoUri} onAvatarPress={() => setIsSettingsOpen(true)} />
+                      <PendingInvitesBanner onJoined={refresh} />
+                    </>
+                }
+                ListEmptyComponent={
+                  <View style={styles.emptyList}>
+                    <Image source = {EmptyArt} style = {{width:220, height:220}}/>
+                    <Text style={styles.noDiaryText}>No Diaries Yet.</Text>
+                    <Text style={{ color: colors.textMuted }}>
+                      Join or create a new one.
+                    </Text>
+                  </View>
+                }
+                renderItem={({ item, index }) => (
+                  <DiaryCard
+                    diary={item}
+                    isFirst={index === 0}
+                    onPress={(origin) => open(item, origin)}
+                    onDelete={handleDeleteDiary}
+              />
+          )}
+        />
+            )}
+
+          </Tooltip>
+        )}
       </View>
     </SafeAreaView>
   );
