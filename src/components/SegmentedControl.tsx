@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Platform,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -30,10 +24,10 @@ export default function SegmentedControl<T extends string>({
   onSelect,
 }: SegmentedControlProps<T>) {
   const { colors } = useTheme();
-  const [containerWidth, setContainerWidth] = useState(0);
-  const highlightPillWidth = Math.max(
+  const [containerHeight, setContainerHeight] = useState(0);
+  const highlightPillHeight = Math.max(
     0,
-    (containerWidth - 2 - spacing.xs * 2) / options.length,
+    (containerHeight - 2 - spacing.xs * 2) / options.length,
   );
   const progress = useSharedValue(0);
   const selectedIndex = Math.max(
@@ -51,14 +45,16 @@ export default function SegmentedControl<T extends string>({
   }, [selectedValue]);
 
   const animatedStyle = useAnimatedStyle(() => {
-    return { transform: [{ translateX: progress.value * highlightPillWidth }] };
+    return {
+      transform: [{ translateY: progress.value * highlightPillHeight }],
+    };
   });
 
   const highlightPill = (
     <Animated.View
       style={[
         {
-          width: highlightPillWidth,
+          height: highlightPillHeight,
           backgroundColor: colors.accentContainer,
           margin: 2,
           borderRadius: radius.md,
@@ -90,7 +86,7 @@ export default function SegmentedControl<T extends string>({
 
   return (
     <View
-    onLayout={(e) => setContainerWidth(e.nativeEvent.layout.width)}
+      onLayout={(e) => setContainerHeight(e.nativeEvent.layout.height)}
       style={[
         styles.container,
         {
@@ -101,8 +97,10 @@ export default function SegmentedControl<T extends string>({
     >
       {highlightPill}
       {options.map((o, index) => {
-        const color = 
-        o.value === selectedValue ? colors.onAccentContainer : colors.textMuted;
+        const color =
+          o.value === selectedValue
+            ? colors.onAccentContainer
+            : colors.textMuted;
 
         return (
           <Pressable
@@ -110,7 +108,11 @@ export default function SegmentedControl<T extends string>({
             onPress={() => handlePress(o.value)}
             style={[styles.segment]}
           >
-            <Text style={{ color, fontFamily: fonts.label, fontSize: fontSizes.sm }}>{o.label}</Text>
+            <Text
+              style={{ color, fontFamily: fonts.label, fontSize: fontSizes.sm }}
+            >
+              {o.label}
+            </Text>
           </Pressable>
         );
       })}
@@ -120,12 +122,15 @@ export default function SegmentedControl<T extends string>({
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
     borderRadius: radius.md,
-    marginHorizontal: spacing.md,
     marginVertical: spacing.sm,
     padding: spacing.xs,
     borderWidth: 1,
+    position: "absolute",
+    top: "75%",
+    zIndex: 100,
+    left: 0,
+    right: 0,
   },
   segment: {
     flex: 1,
