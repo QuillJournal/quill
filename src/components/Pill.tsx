@@ -1,5 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Animated, Pressable, StyleSheet, Text } from "react-native";
+import {
+  Animated,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  ViewStyle,
+} from "react-native";
 import { radius } from "../constants/radius";
 import { spacing } from "../constants/spacings";
 import usePressAnimation from "../hooks/usePressAnimation";
@@ -12,7 +19,7 @@ type PillProps = {
   onPress?: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
-  style: React.CSSProperties;
+  style: StyleProp<ViewStyle>;
   children?: React.ReactNode;
 };
 

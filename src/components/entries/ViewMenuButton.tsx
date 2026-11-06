@@ -1,17 +1,24 @@
 import useTheme from "@/src/hooks/useTheme";
+import { ViewType } from "@/src/types/diary";
 import { Ionicons } from "@expo/vector-icons";
 import { View } from "react-native";
 import Pill from "../Pill";
 import SegmentedControl from "../SegmentedControl";
 
-const option = [{ label: "List", value: "list" }];
+type ViewMenuButtonProps = {
+  diaryAccent: string;
+  showSwitcher: boolean;
+  onPillPress: () => void;
+  selectedView: ViewType;
+  onSelectView: (view: ViewType) => void;
+};
 export default function ViewMenuButton({
   diaryAccent,
   showSwitcher,
   onPillPress,
   selectedView,
   onSelectView,
-}) {
+}: ViewMenuButtonProps) {
   const { colors } = useTheme();
   const VIEW_OPTIONS = [
     { label: "Feed", value: "feed", icon: "albums-outline" },

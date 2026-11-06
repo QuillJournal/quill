@@ -89,7 +89,7 @@ export default function DiaryScreen() {
   const [selectedView, setSelectedView] = useState<ViewType>("list");
   const [showSwitcher, setShowSwitcher] = useState(false);
 
-  const handleSelectView = (view) => {
+  const handleSelectView = (view: ViewType) => {
     setSelectedView(view);
   };
 
