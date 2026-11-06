@@ -88,6 +88,11 @@ export default function DiaryScreen() {
 
   const [selectedView, setSelectedView] = useState<ViewType>("list");
   const [showSwitcher, setShowSwitcher] = useState(false);
+
+  const handleSelectView = (view) => {
+    setSelectedView(view);
+  };
+
   useEffect(() => {
     if (!Number.isInteger(diaryId) || !openDiary(diaryId)) closeDiary();
   }, [diaryId, closeDiary]);
@@ -164,6 +169,8 @@ export default function DiaryScreen() {
           diaryAccent={diaryAccent}
           showSwitcher={showSwitcher}
           onPillPress={() => setShowSwitcher((prev) => !prev)}
+          selectedView={selectedView}
+          onSelectView={handleSelectView}
         />
         <Tooltip
           useReactNativeModal

@@ -12,6 +12,8 @@ type PillProps = {
   onPress?: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
+  style: React.CSSProperties;
+  children?: React.ReactNode;
 };
 
 export default function Pill({
@@ -21,6 +23,8 @@ export default function Pill({
   onPress,
   icon,
   iconColor,
+  style,
+  children,
 }: PillProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
@@ -37,7 +41,7 @@ export default function Pill({
       hitSlop={10}
     >
       <Animated.View
-        style={[styles.container, { backgroundColor: animatedColor }]}
+        style={[styles.container, { backgroundColor: animatedColor }, style]}
       >
         {icon && (
           <Ionicons
@@ -47,6 +51,7 @@ export default function Pill({
           />
         )}
         <Text style={styles.text}>{text}</Text>
+        {children}
       </Animated.View>
     </Pressable>
   );

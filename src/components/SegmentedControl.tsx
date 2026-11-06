@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, {
@@ -12,7 +13,12 @@ import useTheme from "../hooks/useTheme";
 import { select } from "../services/hapticPatterns";
 import { playEvents as play } from "../services/haptics";
 
-type Option<T extends string> = { label: string; value: T };
+type Option<T extends string> = {
+  label: string;
+  value: T;
+  icon?: keyof typeof Ionicons.glyphMap;
+};
+
 type SegmentedControlProps<T extends string> = {
   options: readonly Option<T>[];
   selectedValue: T;
@@ -59,8 +65,9 @@ export default function SegmentedControl<T extends string>({
           margin: 2,
           borderRadius: radius.md,
           position: "absolute",
-          top: 0,
-          bottom: 0,
+
+          left: 0,
+          right: 0,
           ...Platform.select({
             ios: {
               shadowColor: "#000",
@@ -73,7 +80,6 @@ export default function SegmentedControl<T extends string>({
             },
           }),
         },
-
         animatedStyle,
       ]}
     ></Animated.View>
@@ -108,6 +114,7 @@ export default function SegmentedControl<T extends string>({
             onPress={() => handlePress(o.value)}
             style={[styles.segment]}
           >
+            <Ionicons name={o.icon} size={16} />
             <Text
               style={{ color, fontFamily: fonts.label, fontSize: fontSizes.sm }}
             >
@@ -131,12 +138,17 @@ const styles = StyleSheet.create({
     zIndex: 100,
     left: 0,
     right: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    boxShadow: "0px 0px 10px 2px rgba(0, 0, 0, 0.15)",
   },
   segment: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "flex-start",
     paddingVertical: spacing.xs + 2,
     borderRadius: radius.md,
+    flexDirection: "row",
+    gap: 5,
   },
 });
