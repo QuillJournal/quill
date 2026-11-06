@@ -1,17 +1,18 @@
 // REDIRECTED PAGE 
-import React, {useState, useEffect} from "react"
 import EmptyArt from "@/assets/images/empty.png";
 import useTheme from "@/src/hooks/useTheme";
-import Confetti from "react-confetti"
-import {
-    Text, 
-    Image, 
-    View, 
-    Dimensions
-} from "react-native"
 import { supabase } from "@/src/utils/supabase";
+import { useEffect, useState } from "react";
+import {
+    Dimensions,
+    Image,
+    Text,
+    View
+} from "react-native";
+import ConfettiCannon from "react-native-confetti-cannon";
+import { diaryColors } from "../constants/colors";
 export default function LoginCallBack(){ 
-    const {colors} = useTheme()
+    const {colors, isDark} = useTheme()
     const height:number = Dimensions.get("window").height;
     const width:number = Dimensions.get("window").width;
     const [verified, setVerified] = useState(false); 
@@ -34,12 +35,13 @@ export default function LoginCallBack(){
     }, []);
     return(
         <View> 
-            <Confetti
-                width = {width} 
-                height = {height}
-                numberOfPieces = {300}
-                gravity = {9.81}
-                colors = {["#FF0000","#1b2db1","#1ebc1e","#e1dd08","#ff9100","#d68686","#c015cc","#fb52e4"]}
+            <ConfettiCannon
+            count={150}
+            origin={{ x: width / 2, y: -20 }}
+            fallSpeed={3000}
+            fadeOut
+            autoStart
+            colors={Object.values(diaryColors).map((c) => (isDark ? c.dark : c.light))}
             />
             <Text>{verified? "You've already verified this account!": "Your account has been verified!"}</Text>
             <Image source = {EmptyArt} style = {{width:220, height:220}}/>
