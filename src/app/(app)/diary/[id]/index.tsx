@@ -1,5 +1,6 @@
-import OnBoarding from "../../../../app/onboarding"
+import { dialog } from "@/src/components/Dialog/DialogProvider";
 import DiaryMembersModal from "@/src/components/DiaryMembersModal";
+import ViewMenuButton from "@/src/components/entries/ViewMenuButton";
 import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import { resolveDiaryColor } from "@/src/constants/colors";
@@ -16,10 +17,10 @@ import { deleteEntryWithMedia } from "@/src/services/attachments";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { Attachment } from "@/src/types/attachment";
 import type { DiaryRow } from "@/src/types/diary";
+import { ViewType } from "@/src/types/diary";
 import { toDateKey } from "@/src/utils/dates";
 import { pluralize } from "@/src/utils/pluralize";
 import { Ionicons } from "@expo/vector-icons";
-import Tooltip from "react-native-walkthrough-tooltip"
 import {
   Stack,
   useFocusEffect,
@@ -36,7 +37,8 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { dialog } from "@/src/components/Dialog/DialogProvider";
+import Tooltip from "react-native-walkthrough-tooltip";
+import OnBoarding from "../../../../app/onboarding";
 
 export default function DiaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -83,6 +85,13 @@ export default function DiaryScreen() {
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const diaryAccent = resolveDiaryColor(diaryRow?.color ?? "white", scheme);
   const styles = getStyles(colors, diaryAccent, insets.top);
+
+  const [selectedView, setSelectedView] = useState<ViewType>("list");
+  const [showSwitcher, setShowSwitcher] = useState(false);
+
+  const handleSelectView = (view: ViewType) => {
+    setSelectedView(view);
+  };
 
   useEffect(() => {
     if (!Number.isInteger(diaryId) || !openDiary(diaryId)) closeDiary();
@@ -156,38 +165,45 @@ export default function DiaryScreen() {
             )}
           </View>
         </View>
+        <ViewMenuButton
+          diaryAccent={diaryAccent}
+          showSwitcher={showSwitcher}
+          onPillPress={() => setShowSwitcher((prev) => !prev)}
+          selectedView={selectedView}
+          onSelectView={handleSelectView}
+        />
         <Tooltip
-              useReactNativeModal
-              allowChildInteraction = {true}
-              closeOnChildInteraction = {false}
-              closeOnBackgroundInteraction
-              closeOnContentInteraction={false}
-              isVisible={
-                !onboarding.loading &&
-                isOnboardingDiary &&
-                onboarding.progress.step === 3
-              }
-              content = {
-                <OnBoarding
-                  index2 = {3}
-                  onSkip={skipOnboarding}
-                />
-              }
-              contentStyle = {{ padding: 0, backgroundColor: "transparent",overflow: "visible"}}
-              placement = {"top"}
-              onClose={skipOnboarding}
-      >
-        <TouchableOpacity
-          style={[styles.iconButton, styles.membersButton]}
-          onPress={() => setShowMembers(true)}
-          accessibilityRole="button"
-          accessibilityLabel="Diary members"
-          hitSlop={12}
+          useReactNativeModal
+          allowChildInteraction={true}
+          closeOnChildInteraction={false}
+          closeOnBackgroundInteraction
+          closeOnContentInteraction={false}
+          isVisible={
+            !onboarding.loading &&
+            isOnboardingDiary &&
+            onboarding.progress.step === 3
+          }
+          content={<OnBoarding index2={3} onSkip={skipOnboarding} />}
+          contentStyle={{
+            padding: 0,
+            backgroundColor: "transparent",
+            overflow: "visible",
+          }}
+          placement={"top"}
+          onClose={skipOnboarding}
         >
-          <Ionicons name="people" size={18} color={"blue"} />
-        </TouchableOpacity>
-      </Tooltip>
+          <TouchableOpacity
+            style={[styles.iconButton, styles.membersButton]}
+            onPress={() => setShowMembers(true)}
+            accessibilityRole="button"
+            accessibilityLabel="Diary members"
+            hitSlop={12}
+          >
+            <Ionicons name="people" size={18} color={"blue"} />
+          </TouchableOpacity>
+        </Tooltip>
       </View>
+
       <EntriesList
         entries={entries}
         media={media}
@@ -201,44 +217,44 @@ export default function DiaryScreen() {
           router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
         }}
         onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
+        selectedView={selectedView}
       />
       <View
         pointerEvents="box-none"
         style={[StyleSheet.absoluteFill, { bottom: insets.bottom }]}
       >
-      <Tooltip
-              useReactNativeModal
-              allowChildInteraction = {true}
-              closeOnChildInteraction={false}
-              closeOnBackgroundInteraction
-              closeOnContentInteraction={false}
-              isVisible={
-                !onboarding.loading &&
-                isOnboardingDiary &&
-                onboarding.progress.step === 2
-              }
-              parentWrapperStyle={{
-                position: "absolute",
-                right: 24,
-                bottom: 30,
-                width: 54,
-                height: 54,
-              }}
-              content = {
-                <OnBoarding
-                  index2 = {2}
-                  onSkip={skipOnboarding}
-                />
-              }
-              contentStyle = {{ padding: 0, backgroundColor: "transparent",overflow: "visible"}}
-              placement = {"top"}
-              onClose={skipOnboarding}
-      >
-      <FloatingActionButton
-        onPress={() => handleAddEntry()}
-        positioned={false}
-      />
-      </Tooltip>
+        <Tooltip
+          useReactNativeModal
+          allowChildInteraction={true}
+          closeOnChildInteraction={false}
+          closeOnBackgroundInteraction
+          closeOnContentInteraction={false}
+          isVisible={
+            !onboarding.loading &&
+            isOnboardingDiary &&
+            onboarding.progress.step === 2
+          }
+          parentWrapperStyle={{
+            position: "absolute",
+            right: 24,
+            bottom: 30,
+            width: 54,
+            height: 54,
+          }}
+          content={<OnBoarding index2={2} onSkip={skipOnboarding} />}
+          contentStyle={{
+            padding: 0,
+            backgroundColor: "transparent",
+            overflow: "visible",
+          }}
+          placement={"top"}
+          onClose={skipOnboarding}
+        >
+          <FloatingActionButton
+            onPress={() => handleAddEntry()}
+            positioned={false}
+          />
+        </Tooltip>
       </View>
       <DiaryMembersModal
         visible={showMembers}
@@ -267,6 +283,7 @@ const getStyles = (
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       gap: 12,
+      marginBottom: 10,
     },
     iconButton: {
       width: 36,
