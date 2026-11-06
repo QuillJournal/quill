@@ -37,7 +37,10 @@ export default function Pill({
   const styles = getStyles(colors);
   const fromColor = selected ? colors.cardPressed : colors.surface;
   const toColor = selected ? colors.surface : colors.cardPressed;
-  const { animatePress, animatedColor } = usePressAnimation(fromColor, toColor);
+  const { animatePress, animatedColor } = usePressAnimation(
+    colors.surface,
+    colors.cardPressed,
+  );
 
   return (
     <Pressable
@@ -48,7 +51,13 @@ export default function Pill({
       hitSlop={10}
     >
       <Animated.View
-        style={[styles.container, { backgroundColor: animatedColor }, style]}
+        style={[
+          styles.container,
+          selected
+            ? { backgroundColor: colors.cardPressed }
+            : { backgroundColor: animatedColor },
+          style,
+        ]}
       >
         {icon && (
           <Ionicons
