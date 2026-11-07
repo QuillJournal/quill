@@ -6,13 +6,11 @@ import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
 import { useRouter } from "expo-router";
-import LottieView from "lottie-react-native";
 import type { FC } from "react";
 import { useEffect, useRef, useState } from "react";
 import {
     Animated,
     Dimensions,
-    Easing,
     FlatList,
     NativeScrollEvent,
     NativeSyntheticEvent,
@@ -24,65 +22,10 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SvgProps } from "react-native-svg";
 import Button from "../components/Button";
-import { trampoline, trampolineBeats } from "../services/hapticPatterns";
-import { playTimeline } from "../services/haptics";
+import HapticLottie from "../components/HapticLottie";
 const width:number = Dimensions.get("window").width;
 
 type Page = { photo?: FC<SvgProps>; lottie?: boolean; text: string; subtext: string };
-
-const LOTTIE_FILE = require("@/assets/images/orgasm.lottie");
-const LOTTIE_FPS = 30;
-const LOTTIE_FRAMES = 165;
-const LOOP_MS = (LOTTIE_FRAMES / LOTTIE_FPS) * 1000;
-
-const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
-
-function OrgasmLottie({ active, size }: { active: boolean; size: number }) {
-    const progress = useRef(new Animated.Value(0)).current;
-
-    useEffect(() => {
-        if (!active) {
-            progress.setValue(0);
-            return;
-        }
-
-        let stopped = false;
-        let anim: Animated.CompositeAnimation | null = null;
-        let stopHaptics = () => {};
-
-        const runLoop = () => {
-            if (stopped) return;
-            progress.setValue(0);
-            stopHaptics();
-            stopHaptics = playTimeline(trampoline, trampolineBeats);
-            anim = Animated.timing(progress, {
-                toValue: 1,
-                duration: LOOP_MS,
-                easing: Easing.linear,
-                useNativeDriver: false,
-            });
-            anim.start(({ finished }) => {
-                if (finished) runLoop();
-            });
-        };
-        runLoop();
-
-        return () => {
-            stopped = true;
-            anim?.stop();
-            stopHaptics();
-            progress.setValue(0);
-        };
-    }, [active, progress]);
-
-    return (
-        <AnimatedLottieView
-        source={LOTTIE_FILE}
-        progress={progress}
-        style={{ width: size, height: size }}
-        />
-    );
-}
 
 export default function Intro(){
     const activeRef = useRef<FlatList>(null)
@@ -116,7 +59,7 @@ export default function Intro(){
             <View style = {styles.card}> 
             <View style={styles.artWrap}>
                     {item.lottie
-                    ? <OrgasmLottie active={page === pages.length - 1} size={width * 0.5} />
+                    ? <HapticLottie active={page === pages.length - 1} size={width * 0.5} />
                     : item.photo && <item.photo width={width * 0.5} height={width * 0.5} />}
                     </View>
                     <Text style={styles.text}>{item.text}</Text>

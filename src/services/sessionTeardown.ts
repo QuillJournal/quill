@@ -1,18 +1,24 @@
+import { UserSessionData } from "../context/UserSessionContext";
 import { signOut } from "../utils/auth";
 import { supabase } from "../utils/supabase";
 import { resetAppLock } from "./appLock";
 import { clearKeyPins } from "./keyPins";
 import { wipeLocalData } from "./localWipe";
 import { clearDerivedKey } from "./storage/secureKeyStore";
-import { waitForSyncIdle } from "./syncEngine";
+import { runSync, waitForSyncIdle } from "./syncEngine";
 
 export async function endLocalSession(
   clearSession: () => void,
-  opts: { accountDeleted?: boolean; flush?: () => Promise<void> } = {},
+  opts: { accountDeleted?: boolean; session?: UserSessionData | null } = {},
 ): Promise<void> {
-  if (!opts.accountDeleted && opts.flush) {
+  const s = opts.session;
+  if (!opts.accountDeleted && s?.kemKeys && s?.signKeys) {
     await waitForSyncIdle();
-    await opts.flush().catch(() => {});
+    await runSync({
+      userId: s.userId,
+      kemKeys: s.kemKeys,
+      signKeys: s.signKeys,
+    }).catch(() => {});
     await waitForSyncIdle();
   }
   clearSession();

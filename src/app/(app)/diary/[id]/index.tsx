@@ -15,6 +15,7 @@ import useEntries from "@/src/hooks/useEntries";
 import useOnboarding from "@/src/hooks/useOnboarding";
 import useTheme from "@/src/hooks/useTheme";
 import { deleteEntryWithMedia } from "@/src/services/attachments";
+import { haptic } from "@/src/services/haptics";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { Attachment } from "@/src/types/attachment";
 import type { DiaryRow } from "@/src/types/diary";
@@ -28,7 +29,7 @@ import {
   useLocalSearchParams,
   useRouter,
 } from "expo-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -55,6 +56,7 @@ export default function DiaryScreen() {
   const onboarding = useOnboarding();
   const [diaryRow, setDiaryRow] = useState<DiaryRow>();
   const [showMembers, setShowMembers] = useState(false);
+  const warnedPrivate = useRef(false);
   const { close, closing, reportReady } = useDiaryTransition();
   const isSyncing = useSyncStatus();
   const [focused, setFocused] = useState(true);
@@ -168,7 +170,7 @@ export default function DiaryScreen() {
               {diaryRow?.name}
             </Text>
             {diaryMembers.size == 1 && (
-              <Ionicons name="lock-closed-outline" size={16} />
+              <Ionicons name="lock-closed-outline" size={16} color={colors.textMuted} />
             )}
           </View>
           <View style={styles.subtitleRow}>
@@ -196,10 +198,32 @@ export default function DiaryScreen() {
           nextLabel="Next"
         >
           <TouchableOpacity
-            style={[styles.iconButton, styles.membersButton]}
+            style={styles.membersButton}
             onPress={() => {
               if (isOnBoardingDiary && onboarding.progress.step === 2) {
                 nextOnboarding();
+                return;
+              }
+              if (
+                diaryMembers.size === 1 &&
+                entries.length > 0 &&
+                !warnedPrivate.current
+              ) {
+                haptic.press();
+                dialog.alert(
+                  "Private diary",
+                  "Just a friendly reminder: This is a private diary. Adding someone to it will allow them to view all past entries.",
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Continue",
+                      onPress: () => {
+                        warnedPrivate.current = true;
+                        setShowMembers(true);
+                      },
+                    },
+                  ],
+                );
                 return;
               }
               setShowMembers(true);
@@ -208,7 +232,10 @@ export default function DiaryScreen() {
             accessibilityLabel="Diary members"
             hitSlop={12}
           >
-            <Ionicons name="people" size={18} color={"blue"} />
+            <Ionicons name="people-outline" size={20} color={colors.textMuted} />
+            <Text style={styles.membersCount}>
+              {Math.max(diaryMembers.size, 1)}
+            </Text>
           </TouchableOpacity>
         </TutorialTooltip>
       </View>
@@ -305,7 +332,17 @@ const getStyles = (
       justifyContent: "center",
     },
     membersButton: {
-      borderColor: diaryAccent,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      paddingHorizontal: 6,
+      height: 36,
+    },
+    membersCount: {
+      fontSize: fontSizes.sm,
+      fontFamily: fonts.label,
+      fontWeight: "600",
+      color: colors.textMuted,
     },
     titleContainer: {
       flex: 1,

@@ -23,6 +23,7 @@ import {
   wrapDiaryKey,
 } from "../utils/crypto";
 import { supabase } from "../utils/supabase";
+import { deleteDiaryWithMedia } from "./attachments";
 import {
   applyRemoteManifest,
   buildManifest,
@@ -389,6 +390,13 @@ async function syncDiariesAndMembers(session: SyncSession) {
         keyEpoch: diary.key_epoch,
         syncState: "synced",
       });
+    }
+  }
+  const remoteIds = new Set(memberRows.map((r) => r.diary_id));
+  const locals = await db.select().from(diariesTable);
+  for (const d of locals) {
+    if (d.remoteId && d.syncState === "synced" && !remoteIds.has(d.remoteId)) {
+      await deleteDiaryWithMedia(d.id);
     }
   }
 }

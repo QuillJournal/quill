@@ -11,6 +11,7 @@ import {
   DiaryMemberInfo,
   fetchDiaryMembers,
   lookupUserForInvite,
+  removeDiaryMember,
   sendDiaryInvite,
   updateMyMemberBlob
 } from "@/src/services/sharing";
@@ -33,6 +34,7 @@ import {
   useColorScheme,
   View,
 } from "react-native";
+import { haptic } from "../services/haptics";
 
 interface DiaryMembersModalProps {
   visible: boolean;
@@ -87,6 +89,13 @@ export default function DiaryMembersModal({
 
   const handleToggleSharePhoto = async (nextVal: boolean) => {
     if (!diary?.remoteId || !session) return;
+    if (nextVal && !session.photoUri) {
+      dialog.alert(
+        "No profile photo",
+        "Set a profile photo in Settings first, then turn this on.",
+      );
+      return;
+    }
     setSharePhoto(nextVal);
     try {
       await updateMyMemberBlob(diary.remoteId, diary.keyEpoch, nextVal, session);
@@ -95,6 +104,30 @@ export default function DiaryMembersModal({
       setSharePhoto(!nextVal);
       dialog.alert("Update failed", e.message || "Could not update photo preference.");
     }
+  };
+
+  const handleRemoveMember = (m: DiaryMemberInfo) => {
+    haptic.warning();
+    if (!diary?.remoteId) return;
+    dialog.alert(
+      `Remove @${m.username}?`,
+      "They'll lose access to this diary and won't be able to access any new entries.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await removeDiaryMember(diary.remoteId!, m.userId);
+              await loadMembers();
+            } catch (e: any) {
+              dialog.alert("Remove failed", e.message || "Could not remove member.");
+            }
+          },
+        },
+      ],
+    );
   };
 
   const handleInvite = async () => {
@@ -326,9 +359,23 @@ export default function DiaryMembersModal({
                           </View>
                         )}
                       </View>
+                      <View style={styles.handleRow}>
                       <Text style={[styles.memberHandle, { color: colors.textMuted }]}>
                         @{item.username}
                       </Text>
+                      {isOwner && !isMe && item.role !== "owner" && (
+                        <TouchableOpacity
+                        onPress={() => handleRemoveMember(item)}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove @${item.username}`}
+                        >
+                          <Text style={[styles.removeLink, { color: colors.danger }]}>
+                            Remove
+                          </Text>
+                        </TouchableOpacity>
+                      )}
+                      </View>
                     </View>
 
                     {!isMe && (
@@ -531,6 +578,16 @@ const styles = StyleSheet.create({
     fontFamily: fonts.label,
     fontWeight: "700",
     letterSpacing: 0.5,
+  },
+  handleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  removeLink: {
+    fontSize: fontSizes.xs,
+    fontFamily: fonts.label,
+    fontWeight: "600",
   },
   memberHandle: {
     fontSize: fontSizes.xs,

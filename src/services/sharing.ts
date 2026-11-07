@@ -353,8 +353,23 @@ export async function declineDiaryInvite(inviteId: string): Promise<void> {
   if (error) throw new Error(error.message);
   await db.delete(diaryInvitesTable).where(eq(diaryInvitesTable.id, inviteId));
 }
+const membersIsInFlight = new Map<string, Promise<DiaryMemberInfo[]>>();
 
-export async function fetchDiaryMembers(
+export function fetchDiaryMembers(
+  diaryRemoteId: string,
+  keyEpoch: number,
+  session: UserSessionData,
+): Promise<DiaryMemberInfo[]> {
+  const running = membersIsInFlight.get(diaryRemoteId);
+  if (running) return running;
+  const p = fetchDiaryMembersRaw(diaryRemoteId, keyEpoch, session).finally(() =>
+    membersIsInFlight.delete(diaryRemoteId),
+  );
+  membersIsInFlight.set(diaryRemoteId, p);
+  return p;
+}
+
+async function fetchDiaryMembersRaw(
   diaryRemoteId: string,
   keyEpoch: number,
   session: UserSessionData,
@@ -493,11 +508,28 @@ export async function updateMyMemberBlob(
     sharePhoto,
   );
 
-  const { error } = await supabase
-    .from("diary_members")
-    .update({ member_blob: memberBlob })
-    .eq("diary_id", diaryRemoteId)
-    .eq("user_id", session.userId);
+  const { error } = await supabase.rpc("update_my_member_blob", {
+    p_diary_id: diaryRemoteId,
+    p_member_blob: memberBlob,
+  });
 
   if (error) throw new Error(error.message);
+}
+
+export async function removeDiaryMember(
+  diaryRemoteId: string,
+  userId: string,
+): Promise<void> {
+  const { error } = await supabase.rpc("remove_diary_member", {
+    p_diary_id: diaryRemoteId,
+    p_user_id: userId,
+  });
+  if (error) {
+    const msg = error.message ?? "";
+    if (msg.includes("not_owner"))
+      throw new Error("Only the diary owner can remove members.");
+    if (msg.includes("cannot_remove_owner"))
+      throw new Error("You can't remove yourself.");
+    throw new Error(msg);
+  }
 }
