@@ -55,6 +55,7 @@ interface SettingsModalProps {
   onClose: () => void;
   userEmail?: string;
   onLogoutSuccess?: () => void;
+  onRestartTutorial?: () => void;
 }
 
 export default function SettingsModal({
@@ -62,6 +63,7 @@ export default function SettingsModal({
   onClose,
   userEmail,
   onLogoutSuccess,
+  onRestartTutorial,
 }: SettingsModalProps) {
   const { colors, fonts, fontSizes } = useTheme();
   const prefs = usePreferences();
@@ -549,27 +551,18 @@ export default function SettingsModal({
                     <Text
                       style={[styles.recoveryHint, { color: colors.textMuted }]}
                     >
-                      Enter your password to view your recovery key or generate
-                      a new one.
+                      Enter your password to view and generate a new key.
                     </Text>
                     <PasswordField
                       password={recoveryPassword}
                       onChangePassword={setRecoveryPassword}
                     />
                     <Button
-                      label="Show recovery key"
+                      label="Generate new key"
                       onPress={handleShowRecoveryKey}
                       loading={isRecoveryBusy}
                       disabled={!recoveryPassword}
                       variant="primary"
-                      size="sm"
-                    />
-                    <Button
-                      label="Generate new key"
-                      onPress={handleGenerateRecoveryKey}
-                      loading={isRecoveryBusy}
-                      disabled={!recoveryPassword}
-                      variant="secondary"
                       size="sm"
                     />
                   </View>
@@ -748,6 +741,35 @@ export default function SettingsModal({
             onSelect={(v) => setPreference("theme", v as ThemePreference)}
           />
         </View>
+        {onRestartTutorial && (
+          <View
+          style={[
+            styles.group,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
+          >
+            <TouchableOpacity
+            style={[styles.groupItem, styles.prefRow]}
+            onPress={() => {
+              haptic.select();
+              onRestartTutorial();
+            }}
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            >
+              <Text
+              style={{
+                color: colors.text,
+                fontFamily: fonts.label,
+                fontSize: fontSizes.md,
+              }}
+              >
+                Restart tutorial
+              </Text>
+              <Ionicons name="refresh" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+        )}
         {/* Sign Out Button */}
         <TouchableOpacity
           style={[styles.logoutButton, { backgroundColor: colors.danger }]}

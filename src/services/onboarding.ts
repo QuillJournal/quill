@@ -1,5 +1,5 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { supabase } from "@/src/utils/supabase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export type OnboardingStep = 0 | 1 | 2 | 3;
 
@@ -56,4 +56,19 @@ export async function completeOnboarding(userId: string): Promise<void> {
   } catch (error) {
     console.error("Could not clear saved onboarding progress:", error);
   }
+}
+
+export async function restartOnboarding(userId: string): Promise<void> {
+  const { error } = await supabase
+    .from("profiles")
+    .update({ onboarding: false })
+    .eq("id", userId);
+
+  if (error) {
+    throw new Error(`Could not restart onboarding: ${error.message}`);
+  }
+  await AsyncStorage.setItem(
+    progressKey(userId),
+    JSON.stringify({ step: 0, diaryId: null }),
+  );
 }

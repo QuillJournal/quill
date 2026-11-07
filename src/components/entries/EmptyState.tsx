@@ -12,7 +12,7 @@ export default function EmptyState({ accentColor }: EmptyStateProps) {
       <Ionicons name="book-outline" size={44} color={accentColor} />
       <Text style={styles.emptyTitle}>No Memories Yet</Text>
       <Text style={styles.emptySubtitle}>
-        Tap the button below or long-press any calendar day to capture a moment.
+        Tap the button below to add a new memory.
       </Text>
     </View>
   );

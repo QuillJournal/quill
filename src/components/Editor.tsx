@@ -11,14 +11,14 @@ import { DatePicker } from "@quidone/react-native-wheel-picker";
 import dayjs from "dayjs";
 import { useEffect, useRef, useState } from "react";
 import {
+  ImageBackground,
   Keyboard,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  View,
-  ImageBackground
+  View
 } from "react-native";
 import Animated, {
   useAnimatedStyle,
@@ -93,7 +93,7 @@ export default function Editor({
   onSave,
   onBack,
 }: EditorProps) {
-  const [background, setBackground] = useState(require("@/assets/images/onboarding.png")); 
+  const [background, setBackground] = useState(); 
   const saveScale = useSharedValue(1);
   const saveStyle = useAnimatedStyle(() => ({
     transform: [{ scale: saveScale.value }],
@@ -456,7 +456,7 @@ export default function Editor({
                     animated
                     intro
                     introDelay={isReadOnly ? 300 : 0}
-                    onBgChange = {(newMood:MoodKey) => {
+                   /* onBgChange = {(newMood:MoodKey) => {
                     switch(newMood){
                       case "angry":
                         setBackground(require("@/assets/images/mood-backgrounds/angry.jpg"))
@@ -480,9 +480,9 @@ export default function Editor({
                         setBackground(require("@/assets/images/mood-backgrounds/sad.jpg"))
                         break;
                       default:
-                        setBackground(require("@/assets/images/onboarding.png"))
+                        break; 
                     }
-                  }}
+                  }}*/
                   />
                   <Text style={styles.chipText}>{MOODS[mood].label}</Text>
                 </>

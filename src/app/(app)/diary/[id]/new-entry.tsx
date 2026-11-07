@@ -7,8 +7,8 @@ import {
   PendingAttachment,
 } from "@/src/services/attachments";
 import {
-  getOnboardingProgress,
-  saveOnboardingProgress,
+  completeOnboarding,
+  getOnboardingProgress
 } from "@/src/services/onboarding";
 import { toDateKey } from "@/src/utils/dates";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -59,10 +59,7 @@ export default function NewEntryScreen() {
     try {
       const progress = await getOnboardingProgress(userId);
       if (progress.step === 2 && progress.diaryId === diaryId) {
-        await saveOnboardingProgress(userId, {
-          step: 3,
-          diaryId,
-        });
+        await completeOnboarding(userId);
       }
     } catch (error) {
       console.error("Entry saved, but onboarding progress could not advance:", error);

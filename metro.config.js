@@ -8,11 +8,11 @@ config.transformer = {
   ...transformer,
   babelTransformerPath: require.resolve("react-native-svg-transformer/expo"),
 };
+
 config.resolver = {
   ...resolver,
-  assetExts: resolver.assetExts.filter((ext) => ext !== "svg"),
-  sourceExts: [...resolver.sourceExts, "svg"],
+  assetExts: [...resolver.assetExts.filter((ext) => ext !== "svg"), "lottie"],
+  sourceExts: [...resolver.sourceExts, "svg", "sql"],
 };
-resolver.sourceExts.push("sql");
 
 module.exports = config;

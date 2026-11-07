@@ -3,6 +3,7 @@ import DiaryMembersModal from "@/src/components/DiaryMembersModal";
 import ViewMenuButton from "@/src/components/entries/ViewMenuButton";
 import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
+import TutorialTooltip from "@/src/components/TutorialTooltip";
 import { resolveDiaryColor } from "@/src/constants/colors";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import { useDiaryTransition } from "@/src/context/DiaryTransitionContext";
@@ -37,8 +38,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Tooltip from "react-native-walkthrough-tooltip";
-import OnBoarding from "../../../../app/onboarding";
 
 export default function DiaryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -58,6 +57,25 @@ export default function DiaryScreen() {
   const [showMembers, setShowMembers] = useState(false);
   const { close, closing, reportReady } = useDiaryTransition();
   const isSyncing = useSyncStatus();
+  const [focused, setFocused] = useState(true);
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
+  const isOnBoardingDiary =
+    focused &&
+    !showMembers &&
+    onboarding.isFirstTime &&
+    onboarding.progress.diaryId === diaryId;
+  const nextOnboarding = () => {
+    onboarding.setStep(3).catch((error) => {
+      console.error("Failed to advance onboarding: ", error);
+      dialog.alert("Couldn't save progress", "Please try again.");
+    });
+  };
+
   const isOnboardingDiary =
     onboarding.isFirstTime && onboarding.progress.diaryId === diaryId;
   const skipOnboarding = () => {
@@ -165,43 +183,34 @@ export default function DiaryScreen() {
             )}
           </View>
         </View>
-        <ViewMenuButton
-          diaryAccent={diaryAccent}
-          showSwitcher={showSwitcher}
-          onPillPress={() => setShowSwitcher((prev) => !prev)}
-          selectedView={selectedView}
-          onSelectView={handleSelectView}
-        />
-        <Tooltip
-          useReactNativeModal
-          allowChildInteraction={true}
-          closeOnChildInteraction={false}
-          closeOnBackgroundInteraction
-          closeOnContentInteraction={false}
-          isVisible={
+        <TutorialTooltip
+          step={2}
+          visible={
             !onboarding.loading &&
             isOnboardingDiary &&
-            onboarding.progress.step === 3
+            onboarding.progress.step === 2
           }
-          content={<OnBoarding index2={3} onSkip={skipOnboarding} />}
-          contentStyle={{
-            padding: 0,
-            backgroundColor: "transparent",
-            overflow: "visible",
-          }}
-          placement={"top"}
-          onClose={skipOnboarding}
+          placement="top"
+          onSkip={skipOnboarding}
+          onNext={nextOnboarding}
+          nextLabel="Next"
         >
           <TouchableOpacity
             style={[styles.iconButton, styles.membersButton]}
-            onPress={() => setShowMembers(true)}
+            onPress={() => {
+              if (isOnBoardingDiary && onboarding.progress.step === 2) {
+                nextOnboarding();
+                return;
+              }
+              setShowMembers(true);
+            }}
             accessibilityRole="button"
             accessibilityLabel="Diary members"
             hitSlop={12}
           >
             <Ionicons name="people" size={18} color={"blue"} />
           </TouchableOpacity>
-        </Tooltip>
+        </TutorialTooltip>
       </View>
 
       <EntriesList
@@ -223,44 +232,44 @@ export default function DiaryScreen() {
         pointerEvents="box-none"
         style={[StyleSheet.absoluteFill, { bottom: insets.bottom }]}
       >
-        <Tooltip
-          useReactNativeModal
-          allowChildInteraction={true}
-          closeOnChildInteraction={false}
-          closeOnBackgroundInteraction
-          closeOnContentInteraction={false}
-          isVisible={
+        <TutorialTooltip
+          visible={
             !onboarding.loading &&
             isOnboardingDiary &&
-            onboarding.progress.step === 2
+            onboarding.progress.step === 3
           }
-          parentWrapperStyle={{
+          step={3}
+          onNext={skipOnboarding}
+          nextLabel="Finish"
+          parentWrappedStyle={{
             position: "absolute",
             right: 24,
             bottom: 30,
             width: 54,
             height: 54,
           }}
-          content={<OnBoarding index2={2} onSkip={skipOnboarding} />}
-          contentStyle={{
-            padding: 0,
-            backgroundColor: "transparent",
-            overflow: "visible",
-          }}
-          placement={"top"}
-          onClose={skipOnboarding}
+          placement="top"
+          onSkip={skipOnboarding}
         >
           <FloatingActionButton
-            onPress={() => handleAddEntry()}
+            onPress={() => {
+              if (isOnboardingDiary && onboarding.progress.step === 3) {
+                skipOnboarding();
+              }
+              handleAddEntry();
+            }}
             positioned={false}
           />
-        </Tooltip>
+        </TutorialTooltip>
       </View>
       <DiaryMembersModal
         visible={showMembers}
         onClose={() => setShowMembers(false)}
         diary={diaryRow}
-        onInviteSent={skipOnboarding}
+        onInviteSent={() => {
+          if (onboarding.isFirstTime && onboarding.progress.step === 2)
+            nextOnboarding();
+        }}
       />
     </View>
   );
