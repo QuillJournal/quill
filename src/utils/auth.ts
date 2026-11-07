@@ -100,6 +100,30 @@ export function getAuthLinkError(): string | null {
   return authLinkError;
 }
 
+export type AuthLinkResult =
+  | { kind: "success" }
+  | { kind: "error"; code: string | null };
+
+let authLinkResult: AuthLinkResult | null = null;
+const authLinkResultListeners = new Set<() => void>();
+
+function setAuthLinkResult(next: AuthLinkResult | null) {
+  authLinkResult = next;
+  authLinkResultListeners.forEach((listener) => listener());
+}
+
+export function useAuthLinkResult(): AuthLinkResult | null {
+  return useSyncExternalStore(
+    (onChange) => {
+      authLinkResultListeners.add(onChange);
+      return () => {
+        authLinkResultListeners.delete(onChange);
+      };
+    },
+    () => authLinkResult,
+  );
+}
+
 function getUrlPath(url: string): string {
   const withoutScheme = url.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");
   const [path] = withoutScheme.split(/[?#]/);
@@ -116,6 +140,13 @@ export async function handleAuthUrl(url: string) {
 
   if (isRecovery) setRecoveryMode(true);
   authLinkError = params.error_description ?? null;
+  if (isCallback) {
+    setAuthLinkResult(
+      params.error || params.error_code || params.error_description
+        ? { kind: "error", code: params.error_code ?? null }
+        : null,
+    );
+  }
 
   console.log("[auth-link]", {
     path,
@@ -133,7 +164,10 @@ export async function handleAuthUrl(url: string) {
   if (error) {
     authLinkError = error.message;
     console.warn("Auth link session failed: ", error.message);
+    if (isCallback) setAuthLinkResult({ kind: "error", code: null });
+    return;
   }
+  if (isCallback) setAuthLinkResult({ kind: "success" });
 }
 
 export function subscribeToAuthState(

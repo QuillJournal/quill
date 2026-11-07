@@ -1,13 +1,14 @@
-import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import {
   completeOnboarding,
   getOnboardingProgress,
+  restartOnboarding,
   saveOnboardingProgress,
   type OnboardingProgress,
 } from "@/src/services/onboarding";
 import { supabase } from "@/src/utils/supabase";
+import { useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 
 export default function useOnboarding() {
   const { session } = useUserSession();
@@ -37,8 +38,12 @@ export default function useOnboarding() {
             .select("onboarding")
             .eq("id", userId)
             .maybeSingle();
-          if (error) throw new Error(`Could not read onboarding status: ${error.message}`);
-          if (!data) throw new Error("No profile exists for onboarding status.");
+          if (error)
+            throw new Error(
+              `Could not read onboarding status: ${error.message}`,
+            );
+          if (!data)
+            throw new Error("No profile exists for onboarding status.");
 
           const nextProgress = await getOnboardingProgress(userId);
           if (!active) return;
@@ -71,10 +76,22 @@ export default function useOnboarding() {
 
   const finish = useCallback(async () => {
     if (!userId) return;
-    await completeOnboarding(userId);
     setIsFirstTime(false);
+    try {
+      await completeOnboarding(userId);
+    } catch (error) {
+      setIsFirstTime(true);
+      throw error;
+    }
     setProgress({ step: 0, diaryId: null });
   }, [userId]);
 
-  return { isFirstTime, loading, progress, setStep, finish };
+  const restart = useCallback(async () => {
+    if (!userId) return;
+    await restartOnboarding(userId);
+    setProgress({ step: 0, diaryId: null });
+    setIsFirstTime(true);
+  }, [userId]);
+
+  return { isFirstTime, loading, progress, setStep, finish, restart };
 }

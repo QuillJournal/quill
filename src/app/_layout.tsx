@@ -46,6 +46,7 @@ import "react-native-get-random-values";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import AppLockScreen from "../components/AppLocalScreen";
 import { DialogProvider } from "../components/Dialog/DialogProvider";
+import { TutorialHost, TutorialProvider } from "../context/TutorialContext";
 import {
   UserSessionProvider,
   useSyncLifecycle,
@@ -411,6 +412,7 @@ function AppNavigator() {
           value={{ baseline: decryptBaseline, finish: closeDecryptGate }}
         >
           <DiaryTransitionProvider>
+            <TutorialProvider>
             <View style={{ flex: 1 }}>
               <Stack
                 screenOptions={{
@@ -426,8 +428,10 @@ function AppNavigator() {
                   options={{ animation: "fade", gestureEnabled: false }}
                 />
               </Stack>
+              <TutorialHost />
               <AppLockScreen />
             </View>
+            </TutorialProvider>
           </DiaryTransitionProvider>
         </DecryptGateContext.Provider>
       </DialogProvider>

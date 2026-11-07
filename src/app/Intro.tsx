@@ -94,10 +94,21 @@ export default function Intro(){
         {photo: PrivateSvg, text: "Private by design.", subtext: "Quill was built with privacy and security in mind from the ground up. Quill is engineered to use the latest cryptographic techniques to ensure zero-knowledge end to end encryption for your data. This means that no one except you and the people you choose can see your data - not even us."},
         {photo: OSS, text: "Open Source.", subtext: "The app is open source on GitHub - so you can audit the code yourself, or create your own build for complete privacy and even setup a local home server to access it without internet anytime."},
         {photo: MoodSvg, text: "Add moods and share diaries.", subtext: "Create a shared diary with your friends - and write your life's moments in it. Add your mood to the entry to let your friends know how you're feeling and reflect on your feelings!"},
-        {lottie: true, text: "Pleasing experience.", subtext: "We've created the app's lovely art, animations, tactile haptics, and interface to make every click & tap feel alive."},
+        {lottie: true, text: "Pleasing experience.", subtext: "We've engineered and designed the app's lovely art, animations, tactile haptics, and interface to make every click & tap feel alive."},
     ]
     const loopedPages = [...pages, pages[0]];
     const [page, setPage] = useState(0);
+    const isLast = page === pages.length - 1;
+    const [ctaReady, setCtaReady] = useState(false);
+
+    useEffect(() => {
+        if (!isLast) {
+            setCtaReady(false);
+            return;
+        }
+        const id = setTimeout(() => setCtaReady(true), 2000);
+        return () => clearTimeout(id);
+    }, [isLast]);
     const scrollX = useRef(new Animated.Value(0)).current;
 
     const animate = ({item}:{item: Page}) => {
@@ -229,7 +240,15 @@ export default function Intro(){
                     )
                 })} 
             </View> 
-            <Button label="Get Started" onPress = {() => {router.replace("/(auth)/login")}} style = {styles.button} />
+        <Button
+        label={isLast ? "Get Started" : "Next"}
+        disabled={isLast && !ctaReady}
+        onPress={() => {
+            if (isLast) router.replace("/(auth)/login");
+            else goTo(page + 1, true);
+        }}
+        style={styles.button}
+        />
         </View>
     );
 

@@ -1,4 +1,3 @@
-import OnBoarding from "../onboarding"
 import EmptyArt from "@/assets/images/empty.png";
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import DiaryCard, { STACK_SIDE_PADDING } from "@/src/components/DiaryCard";
@@ -7,6 +6,7 @@ import FloatingActionButton from "@/src/components/FloatingActionButton";
 import GreetingHeader from "@/src/components/GreetingHeader";
 import PendingInvitesBanner from "@/src/components/PendingInvitesBanner";
 import SettingsModal from "@/src/components/SettingsModal";
+import TutorialTooltip from "@/src/components/TutorialTooltip";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import { useDiaryTransition } from "@/src/context/DiaryTransitionContext";
@@ -19,11 +19,10 @@ import useUserEmail from "@/src/hooks/useUserEmail";
 import { fetchDiaryMembers } from "@/src/services/sharing";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { DiaryFormData } from "@/src/types/diary";
-import { Stack, useFocusEffect } from "expo-router";
+import { Stack } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, FlatList, StyleSheet, Text, View, Image } from "react-native";
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import Tooltip from "react-native-walkthrough-tooltip"
 
 export default function Home() {
   const { colors } = useTheme();
@@ -49,6 +48,17 @@ export default function Home() {
       dialog.alert("Couldn't save progress", "Please try again.");
     });
   };
+
+  const restartTutorial = async () => {
+    setIsSettingsOpen(false);
+    await new Promise((resolve) => setTimeout(resolve, 450));
+    try {
+      await onboarding.restart();
+    } catch (error) {
+      console.error("Failed to restart onboarding: ", error);
+      dialog.alert("Couldn't restart tutorial", "Please try again.")
+    }
+  }
 
   const handleAddDiary = async (data: DiaryFormData) => {
     const name = data.name.trim();
@@ -163,25 +173,16 @@ export default function Home() {
             </View>
           }
           renderItem={({ item, index: cardIndex }) => (
-            <Tooltip
-              isVisible={
+            <TutorialTooltip
+              visible={
                 !onboarding.loading &&
                 onboarding.isFirstTime &&
                 onboarding.progress.step === 1 &&
                 onboarding.progress.diaryId === item.id
               }
-              closeOnChildInteraction={false}
-              closeOnBackgroundInteraction
-              closeOnContentInteraction={false}
-              content = {
-                <OnBoarding
-                  index2 = {1}
-                  onSkip={skipOnboarding}
-                />
-              }
-              contentStyle = {{ padding: 0, backgroundColor: "transparent",overflow: "visible"}}
+              step={1}
               placement = "bottom"
-              onClose={skipOnboarding}
+              onSkip={skipOnboarding}
             >
               <DiaryCard
                 diary={item}
@@ -207,7 +208,7 @@ export default function Home() {
                 }}
                 onDelete={handleDeleteDiary}
               />
-            </Tooltip>
+            </TutorialTooltip>
           )}
         />
         <DiaryForm
@@ -219,32 +220,32 @@ export default function Home() {
           isOpen={isSettingsOpen}
           onClose={() => setIsSettingsOpen(false)}
           userEmail={email}
+          onRestartTutorial={restartTutorial}
         />
-        <Tooltip
-          isVisible={
+        <View pointerEvents="box-none" style={StyleSheet.absoluteFill}>
+          <TutorialTooltip
+          step={0}
+          visible={
             !onboarding.loading &&
             onboarding.isFirstTime &&
             onboarding.progress.step === 0
           }
-          closeOnChildInteraction={false}
-          closeOnBackgroundInteraction
-          closeOnContentInteraction={false}
-          content = {
-            <OnBoarding
-              index2 = {0}
-              onSkip={skipOnboarding}
-            />
-          }
-          contentStyle = {{ padding: 0, backgroundColor: "transparent",overflow: "visible"}}
-          placement = "bottom"
-          onClose={skipOnboarding}
-        >
-        <FloatingActionButton
-          onPress={() => {
-            setShowDiaryForm(true);
+          placement="top"
+          parentWrappedStyle={{
+            position: "absolute",
+            right: 24,
+            bottom: 30,
+            width: 54,
+            height: 54,
           }}
-        />
-        </Tooltip>
+          onSkip={skipOnboarding}
+          >
+            <FloatingActionButton
+            onPress={() => setShowDiaryForm(true)}
+            positioned={false}
+            />
+          </TutorialTooltip>
+        </View>
       </View>
     </SafeAreaView>
   );
