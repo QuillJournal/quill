@@ -35,8 +35,7 @@ export default function Pill({
 }: PillProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const fromColor = selected ? colors.cardPressed : colors.surface;
-  const toColor = selected ? colors.surface : colors.cardPressed;
+
   const { animatePress, animatedColor } = usePressAnimation(
     colors.surface,
     colors.cardPressed,

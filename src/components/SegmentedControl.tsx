@@ -110,7 +110,6 @@ export default function SegmentedControl<T extends string>({
 
   return (
     <View
-      onLayout={onLayout}
       style={[
         styles.container,
         style,

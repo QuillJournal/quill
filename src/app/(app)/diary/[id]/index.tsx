@@ -170,7 +170,11 @@ export default function DiaryScreen() {
               {diaryRow?.name}
             </Text>
             {diaryMembers.size == 1 && (
-              <Ionicons name="lock-closed-outline" size={16} color={colors.textMuted} />
+              <Ionicons
+              name="lock-closed-outline"
+              size={16}
+              color={colors.textMuted}
+              />
             )}
           </View>
           <View style={styles.subtitleRow}>
@@ -185,6 +189,13 @@ export default function DiaryScreen() {
             )}
           </View>
         </View>
+            <ViewMenuButton
+              diaryAccent={diaryAccent}
+              showSwitcher={showSwitcher}
+              onPillPress={() => setShowSwitcher((prev) => !prev)}
+              selectedView={selectedView}
+              onSelectView={handleSelectView}
+              />
         <TutorialTooltip
           step={2}
           visible={
@@ -232,7 +243,11 @@ export default function DiaryScreen() {
             accessibilityLabel="Diary members"
             hitSlop={12}
           >
-            <Ionicons name="people-outline" size={20} color={colors.textMuted} />
+            <Ionicons
+              name="people-outline"
+              size={20}
+              color={colors.textMuted}
+            />
             <Text style={styles.membersCount}>
               {Math.max(diaryMembers.size, 1)}
             </Text>
