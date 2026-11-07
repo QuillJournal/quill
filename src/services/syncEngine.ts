@@ -34,6 +34,7 @@ import {
 import { checkAndPinBundle } from "./keyPins";
 
 let isSyncRunning = false;
+let rerunRequested = false;
 const syncListeners = new Set<(syncing: boolean) => void>();
 
 function setSyncing(val: boolean) {
@@ -101,7 +102,10 @@ export async function runSync(session: {
     publicKeyHex?: string;
   };
 }): Promise<void> {
-  if (isSyncRunning) return;
+  if (isSyncRunning) {
+    rerunRequested = true;
+    return;
+  }
   setSyncing(true);
   updateProgress({
     label: "Unlocking your diaries",
@@ -135,6 +139,10 @@ export async function runSync(session: {
       phase: "done",
     });
     setSyncing(false);
+    if (rerunRequested) {
+      rerunRequested = false;
+      void runSync(session);
+    }
     downloadPendingAttachments()
       .then((n) => {
         if (n > 0) updateProgress({ runs: progressState.runs + 1 });
@@ -479,12 +487,19 @@ async function pushOfflineEntryQueue(session: FullSession) {
           diary_id: diary.remoteId,
           author_id: currentUserId,
           blob: blobHex,
+          sig,
           key_epoch: entry.keyEpoch,
           version: 1,
           deleted: false,
         })
         .select("change_seq, version")
         .single();
+      if (error)
+        console.warn(
+          `[Sync] ${entry.syncState} ${remoteEntryId} failed:`,
+          error.code,
+          error.message,
+        );
 
       if (!error && data) {
         await db
@@ -542,6 +557,12 @@ async function pushOfflineEntryQueue(session: FullSession) {
         .eq("version", entry.version)
         .select("change_seq, version")
         .single();
+      if (error)
+        console.warn(
+          `[Sync] ${entry.syncState} ${remoteEntryId} failed:`,
+          error.code,
+          error.message,
+        );
 
       if (!error && data) {
         await db
@@ -577,6 +598,12 @@ async function pushOfflineEntryQueue(session: FullSession) {
         .eq("version", entry.version)
         .select("change_seq, version")
         .single();
+      if (error)
+        console.warn(
+          `[Sync] ${entry.syncState} ${remoteEntryId} failed:`,
+          error.code,
+          error.message,
+        );
 
       if (!error && data) {
         await db

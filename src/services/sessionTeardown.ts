@@ -8,8 +8,13 @@ import { waitForSyncIdle } from "./syncEngine";
 
 export async function endLocalSession(
   clearSession: () => void,
-  opts: { accountDeleted?: boolean } = {},
+  opts: { accountDeleted?: boolean; flush?: () => Promise<void> } = {},
 ): Promise<void> {
+  if (!opts.accountDeleted && opts.flush) {
+    await waitForSyncIdle();
+    await opts.flush().catch(() => {});
+    await waitForSyncIdle();
+  }
   clearSession();
   await clearDerivedKey().catch(() => {});
   resetAppLock();
