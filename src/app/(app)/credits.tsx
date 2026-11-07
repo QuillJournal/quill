@@ -385,7 +385,7 @@ export default function CreditsScreen() {
                             fontSize: fontSizes.md,
                         }}
                     >
-                        Made with ♡ by 3 people from Egypt, the US and India!
+                        Made with ❤ by 3 people from Egypt, the US and India!
                     </Text>
                 </Animated.View>
 
