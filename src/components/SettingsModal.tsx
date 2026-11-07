@@ -12,33 +12,45 @@ import {
   Switch,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
+import { spacing } from "../constants/spacings";
 import { useUserSession } from "../context/UserSessionContext";
 import { saveLocalProfile } from "../db/localProfile";
 import useTheme from "../hooks/useTheme";
-import { confirmBiometric, setBiometrics, setLockDelay, useAppLock, useBiometricInfo, type LockDelay } from "../services/appLock";
+import {
+  confirmBiometric,
+  setBiometrics,
+  setLockDelay,
+  useAppLock,
+  useBiometricInfo,
+  type LockDelay,
+} from "../services/appLock";
 import { haptic } from "../services/haptics";
-import { setPreference, ThemePreference, usePreferences } from "../services/preferences";
+import {
+  setPreference,
+  ThemePreference,
+  usePreferences,
+} from "../services/preferences";
 import { changeAccountName, propagateNameToDiaries } from "../services/profile";
 import { endLocalSession } from "../services/sessionTeardown";
-import {
-  getStoredVaultKey
-} from "../services/storage/secureKeyStore";
+import { getStoredVaultKey } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import {
   deleteAccount,
   getUserProfileRecord,
   rewrapKeysRpc,
-  updateUserEncryptedProfile
+  updateUserEncryptedProfile,
 } from "../utils/auth";
 import {
   decryptKeyBundle,
-  deriveAuthAndEncKeys, encryptUserProfile, formatRecoveryKey,
+  deriveAuthAndEncKeys,
+  encryptUserProfile,
+  formatRecoveryKey,
   generateRecoveryKey,
   hexToBytes,
   wrapKeyBundles,
-  type UserSecretKeyBundle
+  type UserSecretKeyBundle,
 } from "../utils/crypto";
 import {
   encryptAndUploadPhoto,
@@ -107,7 +119,7 @@ export default function SettingsModal({
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setIsRecoveryExpanded((prev) => !prev);
     setRecoveryPassword("");
-  }
+  };
 
   const unlockKeyBundle = async (): Promise<{
     bundle: UserSecretKeyBundle;
@@ -154,7 +166,7 @@ export default function SettingsModal({
     await rewrapKeysRpc({ encryptedKeyBundle, recoveryKeyBundle });
     showRecoveryCode(formattedKey, "Your new recovery key");
   };
-  
+
   const handleShowRecoveryKey = async () => {
     if (!recoveryPassword) return;
     setIsRecoveryBusy(true);
@@ -174,13 +186,16 @@ export default function SettingsModal({
         "Recovery key can't be shown",
         "Your current recovery key was created before viewing was supported, so it can't be displayed. You can generate a new one; your old key will stop working.",
         [
-          {text: "Cancel", style: "cancel"},
+          { text: "Cancel", style: "cancel" },
           {
             text: "Generate new key",
             onPress: () => {
               generateAndStoreNewRecoveryKey(bundle, localEncKey).catch(
                 (err: any) =>
-                  dialog.alert("Couldn't generate key", err?.message || "Please try again."),
+                  dialog.alert(
+                    "Couldn't generate key",
+                    err?.message || "Please try again.",
+                  ),
               );
             },
           },
@@ -188,7 +203,10 @@ export default function SettingsModal({
       );
     } catch (err: any) {
       haptic.error();
-      dialog.alert("Couldn't show recovery key", err?.message || "Please try again.");
+      dialog.alert(
+        "Couldn't show recovery key",
+        err?.message || "Please try again.",
+      );
     } finally {
       setIsRecoveryBusy(false);
     }
@@ -211,7 +229,10 @@ export default function SettingsModal({
             onPress: () => {
               generateAndStoreNewRecoveryKey(bundle, localEncKey).catch(
                 (err: any) =>
-                  dialog.alert("Couldn't generate key", err?.message || "Please try again."),
+                  dialog.alert(
+                    "Couldn't generate key",
+                    err?.message || "Please try again.",
+                  ),
               );
             },
           },
@@ -219,7 +240,10 @@ export default function SettingsModal({
       );
     } catch (err: any) {
       haptic.error();
-      dialog.alert("Couldn't generate key", err?.message || "Please try again.");
+      dialog.alert(
+        "Couldn't generate key",
+        err?.message || "Please try again.",
+      );
     } finally {
       setIsRecoveryBusy(false);
     }
@@ -310,7 +334,7 @@ export default function SettingsModal({
         session.userId,
         session.name,
         persistedUri,
-        session.kemKeys?.publicKeyHex ?? '',
+        session.kemKeys?.publicKeyHex ?? "",
       );
 
       setSession({
@@ -345,8 +369,8 @@ export default function SettingsModal({
       dialog.alert(
         "Name updated",
         failed > 0
-        ? `Saved, but ${failed} shared diar${failed === 1 ? "y" : "ies"} still show your old name. Try again later.`
-        : "Your name was updated.",
+          ? `Saved, but ${failed} shared diar${failed === 1 ? "y" : "ies"} still show your old name. Try again later.`
+          : "Your name was updated.",
       );
     } catch (err: any) {
       haptic.error();
@@ -386,8 +410,8 @@ export default function SettingsModal({
     <AppModal isOpen={isOpen} title="Settings" onClose={onClose}>
       {/* User Profile Card */}
       <ScrollView
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
         <View
           style={[
@@ -487,7 +511,9 @@ export default function SettingsModal({
                       {isPickingOrUploading && (
                         <View style={styles.uploadingOverlay}>
                           <ActivityIndicator size="large" color="#FFFFFF" />
-                          <Text style={styles.uploadingText}>Processing...</Text>
+                          <Text style={styles.uploadingText}>
+                            Processing...
+                          </Text>
                         </View>
                       )}
                     </View>
@@ -529,7 +555,9 @@ export default function SettingsModal({
           {session && (
             <>
               {/* Divider between Profile and Recovery Key */}
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
+              <View
+                style={[styles.divider, { backgroundColor: colors.border }]}
+              />
 
               <View style={styles.groupItem}>
                 <TouchableOpacity
@@ -575,108 +603,115 @@ export default function SettingsModal({
         </View>
         {/* App Lock */}
         <View
-        style={[
-          styles.group,
-          { backgroundColor: colors.card, borderColor: colors.border },
-        ]}
+          style={[
+            styles.group,
+            { backgroundColor: colors.card, borderColor: colors.border },
+          ]}
         >
           <View style={[styles.groupItem, styles.prefRow]}>
             <View style={{ flex: 1, paddingRight: 12 }}>
               <Text
-              style={{
-                color: colors.text,
-                fontFamily: fonts.label,
-                fontSize: fontSizes.md,
-              }}
+                style={{
+                  color: colors.text,
+                  fontFamily: fonts.label,
+                  fontSize: fontSizes.md,
+                }}
               >
                 {bio.label}
               </Text>
               {!bio.available && (
-                <Text style={{ color: colors.textMuted, fontSize: fontSizes.sm }}>
+                <Text
+                  style={{ color: colors.textMuted, fontSize: fontSizes.sm }}
+                >
                   Not set up on this device.
                 </Text>
               )}
             </View>
             <Switch
-            value={lock.config.biometrics}
-            disabled={!bio.available && !lock.config.biometrics}
-            onValueChange={handleBiometricToggle}
-            trackColor={{ true: colors.accent, false: colors.border }}
+              value={lock.config.biometrics}
+              disabled={!bio.available && !lock.config.biometrics}
+              onValueChange={handleBiometricToggle}
+              trackColor={{ true: colors.accent, false: colors.border }}
             />
           </View>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={[styles.groupItem, styles.prefRow]}>
             <Text
-            style={{
-              color: colors.text,
-              fontFamily: fonts.label,
-              fontSize: fontSizes.md,
-            }}
+              style={{
+                color: colors.text,
+                fontFamily: fonts.label,
+                fontSize: fontSizes.md,
+              }}
             >
               PIN
             </Text>
             {hasPin ? (
               <View style={{ flexDirection: "row", gap: 8 }}>
                 <Button
-                size="sm"
-                variant="outline"
-                label="Change"
-                style={{ width: "auto" }}
-                onPress={() => setPinFlow("change")}
+                  size="sm"
+                  variant="outline"
+                  label="Change"
+                  style={{ width: "auto" }}
+                  onPress={() => setPinFlow("change")}
                 />
                 <Button
-                size="sm"
-                variant="outline"
-                label="Remove"
-                style={{ width: "auto" }}
-                onPress={() => setPinFlow("remove")}
+                  size="sm"
+                  variant="outline"
+                  label="Remove"
+                  style={{ width: "auto" }}
+                  onPress={() => setPinFlow("remove")}
                 />
               </View>
             ) : (
               <Button
-              size="sm"
-              label="Set up"
-              style={{ width: "auto" }}
-              onPress={() => setPinFlow("set")}
+                size="sm"
+                label="Set up"
+                style={{ width: "auto" }}
+                onPress={() => setPinFlow("set")}
               />
             )}
           </View>
           {lockEnabled && (
             <>
-            <View style={[styles.divider, { backgroundColor: colors.border }]} />
-            <View style={styles.groupItem}>
-              <Text
-              style={{
-                color: colors.text,
-                fontFamily: fonts.label,
-                fontSize: fontSizes.md,
-              }}
-              >
-                Lock after
-              </Text>
-            </View>
-            <SegmentedControl
-            options={[
-              { label: "Now", value: "0" },
-              { label: "15s", value: "15" },
-              { label: "30s", value: "30" },
-              { label: "1m", value: "60" },
-              { label: "5m", value: "300" },
-            ]}
-            selectedValue={String(lock.config.delay)}
-            onSelect={(v) => setLockDelay(Number(v) as LockDelay)}
-            />
+              <View
+                style={[styles.divider, { backgroundColor: colors.border }]}
+              />
+              <View style={styles.groupItem}>
+                <Text
+                  style={{
+                    color: colors.text,
+                    fontFamily: fonts.label,
+                    fontSize: fontSizes.md,
+                  }}
+                >
+                  Lock after
+                </Text>
+              </View>
+              <SegmentedControl
+                options={[
+                  { label: "Now", value: "0" },
+                  { label: "15s", value: "15" },
+                  { label: "30s", value: "30" },
+                  { label: "1m", value: "60" },
+                  { label: "5m", value: "300" },
+                ]}
+                selectedValue={String(lock.config.delay)}
+                onSelect={(v) => setLockDelay(Number(v) as LockDelay)}
+                style={{
+                  marginHorizontal: spacing.md,
+                }}
+              />
             </>
           )}
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={[styles.groupItem, styles.prefRow]}>
             <View style={{ flex: 1, paddingRight: 12 }}>
               <Text
-              style={{
-                color: colors.text,
-                fontFamily: fonts.label,
-                fontSize: fontSizes.md,
-              }}
+                style={{
+                  color: colors.text,
+                  fontFamily: fonts.label,
+                  fontSize: fontSizes.md,
+                }}
               >
                 Privacy Screen
               </Text>
@@ -685,17 +720,17 @@ export default function SettingsModal({
               </Text>
             </View>
             <Switch
-            value={prefs.privacyScreen}
-            onValueChange={(v) => {
-              setPreference("privacyScreen", v);
-              if (v) haptic.select();
-            }}
-            trackColor={{ true: colors.accent, false: colors.border }}
+              value={prefs.privacyScreen}
+              onValueChange={(v) => {
+                setPreference("privacyScreen", v);
+                if (v) haptic.select();
+              }}
+              trackColor={{ true: colors.accent, false: colors.border }}
             />
           </View>
         </View>
         <PinFlowModal mode={pinFlow} onClose={() => setPinFlow(null)} />
-                {/* Preferences */}
+        {/* Preferences */}
         <View
           style={[
             styles.group,
@@ -741,6 +776,7 @@ export default function SettingsModal({
             ]}
             selectedValue={prefs.theme}
             onSelect={(v) => setPreference("theme", v as ThemePreference)}
+            style={{ marginHorizontal: spacing.md }}
           />
         </View>
         {onRestartTutorial && (
@@ -1012,7 +1048,7 @@ const styles = StyleSheet.create({
   divider: {
     height: StyleSheet.hairlineWidth,
   },
-    prefRow: {
+  prefRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

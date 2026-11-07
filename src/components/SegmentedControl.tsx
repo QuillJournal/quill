@@ -1,6 +1,15 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useEffect, useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import {
+  LayoutChangeEvent,
+  Platform,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  View,
+  ViewStyle,
+} from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -22,19 +31,21 @@ type Option<T extends string> = {
 type SegmentedControlProps<T extends string> = {
   options: readonly Option<T>[];
   selectedValue: T;
+  orientation?: "horizontal" | "vertical";
+  style?: StyleProp<ViewStyle>;
   onSelect: (value: T) => void;
 };
 export default function SegmentedControl<T extends string>({
   options,
   selectedValue,
+  orientation = "horizontal",
+  style,
   onSelect,
 }: SegmentedControlProps<T>) {
   const { colors } = useTheme();
-  const [containerHeight, setContainerHeight] = useState(0);
-  const highlightPillHeight = Math.max(
-    0,
-    (containerHeight - 2 - spacing.xs * 2) / options.length,
-  );
+  const [containerLength, setContainerLength] = useState(0);
+  const isVertical = orientation == "vertical";
+  const highlightLength = containerLength / options.length;
   const progress = useSharedValue(0);
   const selectedIndex = Math.max(
     0,
@@ -52,22 +63,26 @@ export default function SegmentedControl<T extends string>({
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateY: progress.value * highlightPillHeight }],
+      transform: [
+        isVertical
+          ? { translateY: progress.value * highlightLength }
+          : { translateX: progress.value * highlightLength },
+      ],
     };
   });
+
+  const onLayout = (e: LayoutChangeEvent) => {
+    const { width, height } = e.nativeEvent.layout;
+    setContainerLength(isVertical ? height : width);
+  };
 
   const highlightPill = (
     <Animated.View
       style={[
         {
-          height: highlightPillHeight,
           backgroundColor: colors.accentContainer,
-          margin: 2,
           borderRadius: radius.md,
           position: "absolute",
-
-          left: 0,
-          right: 0,
           ...Platform.select({
             ios: {
               shadowColor: "#000",
@@ -80,6 +95,9 @@ export default function SegmentedControl<T extends string>({
             },
           }),
         },
+        isVertical
+          ? { top: 0, left: 0, right: 0, height: highlightLength }
+          : { top: 0, bottom: 0, left: 0, width: highlightLength },
         animatedStyle,
       ]}
     ></Animated.View>
@@ -92,37 +110,51 @@ export default function SegmentedControl<T extends string>({
 
   return (
     <View
-      onLayout={(e) => setContainerHeight(e.nativeEvent.layout.height)}
+      onLayout={onLayout}
       style={[
         styles.container,
+        style,
         {
           backgroundColor: colors.SegmentedControl,
           borderColor: colors.border,
+          flexDirection: isVertical ? "column" : "row",
         },
       ]}
     >
-      {highlightPill}
-      {options.map((o, index) => {
-        const color =
-          o.value === selectedValue
-            ? colors.onAccentContainer
-            : colors.textMuted;
+      <View
+        onLayout={onLayout}
+        style={{ flexDirection: isVertical ? "column" : "row", flex: 1 }}
+      >
+        {highlightPill}
+        {options.map((o, index) => {
+          const color =
+            o.value === selectedValue
+              ? colors.onAccentContainer
+              : colors.textMuted;
 
-        return (
-          <Pressable
-            key={o.value}
-            onPress={() => handlePress(o.value)}
-            style={[styles.segment]}
-          >
-            <Ionicons name={o.icon} size={16} />
-            <Text
-              style={{ color, fontFamily: fonts.label, fontSize: fontSizes.sm }}
+          return (
+            <Pressable
+              key={o.value}
+              onPress={() => handlePress(o.value)}
+              style={[
+                styles.segment,
+                { justifyContent: isVertical ? "flex-start" : "center" },
+              ]}
             >
-              {o.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+              <Ionicons name={o.icon} size={16} />
+              <Text
+                style={{
+                  color,
+                  fontFamily: fonts.label,
+                  fontSize: fontSizes.sm,
+                }}
+              >
+                {o.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
@@ -131,24 +163,15 @@ const styles = StyleSheet.create({
   container: {
     borderRadius: radius.md,
     marginVertical: spacing.sm,
-    padding: spacing.xs,
     borderWidth: 1,
-    position: "absolute",
-    top: "75%",
-    zIndex: 100,
-    left: 0,
-    right: 0,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    boxShadow: "0px 0px 10px 2px rgba(0, 0, 0, 0.15)",
+    padding: 5,
   },
   segment: {
     flex: 1,
     alignItems: "center",
-    justifyContent: "flex-start",
-    paddingVertical: spacing.xs + 2,
-    borderRadius: radius.md,
+    paddingVertical: spacing.sm,
     flexDirection: "row",
     gap: 5,
+    paddingHorizontal: 10,
   },
 });
