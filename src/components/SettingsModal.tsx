@@ -1,6 +1,7 @@
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
   ActivityIndicator,
@@ -66,6 +67,7 @@ export default function SettingsModal({
   onRestartTutorial,
 }: SettingsModalProps) {
   const { colors, fonts, fontSizes } = useTheme();
+  const router = useRouter();
   const prefs = usePreferences();
   const lock = useAppLock();
   const bio = useBiometricInfo();
@@ -364,7 +366,7 @@ export default function SettingsModal({
         onPress: async () => {
           setIsLoggingOut(true);
           try {
-            await endLocalSession(clearSession);
+            await endLocalSession(clearSession, { session });
             onClose();
             if (onLogoutSuccess) onLogoutSuccess();
           } catch (err: any) {
@@ -770,6 +772,33 @@ export default function SettingsModal({
             </TouchableOpacity>
           </View>
         )}
+        <View
+        style={[
+          styles.group,
+          { backgroundColor: colors.card, borderColor: colors.border },
+        ]}
+        >
+          <TouchableOpacity
+          style={[styles.groupItem, styles.prefRow]}
+          onPress={() => {
+            haptic.select();
+            onClose();
+            setTimeout(() => router.push("/(app)/credits"), 250);
+          }}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          >
+            <Text
+            style={{
+              color: colors.text,
+              fontFamily: fonts.label,
+              fontSize: fontSizes.md,
+            }}
+            >
+              Credits
+            </Text>
+          </TouchableOpacity>
+        </View>
         {/* Sign Out Button */}
         <TouchableOpacity
           style={[styles.logoutButton, { backgroundColor: colors.danger }]}

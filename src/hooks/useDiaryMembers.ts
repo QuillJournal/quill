@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useUserSession } from "../context/UserSessionContext";
 import { getDiaryById } from "../db/diaries";
+import { getDiaryMembers } from "../db/members";
 import { fetchDiaryMembers } from "../services/sharing";
 import { useSyncStatus } from "../services/syncEngine";
 
@@ -8,6 +9,20 @@ export default function useDiaryMembers(diaryId: number) {
   const { session } = useUserSession();
   const isSyncing = useSyncStatus();
   const [names, setNames] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    let cancelled = false;
+    getDiaryMembers(diaryId)
+      .then((cached) => {
+        if (!cancelled && cached.size > 0) {
+          setNames((prev) => (prev.size ? prev : cached));
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [diaryId]);
 
   useEffect(() => {
     if (!session || isSyncing) return;
@@ -21,6 +36,8 @@ export default function useDiaryMembers(diaryId: number) {
         diary.keyEpoch,
         session,
       );
+      if (!members.length)
+        console.warn("[Members] empty list for diary", diaryId);
       if (cancelled) return;
       setNames(
         new Map(
@@ -30,7 +47,7 @@ export default function useDiaryMembers(diaryId: number) {
           ]),
         ),
       );
-    })().catch(() => {});
+    })().catch((e) => console.warn("[Members] refresh failed: ", e?.message));
 
     return () => {
       cancelled = true;

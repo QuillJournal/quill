@@ -31,7 +31,7 @@ export default function FloatingActionButton({
           { backgroundColor: animatedColor, shadowColor: colors.shadow },
         ]}
       >
-        <Ionicons name="pencil" size={22} color={colors.textOnAccent} />
+        <Ionicons name="add" size={22} color={colors.textOnAccent} />
       </Animated.View>
     </Pressable>
   );

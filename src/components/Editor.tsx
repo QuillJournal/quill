@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   ImageBackground,
   Keyboard,
+  KeyboardAvoidingView,
   Platform,
   ScrollView,
   StyleSheet,
@@ -25,7 +26,7 @@ import Animated, {
   useSharedValue,
   withSequence,
   withSpring,
-  withTiming,
+  withTiming
 } from "react-native-reanimated";
 import {
   SafeAreaView,
@@ -80,6 +81,8 @@ interface EditorProps {
   onBack?: () => void;
 }
 
+const TOOLBAR_H = 50;
+
 export default function Editor({
   initialTitle,
   initialBody,
@@ -93,17 +96,18 @@ export default function Editor({
   onSave,
   onBack,
 }: EditorProps) {
-  const [background, setBackground] = useState(); 
+  const [background, setBackground] = useState();
   const saveScale = useSharedValue(1);
   const saveStyle = useAnimatedStyle(() => ({
     transform: [{ scale: saveScale.value }],
   }));
   const { colors, isDark } = useTheme();
   const styles = getStyles(colors);
-  const { bottom } = useSafeAreaInsets();
+  const { top } = useSafeAreaInsets();
 
   const [isReadOnly, setIsReadOnly] = useState(initialReadOnly ?? false);
   const [title, setTitle] = useState(initialTitle ?? "");
+  const [titleFocused, setTitleFocused] = useState(false);
   const [entryDate, setEntryDate] = useState(
     initialDate ?? toDateKey(new Date()),
   );
@@ -127,25 +131,22 @@ export default function Editor({
   const [showMoodPicker, setShowMoodPicker] = useState(false);
 
   const [kbVisible, setKbVisible] = useState(() => Keyboard.isVisible());
-  const [kbInset, setKbInset] = useState(0);
-  const toolbarWrapRef = useRef<View>(null);
-    useEffect(() => {
+  const [kbHeight, setKbHeight] = useState(0);
+
+  useEffect(() => {
     const ios = Platform.OS === "ios";
     const show = Keyboard.addListener(
       ios ? "keyboardWillShow" : "keyboardDidShow",
       (e) => {
         setKbVisible(true);
-        // How many px of this screen's bottom the keyboard covers.
-        toolbarWrapRef.current?.measureInWindow((_x, y, _w, h) => {
-          setKbInset(Math.max(0, y + h - e.endCoordinates.screenY));
-        });
+        setKbHeight(e.endCoordinates.height);
       },
     );
     const hide = Keyboard.addListener(
       ios ? "keyboardWillHide" : "keyboardDidHide",
       () => {
         setKbVisible(false);
-        setKbInset(0);
+        setKbHeight(0);
       },
     );
     return () => {
@@ -162,12 +163,10 @@ export default function Editor({
   const handleContentSizeChange = (_w: number, h: number) => {
     const prev = contentH.current;
     contentH.current = h;
-    if (isReadOnly || !kbVisible || h <= prev) return;
+    if (isReadOnly || !kbVisible || h <= prev || prev === 0) return;
     const wasNearBottom = prev - (scrollY.current + viewportH.current) < 80;
     if (wasNearBottom) {
-      requestAnimationFrame(() =>
-        scrollRef.current?.scrollToEnd({ animated: false }),
-      );
+      scrollRef.current?.scrollToEnd({ animated: false });
     }
   };
 
@@ -257,6 +256,9 @@ export default function Editor({
 
   const dynamicEditorCss = `
     ${GabaritoFont}
+    html, body {
+      overflow: hidden;
+    }
     body, .ProseMirror {
       font-family: 'Gabarito', sans-serif !important;
     }
@@ -324,293 +326,297 @@ export default function Editor({
 
   return (
     <ImageBackground source={background} style={{ flex: 1 }} resizeMode="cover">
-    <SafeAreaView style={styles.container} edges={isReadOnly ? ["bottom", "left", "right"] : ["left", "right"]}>
-      <View style={styles.topBar}>
-        <View style={styles.leftHeaderGroup}>
-          <IconButton
-            icon="arrow-back"
-            label="Go back"
-            onPress={() => onBack?.()}
-            color={colors.text}
-          />
-          <Text
-            accessibilityRole="header"
-            style={styles.newJournalText}
-            numberOfLines={1}
-          >
-            {initialTitle
-              ? isReadOnly
-                ? "Journal Entry"
-                : "Edit Journal"
-              : "New Journal"}
-          </Text>
-        </View>
-        {isReadOnly ? (
-          <Animated.View style={[saveStyle, !canEdit && { display: "none" }]}>
-            <Button
-              label="Edit"
-              onPress={handleStartEditing}
-              size="sm"
-              style={{ width: 72 }}
+      <SafeAreaView style={styles.container} edges={isReadOnly ? ["bottom", "left", "right"] : ["left", "right"]}>
+        <View style={styles.topBar}>
+          <View style={styles.leftHeaderGroup}>
+            <IconButton
+              icon="arrow-back"
+              label="Go back"
+              onPress={() => onBack?.()}
+              color={colors.text}
             />
-          </Animated.View>
-        ) : (
-          <>
-            <AttachMenu
-              actions={[
-                {
-                  key: "media",
-                  icon: "images-outline",
-                  label: "Photo or video",
-                  onPress: handleAddMedia,
-                },
-                {
-                  key: "audio",
-                  icon: "musical-note-outline",
-                  label: "Audio file",
-                  onPress: handleAddAudio,
-                },
-                {
-                  key: "voice",
-                  icon: "mic-outline",
-                  label: "Record voice note",
-                  onPress: openRecorder,
-                },
-              ]}
-            />
-            <Animated.View style={saveStyle}>
+            <Text
+              accessibilityRole="header"
+              style={styles.newJournalText}
+              numberOfLines={1}
+            >
+              {initialTitle
+                ? isReadOnly
+                  ? "Journal Entry"
+                  : "Edit Journal"
+                : "New Journal"}
+            </Text>
+          </View>
+          {isReadOnly ? (
+            <Animated.View style={[saveStyle, !canEdit && { display: "none" }]}>
               <Button
-                label="Save"
-                onPress={handleSave}
+                label="Edit"
+                onPress={handleStartEditing}
                 size="sm"
                 style={{ width: 72 }}
               />
             </Animated.View>
-          </>
-        )}
-      </View>
-
-      <ScrollView
-        ref={scrollRef}
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        scrollEventThrottle={16}
-        onScroll={(e) => {
-          scrollY.current = e.nativeEvent.contentOffset.y;
-        }}
-        onLayout={(e) => {
-          viewportH.current = e.nativeEvent.layout.height;
-        }}
-        onContentSizeChange={handleContentSizeChange}
-      >
-        <TextInput
-          accessibilityLabel="Entry title"
-          style={styles.titleInput}
-          placeholder="Add title"
-          placeholderTextColor={colors.textMuted}
-          value={title}
-          onChangeText={setTitle}
-          editable={!isReadOnly}
-          returnKeyType="next"
-          onSubmitEditing={() => editor.focus()}
-        />
-
-        <View style={styles.metaRow}>
-          <PressableScale
-            disabled={isReadOnly}
-            onPress={openDatePicker}
-            accessibilityRole="button"
-            accessibilityLabel={`Date: ${displayDate}`}
-            style={styles.chip}
-          >
-            <Ionicons name="calendar-outline" size={16} color={colors.accent} />
-            <Text style={styles.chipText}>{displayDate}</Text>
-          </PressableScale>
-          <PressableScale
-            disabled={isReadOnly}
-            onPress={openTimePicker}
-            accessibilityRole="button"
-            accessibilityLabel={`Time: ${displayTime}`}
-            style={styles.chip}
-          >
-            <Ionicons name="time-outline" size={16} color={colors.accent} />
-            <Text style={styles.chipText}>{displayTime}</Text>
-          </PressableScale>
-          {(mood || !isReadOnly) && (
-            <PressableScale
-              disabled={isReadOnly}
-              onPress={openMoodPicker}
-              accessibilityRole="button"
-              accessibilityLabel={
-                mood ? `Mood: ${MOODS[mood].label}. Change mood` : "Add mood"
-              }
-              style={styles.chip}
-            >
-              {mood ? (
-                <>
-                  <MojiFace
-                    mood={mood}
-                    size={20}
-                    animated
-                    intro
-                    introDelay={isReadOnly ? 300 : 0}
-                   /* onBgChange = {(newMood:MoodKey) => {
-                    switch(newMood){
-                      case "angry":
-                        setBackground(require("@/assets/images/mood-backgrounds/angry.jpg"))
-                        break;
-                      case "anxious":
-                        setBackground(require("@/assets/images/mood-backgrounds/anxious.jpg"))
-                        break;
-                      case "awesome":
-                        setBackground(require("@/assets/images/mood-backgrounds/awesome.jpg"))
-                        break;
-                      case "calm":
-                        setBackground(require("@/assets/images/mood-backgrounds/calm.jpg"))
-                        break;
-                      case "happy":
-                        setBackground(require("@/assets/images/mood-backgrounds/happy.jpg"))
-                        break;
-                      case "meh":
-                        setBackground(require("@/assets/images/mood-backgrounds/meh.jpg"))
-                        break;
-                      case "sad":
-                        setBackground(require("@/assets/images/mood-backgrounds/sad.jpg"))
-                        break;
-                      default:
-                        break; 
-                    }
-                  }}*/
-                  />
-                  <Text style={styles.chipText}>{MOODS[mood].label}</Text>
-                </>
-              ) : (
-                <>
-                  <Ionicons name="happy-outline" size={16} color={colors.accent} />
-                  <Text style={styles.chipText}>Mood</Text>
-                </>
-              )}
-            </PressableScale>
+          ) : (
+            <>
+              <AttachMenu
+                actions={[
+                  {
+                    key: "media",
+                    icon: "images-outline",
+                    label: "Photo or video",
+                    onPress: handleAddMedia,
+                  },
+                  {
+                    key: "audio",
+                    icon: "musical-note-outline",
+                    label: "Audio file",
+                    onPress: handleAddAudio,
+                  },
+                  {
+                    key: "voice",
+                    icon: "mic-outline",
+                    label: "Record voice note",
+                    onPress: openRecorder,
+                  },
+                ]}
+              />
+              <Animated.View style={saveStyle}>
+                <Button
+                  label="Save"
+                  onPress={handleSave}
+                  size="sm"
+                  style={{ width: 72 }}
+                />
+              </Animated.View>
+            </>
           )}
         </View>
-        {isReadOnly && authorLabel ? (
-          <Text style={styles.authorText}>By {authorLabel}</Text>
-        ) : null}
 
-        {visual.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.mediaStrip}
-            contentContainerStyle={styles.mediaStripContent}
-          >
-            {visual.map((t) => (
-              <View style={{ width: 84, height: 84 }} key={t.key}>
-                <MediaThumb
-                  uri={t.uri}
-                  kind={t.kind as "image" | "video"}
-                  label={t.kind === "image" ? "Photo" : "Video"}
-                  hidden={viewing?.key === t.key}
-                  borderRadius={10}
-                  onOpen={(origin) =>
-                    setViewing({
-                      key: t.key,
-                      origin,
-                      item: {
-                        uri: t.uri,
-                        kind: t.kind as "image" | "video",
-                        width: t.width,
-                        height: t.height,
-                      },
-                    })
-                  }
-                  onRemove={isReadOnly ? undefined : t.remove}
-                />
-              </View>
-            ))}
-          </ScrollView>
-        )}
-        {audio.map((t) => (
-          <AudioRow
-            key={t.key}
-            uri={t.uri}
-            name={t.name}
-            durationMs={t.durationMs}
-            onRemove={isReadOnly ? undefined : t.remove}
-          />
-        ))}
-
-        <View style={styles.divider} />
-        <RichText
-          editor={editor}
-          style={styles.editor}
-          scrollEnabled={false}
-          bounces={false}
-          overScrollMode="never"
-        />
-      </ScrollView>
-      {!isReadOnly && (
-        <View
-          ref={toolbarWrapRef}
-          collapsable={false}
-          style={styles.toolbarContainer}
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { paddingBottom: 24 + (kbVisible ? kbHeight + TOOLBAR_H : 0) },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          onScroll={(e) => {
+            scrollY.current = e.nativeEvent.contentOffset.y;
+          }}
+          onLayout={(e) => {
+            viewportH.current = e.nativeEvent.layout.height;
+          }}
+          onContentSizeChange={handleContentSizeChange}
         >
-          <Toolbar editor={editor} />
-          <View style={{ height: kbVisible ? kbInset : bottom }} />
-        </View>
-      )}
-      <MediaViewer
-        item={viewing?.item ?? null}
-        origin={viewing?.origin ?? null}
-        onClose={() => setViewing(null)}
-      />
-      {recorderOpen && (
-        <VoiceRecorder
-          onDone={handleRecorded}
-          onCancel={() => setRecorderOpen(false)}
-        />
-      )}
-      <MoodPicker
-        isOpen={showMoodPicker}
-        value={mood}
-        onSelect={setMood}
-        onClose={() => setShowMoodPicker(false)}
-      />
-      <AppModal
-        title="Entry date"
-        isOpen={showDatePicker}
-        onClose={() => setShowDatePicker(false)}
-      >
-        <View style={{ alignItems: "center" }}>
-          <DatePicker
-            itemTextStyle={{ color: colors.text }}
-            date={entryDate}
-            onDateChanged={({ date }: { date: string }) => setEntryDate(date)}
+          <TextInput
+            accessibilityLabel="Entry title"
+            style={styles.titleInput}
+            placeholder="Add title"
+            placeholderTextColor={colors.textMuted}
+            value={title}
+            onChangeText={setTitle}
+            onFocus={() => setTitleFocused(true)}
+            onBlur={() => setTitleFocused(false)}
+            editable={!isReadOnly}
+            returnKeyType="next"
+            onSubmitEditing={() => editor.focus()}
           />
-        </View>
-        <Button
-          label="Done"
-          onPress={() => setShowDatePicker(false)}
-          style={{ marginTop: 16 }}
+
+          <View style={styles.metaRow}>
+            <PressableScale
+              disabled={isReadOnly}
+              onPress={openDatePicker}
+              accessibilityRole="button"
+              accessibilityLabel={`Date: ${displayDate}`}
+              style={styles.chip}
+            >
+              <Ionicons name="calendar-outline" size={16} color={colors.accent} />
+              <Text style={styles.chipText}>{displayDate}</Text>
+            </PressableScale>
+            <PressableScale
+              disabled={isReadOnly}
+              onPress={openTimePicker}
+              accessibilityRole="button"
+              accessibilityLabel={`Time: ${displayTime}`}
+              style={styles.chip}
+            >
+              <Ionicons name="time-outline" size={16} color={colors.accent} />
+              <Text style={styles.chipText}>{displayTime}</Text>
+            </PressableScale>
+            {(mood || !isReadOnly) && (
+              <PressableScale
+                disabled={isReadOnly}
+                onPress={openMoodPicker}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  mood ? `Mood: ${MOODS[mood].label}. Change mood` : "Add mood"
+                }
+                style={styles.chip}
+              >
+                {mood ? (
+                  <>
+                    <MojiFace
+                      mood={mood}
+                      size={20}
+                      animated
+                      intro
+                      introDelay={isReadOnly ? 300 : 0}
+                    /* onBgChange = {(newMood:MoodKey) => {
+                     switch(newMood){
+                       case "angry":
+                         setBackground(require("@/assets/images/mood-backgrounds/angry.jpg"))
+                         break;
+                       case "anxious":
+                         setBackground(require("@/assets/images/mood-backgrounds/anxious.jpg"))
+                         break;
+                       case "awesome":
+                         setBackground(require("@/assets/images/mood-backgrounds/awesome.jpg"))
+                         break;
+                       case "calm":
+                         setBackground(require("@/assets/images/mood-backgrounds/calm.jpg"))
+                         break;
+                       case "happy":
+                         setBackground(require("@/assets/images/mood-backgrounds/happy.jpg"))
+                         break;
+                       case "meh":
+                         setBackground(require("@/assets/images/mood-backgrounds/meh.jpg"))
+                         break;
+                       case "sad":
+                         setBackground(require("@/assets/images/mood-backgrounds/sad.jpg"))
+                         break;
+                       default:
+                         break; 
+                     }
+                   }}*/
+                    />
+                    <Text style={styles.chipText}>{MOODS[mood].label}</Text>
+                  </>
+                ) : (
+                  <>
+                    <Ionicons name="happy-outline" size={16} color={colors.accent} />
+                    <Text style={styles.chipText}>Mood</Text>
+                  </>
+                )}
+              </PressableScale>
+            )}
+          </View>
+          {isReadOnly && authorLabel ? (
+            <Text style={styles.authorText}>By {authorLabel}</Text>
+          ) : null}
+
+          {visual.length > 0 && (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.mediaStrip}
+              contentContainerStyle={styles.mediaStripContent}
+            >
+              {visual.map((t) => (
+                <View style={{ width: 84, height: 84 }} key={t.key}>
+                  <MediaThumb
+                    uri={t.uri}
+                    kind={t.kind as "image" | "video"}
+                    label={t.kind === "image" ? "Photo" : "Video"}
+                    hidden={viewing?.key === t.key}
+                    borderRadius={10}
+                    onOpen={(origin) =>
+                      setViewing({
+                        key: t.key,
+                        origin,
+                        item: {
+                          uri: t.uri,
+                          kind: t.kind as "image" | "video",
+                          width: t.width,
+                          height: t.height,
+                        },
+                      })
+                    }
+                    onRemove={isReadOnly ? undefined : t.remove}
+                  />
+                </View>
+              ))}
+            </ScrollView>
+          )}
+          {audio.map((t) => (
+            <AudioRow
+              key={t.key}
+              uri={t.uri}
+              name={t.name}
+              durationMs={t.durationMs}
+              onRemove={isReadOnly ? undefined : t.remove}
+            />
+          ))}
+
+          <View style={styles.divider} />
+          <RichText
+            editor={editor}
+            style={styles.editor}
+            scrollEnabled={false}
+            bounces={false}
+            overScrollMode="never"
+          />
+        </ScrollView>
+        {!isReadOnly && (
+          <KeyboardAvoidingView
+            behavior="padding"
+            style={styles.keyboardToolbarContainer}
+            keyboardVerticalOffset={top}
+          >
+            <Toolbar editor={editor} />
+          </KeyboardAvoidingView>
+        )}
+        <MediaViewer
+          item={viewing?.item ?? null}
+          origin={viewing?.origin ?? null}
+          onClose={() => setViewing(null)}
         />
-      </AppModal>
-      <AppModal
-        title="Entry time"
-        isOpen={showTimePicker}
-        onClose={() => setShowTimePicker(false)}
-      >
-        <View style={{ alignItems: "center" }}>
-          <TimeWheel value={entryTime} onChange={setEntryTime} />
-        </View>
-        <Button
-          label="Done"
-          onPress={() => setShowTimePicker(false)}
-          style={{ marginTop: 16 }}
+        {recorderOpen && (
+          <VoiceRecorder
+            onDone={handleRecorded}
+            onCancel={() => setRecorderOpen(false)}
+          />
+        )}
+        <MoodPicker
+          isOpen={showMoodPicker}
+          value={mood}
+          onSelect={setMood}
+          onClose={() => setShowMoodPicker(false)}
         />
-      </AppModal>
-    </SafeAreaView>
+        <AppModal
+          title="Entry date"
+          isOpen={showDatePicker}
+          onClose={() => setShowDatePicker(false)}
+        >
+          <View style={{ alignItems: "center" }}>
+            <DatePicker
+              itemTextStyle={{ color: colors.text }}
+              date={entryDate}
+              onDateChanged={({ date }: { date: string }) => setEntryDate(date)}
+            />
+          </View>
+          <Button
+            label="Done"
+            onPress={() => setShowDatePicker(false)}
+            style={{ marginTop: 16 }}
+          />
+        </AppModal>
+        <AppModal
+          title="Entry time"
+          isOpen={showTimePicker}
+          onClose={() => setShowTimePicker(false)}
+        >
+          <View style={{ alignItems: "center" }}>
+            <TimeWheel value={entryTime} onChange={setEntryTime} />
+          </View>
+          <Button
+            label="Done"
+            onPress={() => setShowTimePicker(false)}
+            style={{ marginTop: 16 }}
+          />
+        </AppModal>
+      </SafeAreaView>
     </ImageBackground>
   );
 }

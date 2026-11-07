@@ -1,4 +1,11 @@
-import { and, count, desc, eq, getTableColumns, sql } from "drizzle-orm";
+import {
+  and,
+  countDistinct,
+  desc,
+  eq,
+  getTableColumns,
+  sql,
+} from "drizzle-orm";
 import * as Crypto from "expo-crypto";
 import { db } from ".";
 import type { DiaryColorKey } from "../constants/colors";
@@ -15,8 +22,8 @@ export const getAllDiaries = async (): Promise<Diary[]> => {
   return await db
     .select({
       ...getTableColumns(diaries),
-      entryCount: count(entries.id),
-      memberCount: count(members.userId),
+      entryCount: countDistinct(entries.id),
+      memberCount: countDistinct(members.userId),
     })
     .from(diaries)
     .leftJoin(

@@ -14,6 +14,17 @@ const PROMPTS = [
 
 const AVATAR_SIZE = 48;
 
+const GREETINGS = ["Hey", "Hi", "Hello", "Sup", "Yo", "Howdy", "Heya", "Hiya"];
+const MORNING = ["Mornin'", "G'Day"];
+const EVENING = ["Evenin", "G'Eve", "Eve"];
+
+function pickGreeting() {
+  const h = new Date().getHours();
+  const timed = h >= 5 && h < 12 ? MORNING : h >= 17 && h < 22 ? EVENING : [];
+  const pool = [...GREETINGS, ...timed];
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
 type GreetingHeaderProps = {
   name: string;
   photoUri?: string | null;
@@ -33,6 +44,7 @@ export default function GreetingHeader({
     [],
   );
 
+  const greeting = useMemo(pickGreeting, []);
   const showPhoto = !!photoUri && !imageFailed;
   const avatarStyle = {
     width: AVATAR_SIZE,
@@ -61,7 +73,7 @@ export default function GreetingHeader({
             fontSize: fontSizes.xxl,
           }}
         >
-          Hey, {name}!
+          {greeting}, {name}!
         </Text>
         <Text style={{ color: colors.textMuted, marginTop: spacing.xs }}>
           {prompt}
