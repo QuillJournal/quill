@@ -25,7 +25,14 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: 24
-          cache: npm
+
+      - name: Cache npm dependencies
+        uses: useblacksmith/cache@v5
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
 
       - name: Setup JDK
         uses: actions/setup-java@v6
@@ -33,10 +40,15 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Setup Gradle (with caching)
-        uses: gradle/actions/setup-gradle@v6
+      - name: Cache Gradle
+        uses: useblacksmith/cache@v5
         with:
-          cache-provider: basic
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
 
       - name: Install dependencies
         run: npm ci
