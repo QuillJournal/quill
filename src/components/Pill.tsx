@@ -1,5 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Animated, Pressable, StyleSheet, Text } from "react-native";
+import {
+  Animated,
+  Pressable,
+  StyleProp,
+  StyleSheet,
+  Text,
+  ViewStyle,
+} from "react-native";
 import { radius } from "../constants/radius";
 import { spacing } from "../constants/spacings";
 import usePressAnimation from "../hooks/usePressAnimation";
@@ -12,6 +19,8 @@ type PillProps = {
   onPress?: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
+  style: StyleProp<ViewStyle>;
+  children?: React.ReactNode;
 };
 
 export default function Pill({
@@ -21,12 +30,17 @@ export default function Pill({
   onPress,
   icon,
   iconColor,
+  style,
+  children,
 }: PillProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const fromColor = selected ? colors.cardPressed : colors.surface;
   const toColor = selected ? colors.surface : colors.cardPressed;
-  const { animatePress, animatedColor } = usePressAnimation(fromColor, toColor);
+  const { animatePress, animatedColor } = usePressAnimation(
+    colors.surface,
+    colors.cardPressed,
+  );
 
   return (
     <Pressable
@@ -37,7 +51,13 @@ export default function Pill({
       hitSlop={10}
     >
       <Animated.View
-        style={[styles.container, { backgroundColor: animatedColor }]}
+        style={[
+          styles.container,
+          selected
+            ? { backgroundColor: colors.cardPressed }
+            : { backgroundColor: animatedColor },
+          style,
+        ]}
       >
         {icon && (
           <Ionicons
@@ -47,6 +67,7 @@ export default function Pill({
           />
         )}
         <Text style={styles.text}>{text}</Text>
+        {children}
       </Animated.View>
     </Pressable>
   );

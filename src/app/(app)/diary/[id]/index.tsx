@@ -1,5 +1,6 @@
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import DiaryMembersModal from "@/src/components/DiaryMembersModal";
+import ViewMenuButton from "@/src/components/entries/ViewMenuButton";
 import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import TutorialTooltip from "@/src/components/TutorialTooltip";
@@ -17,6 +18,7 @@ import { deleteEntryWithMedia } from "@/src/services/attachments";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { Attachment } from "@/src/types/attachment";
 import type { DiaryRow } from "@/src/types/diary";
+import { ViewType } from "@/src/types/diary";
 import { toDateKey } from "@/src/utils/dates";
 import { pluralize } from "@/src/utils/pluralize";
 import { Ionicons } from "@expo/vector-icons";
@@ -101,6 +103,13 @@ export default function DiaryScreen() {
   const scheme = useColorScheme() === "dark" ? "dark" : "light";
   const diaryAccent = resolveDiaryColor(diaryRow?.color ?? "white", scheme);
   const styles = getStyles(colors, diaryAccent, insets.top);
+
+  const [selectedView, setSelectedView] = useState<ViewType>("list");
+  const [showSwitcher, setShowSwitcher] = useState(false);
+
+  const handleSelectView = (view: ViewType) => {
+    setSelectedView(view);
+  };
 
   useEffect(() => {
     if (!Number.isInteger(diaryId) || !openDiary(diaryId)) closeDiary();
@@ -203,6 +212,7 @@ export default function DiaryScreen() {
           </TouchableOpacity>
         </TutorialTooltip>
       </View>
+
       <EntriesList
         entries={entries}
         media={media}
@@ -216,6 +226,7 @@ export default function DiaryScreen() {
           router.push(`/(app)/diary/${diaryId}/entries/${entry.id}`);
         }}
         onDeleteEntry={(entryId) => handleDeleteEntry(entryId)}
+        selectedView={selectedView}
       />
       <View
         pointerEvents="box-none"
@@ -281,6 +292,7 @@ const getStyles = (
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       gap: 12,
+      marginBottom: 10,
     },
     iconButton: {
       width: 36,
