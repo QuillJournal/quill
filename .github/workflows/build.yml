@@ -3,6 +3,11 @@ name: Build Android (Debug & Release)
 on:
   workflow_dispatch:
   push:
+    paths-ignore:
+      - ".github/**"
+      - "*.md"
+      - "docs/**"
+      - ".gitignore"
 
 jobs:
   android:
@@ -11,8 +16,7 @@ jobs:
     env:
       EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       EXPO_PUBLIC_SUPABASE_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-      # Allocate adequate JVM heap to prevent aggressive GC cycles on the 2-core runner
-      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -Dorg.gradle.parallel=true -Dorg.gradle.vfs.watch=false"
+      GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx6144m -XX:MaxMetaspaceSize=1536m -Dorg.gradle.parallel=true -Dorg.gradle.vfs.watch=false"
     steps:
       - name: Checkout
         uses: useblacksmith/checkout@v1
@@ -43,17 +47,16 @@ jobs:
       - name: Force debug signing on release builds
         run: |
           sed -i 's/signingConfig signingConfigs.release/signingConfig signingConfigs.debug/g' android/app/build.gradle || true
-          # Fallback if Expo generated signingConfig with debug under a condition or omitted it:
           if ! grep -q "signingConfig signingConfigs.debug" android/app/build.gradle; then
             sed -i '/buildTypes {/,/release {/ { /release {/a \            signingConfig signingConfigs.debug
             }' android/app/build.gradle
           fi
 
-      - name: Build Debug & Release APKs
+      - name: Build Debug APK
         working-directory: android
         run: |
           chmod +x ./gradlew
-          ./gradlew assembleDebug assembleRelease -PreactNativeArchitectures=arm64-v8a --build-cache
+          ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a --build-cache
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v7
@@ -61,6 +64,11 @@ jobs:
           name: android-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
+
+      - name: Build Release APK
+        working-directory: android
+        run: |
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --build-cache
 
       - name: Upload Release APK
         uses: actions/upload-artifact@v7
