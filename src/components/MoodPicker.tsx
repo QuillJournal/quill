@@ -108,35 +108,35 @@ export default function MoodPicker({ isOpen, value, onSelect, onClose }: Props) 
     }
   };
 
+
+  const burst = burstMood ? (
+    <View style={styles.burstOverlay} pointerEvents="none">
+      <Animated.View
+        style={[
+          styles.burstCard,
+          {
+            opacity: burstOpacity,
+            transform: [{ scale: burstScale }],
+          },
+        ]}
+      >
+        <AnimatedMojiFace
+          key={burstMood}
+          mood={burstMood}
+          size={148}
+          intro
+          startDelay={0}
+        />
+      </Animated.View>
+    </View>
+  ) : null;
+
   return (
+    <>
     <AppModal
       title="How are you feeling?"
       isOpen={isOpen}
       onClose={onClose}
-      keepMounted={burstMood !== null}
-      overlay={
-        burstMood ? (
-          <View style={styles.burstOverlay} pointerEvents="none">
-            <Animated.View
-              style={[
-                styles.burstCard,
-                {
-                  opacity: burstOpacity,
-                  transform: [{ scale: burstScale }],
-                },
-              ]}
-            >
-              <AnimatedMojiFace
-                key={burstMood}
-                mood={burstMood}
-                size={148}
-                intro
-                startDelay={0}
-              />
-            </Animated.View>
-          </View>
-        ) : null
-      }
     >
       <View style={styles.grid}>
         {MOOD_KEYS.map((key) => {
@@ -169,6 +169,8 @@ export default function MoodPicker({ isOpen, value, onSelect, onClose }: Props) 
         mood to clear it.
       </Text>
     </AppModal>
+    {burst}
+    </>
   );
 }
 
@@ -215,11 +217,12 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       ...StyleSheet.absoluteFill,
       alignItems: "center",
       justifyContent: "center",
+      zIndex: 10,
     },
     burstCard: {
       alignItems: "center",
       justifyContent: "center",
-      shadowColor: "#000",
+      shadowColor: colors.shadow,
       shadowOffset: { width: 0, height: 12 },
       shadowOpacity: 0.22,
       shadowRadius: 20,
