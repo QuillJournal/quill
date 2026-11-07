@@ -5,7 +5,6 @@ import PrivateSvg from "@/assets/images/private.svg";
 import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import useTheme from "@/src/hooks/useTheme";
-import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import LottieView from "lottie-react-native";
 import type { FC } from "react";
@@ -25,6 +24,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { SvgProps } from "react-native-svg";
 import Button from "../components/Button";
+import { trampoline, trampolineBeats } from "../services/hapticPatterns";
+import { playTimeline } from "../services/haptics";
 const width:number = Dimensions.get("window").width;
 
 type Page = { photo?: FC<SvgProps>; lottie?: boolean; text: string; subtext: string };
@@ -32,7 +33,7 @@ type Page = { photo?: FC<SvgProps>; lottie?: boolean; text: string; subtext: str
 const LOTTIE_FILE = require("@/assets/images/orgasm.lottie");
 const LOTTIE_FPS = 30;
 const LOTTIE_FRAMES = 165;
-const HAPTIC_FRAMES = [10, 40, 65, 90, 120, 150];
+const LOOP_MS = (LOTTIE_FRAMES / LOTTIE_FPS) * 1000;
 
 const AnimatedLottieView = Animated.createAnimatedComponent(LottieView);
 
@@ -41,39 +42,46 @@ function OrgasmLottie({ active, size }: { active: boolean; size: number }) {
 
     useEffect(() => {
         if (!active) {
-            progress.stopAnimation();
             progress.setValue(0);
             return;
         }
-        let last = 0;
-        let fired = new Set<number>();
-        const id = progress.addListener(({ value }) => {
-            if (value < last) fired = new Set();
-            last = value;
-            const frame = value * LOTTIE_FRAMES;
-            HAPTIC_FRAMES.forEach((f) => {
-                if (!fired.has(f) && frame >= f - 1) {
-                    fired.add(f);
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                }
-            });
-        });
-        const loop = Animated.loop(
-            Animated.timing(progress, {
+
+        let stopped = false;
+        let anim: Animated.CompositeAnimation | null = null;
+        let stopHaptics = () => {};
+
+        const runLoop = () => {
+            if (stopped) return;
+            progress.setValue(0);
+            stopHaptics();
+            stopHaptics = playTimeline(trampoline, trampolineBeats);
+            anim = Animated.timing(progress, {
                 toValue: 1,
-                duration: (LOTTIE_FRAMES / LOTTIE_FPS) * 1000,
+                duration: LOOP_MS,
                 easing: Easing.linear,
                 useNativeDriver: false,
-            })
-        );
-        loop.start();
+            });
+            anim.start(({ finished }) => {
+                if (finished) runLoop();
+            });
+        };
+        runLoop();
+
         return () => {
-            loop.stop();
-            progress.removeListener(id);
+            stopped = true;
+            anim?.stop();
+            stopHaptics();
+            progress.setValue(0);
         };
     }, [active, progress]);
 
-    return <AnimatedLottieView source={LOTTIE_FILE} progress={progress} style={{ width: size, height: size }} />;
+    return (
+        <AnimatedLottieView
+        source={LOTTIE_FILE}
+        progress={progress}
+        style={{ width: size, height: size }}
+        />
+    );
 }
 
 export default function Intro(){
@@ -86,7 +94,7 @@ export default function Intro(){
         {photo: PrivateSvg, text: "Private by design.", subtext: "Quill was built with privacy and security in mind from the ground up. Quill is engineered to use the latest cryptographic techniques to ensure zero-knowledge end to end encryption for your data. This means that no one except you and the people you choose can see your data - not even us."},
         {photo: OSS, text: "Open Source.", subtext: "The app is open source on GitHub - so you can audit the code yourself, or create your own build for complete privacy and even setup a local home server to access it without internet anytime."},
         {photo: MoodSvg, text: "Add moods and share diaries.", subtext: "Create a shared diary with your friends - and write your life's moments in it. Add your mood to the entry to let your friends know how you're feeling and reflect on your feelings!"},
-        {lottie: true, text: "Orgasmic experience.", subtext: "Animations, art, design and haptics so good you'll get an orgasm."},
+        {lottie: true, text: "Pleasing experience.", subtext: "We've created the app's lovely art, animations, tactile haptics, and interface to make every click & tap feel alive."},
     ]
     const loopedPages = [...pages, pages[0]];
     const [page, setPage] = useState(0);

@@ -84,3 +84,61 @@ export const moodOpenNegative: HapticEvent[] = [
     sharpness: 0.1,
   },
 ];
+
+const FPS = 30;
+const fr = (frame: number) => frame / FPS;
+
+const c = (
+  time: number,
+  duration: number,
+  intensity: number,
+  endIntensity: number,
+  sharpness: number,
+): HapticEvent => ({
+  type: "continuous",
+  time,
+  duration,
+  intensity,
+  endIntensity,
+  sharpness,
+});
+
+const TRAMP_CYCLE = 55;
+const TRAMP_JUMPS = [
+  { touchdown: 10, bottom: 12, release: 15, apex: 27, launch: false },
+  { touchdown: 37, bottom: 39, release: 42, apex: 54, launch: true },
+];
+const TRAMP_GAIN = [0.55, 0.8, 0.65, 0.9, 0.75, 1];
+
+export const trampoline: HapticEvent[] = [0, 1, 2].flatMap((cycle) =>
+  TRAMP_JUMPS.flatMap((j, k) => {
+    const g = TRAMP_GAIN[cycle * 2 + k];
+    const o = cycle * TRAMP_CYCLE;
+    const td = fr(o + j.touchdown);
+    const bt = fr(o + j.bottom);
+    const rl = fr(o + j.release);
+    const air = fr(j.apex - j.release);
+    return [
+      t(td, 0.45 * g, 0.35),
+      c(td, bt - td, 0.25 * g, 0.7 * g, 0.1),
+      t(bt, 0.8 * g, 0.15),
+      c(bt, rl - bt, 0.7 * g, 0.9 * g, 0.1),
+      t(rl, g, 1),
+      c(rl, air, (j.launch ? 0.5 : 0.3) * g, 0, 0.45),
+    ];
+  }),
+);
+
+export const trampolineBeats: [
+  ms: number,
+  style: "light" | "medium" | "rigid",
+][] = [0, 1, 2].flatMap((cycle) =>
+  TRAMP_JUMPS.flatMap((j): [number, "light" | "medium" | "rigid"][] => {
+    const o = cycle * TRAMP_CYCLE;
+    return [
+      [(fr(o + j.touchdown) * 1000) | 0, "light"],
+      [(fr(o + j.bottom) * 1000) | 0, "medium"],
+      [(fr(o + j.release) * 1000) | 0, "rigid"],
+    ];
+  }),
+);

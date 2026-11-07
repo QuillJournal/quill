@@ -96,3 +96,18 @@ export const playEvents = (events: Parameters<typeof engine.play>[0]) => {
 };
 
 export const isHapticsEnabled = () => enabled;
+
+export function playTimeline(
+  events: Parameters<typeof engine.play>[0],
+  beats: [ms: number, style: Style][],
+) {
+  if (!enabled || Platform.OS === "web") return () => {};
+  if (engine.isSupported()) {
+    engine.play(events);
+    return () => engine.cancel();
+  }
+  const timers = beats.map(([ms, s]) =>
+    setTimeout(() => Haptics.impactAsync(STYLE[s]).catch(() => {}), ms),
+  );
+  return () => timers.forEach(clearTimeout);
+}
