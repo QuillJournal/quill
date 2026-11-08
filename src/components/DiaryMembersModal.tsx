@@ -201,7 +201,7 @@ export default function DiaryMembersModal({
               ]}
             >
               <FormField
-                label="INVITE COLLABORATOR"
+                label="Invite Members"
                 value={inviteUsername}
                 onChangeText={(t) =>
                   setInviteUsername(t.toLowerCase().replace(/[^a-z0-9_]/g, ""))
@@ -236,13 +236,12 @@ export default function DiaryMembersModal({
               value={sharePhoto}
               onValueChange={handleToggleSharePhoto}
               trackColor={{ false: colors.border, true: diaryAccent }}
-              thumbColor={sharePhoto ? colors.background || '#FFFFFF' : '#F4F3F4'}
               ios_backgroundColor={colors.border}
             />
           </View>
 
           <Text style={[styles.sectionHeader, { color: colors.textMuted }]}>
-            MEMBERS
+            Members
           </Text>
 
           {loading ? (

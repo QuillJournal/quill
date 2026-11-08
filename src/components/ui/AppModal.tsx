@@ -94,7 +94,7 @@ export default function AppModal({
         if (gestureState.dy > 0) {
           translateY.setValue(gestureState.dy);
         } else {
-          translateY.setValue(0);
+          translateY.setValue(-Math.min(Math.sqrt(-gestureState.dy) * 2.5, 24));
         }
       },
       onPanResponderRelease: (_, gestureState) => {
@@ -147,6 +147,17 @@ export default function AppModal({
               },
             ]}
           >
+            <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: "100%",
+              height: 40,
+              backgroundColor: colors.surface,
+            }}
+            />
             <View {...panResponder.panHandlers} style={styles.dragZone}>
               <View
                 style={[
