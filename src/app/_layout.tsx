@@ -310,15 +310,20 @@ function AppNavigator() {
     });
     return () => unsubscribe();
   }, []);
-
+  console.log({decryptBaseline})
   const isSignedIn = supabaseSession !== null;
   const isNavReady =
    isFontsLoaded && isDbMigrated && !isAuthLoading && !isRecovering;
 
   const closeDecryptGate = useCallback(() => {
     decryptGateDone.current = true;
+    setGateChecked(true);
     setDecryptBaseline(null);
-  }, []);
+    const resumeDiaryId = getResumeDiaryId();
+    router.replace(
+      resumeDiaryId === null ? "/(app)" : `/(app)/diary/${resumeDiaryId}`,
+    );
+  }, [router]);
 
   useEffect(() => {
     if (!isNavReady) return;

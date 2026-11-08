@@ -74,6 +74,34 @@ function updateProgress(patch: Partial<SyncProgressState>) {
   progressListeners.forEach((fn) => fn(progressState));
 }
 
+const SYNC_REQUEST_TIMEOUT_MS = 15_000;
+
+async function withSyncRequestTimeout<T>(
+  request: (signal: AbortSignal) => PromiseLike<T>,
+  description: string,
+): Promise<T> {
+  const controller = new AbortController();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    const requestPromise: Promise<T> = Promise.resolve().then(() =>
+      request(controller.signal),
+    );
+    const timeoutPromise = new Promise<T>((_, reject) => {
+        timeout = setTimeout(() => {
+          controller.abort();
+          reject(new Error(`${description} timed out.`));
+        }, SYNC_REQUEST_TIMEOUT_MS);
+      });
+    return await Promise.race<T>([requestPromise, timeoutPromise]);
+  } catch (error) {
+    console.warn(`[Sync] ${description} failed:`, error);
+    throw error;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
 export function getSyncRuns(): number {
   return progressState.runs;
 }
@@ -205,13 +233,19 @@ async function pushPendingDiaries(session: {
       { diaryId: remoteId, keyEpoch: diary.keyEpoch },
     );
 
-    const { error } = await supabase.rpc("create_diary", {
-      p_id: remoteId,
-      p_meta_blob: metaBlob,
-      p_wrapped_key: wrappedKey,
-      p_wrapped_sig: wrappedSig,
-      p_member_blob: null,
-    });
+    const { error } = await withSyncRequestTimeout(
+      (signal) =>
+        supabase
+          .rpc("create_diary", {
+            p_id: remoteId,
+            p_meta_blob: metaBlob,
+            p_wrapped_key: wrappedKey,
+            p_wrapped_sig: wrappedSig,
+            p_member_blob: null,
+          })
+          .abortSignal(signal),
+      `Creating diary ${diary.name}`,
+    );
 
     if (!error || error.message?.includes("duplicate key")) {
       await db
@@ -246,9 +280,13 @@ async function resolveSignPub(
   if (cache.has(userId)) return cache.get(userId) ?? null;
 
   let signPub: string | null = null;
-  const { data, error } = await supabase.rpc("get_public_bundle", {
-    p_user_id: userId,
-  });
+  const { data, error } = await withSyncRequestTimeout(
+    (signal) =>
+      supabase
+        .rpc("get_public_bundle", { p_user_id: userId })
+        .abortSignal(signal),
+    `Fetching signing keys for ${ctx}`,
+  );
   const bundle = !error && Array.isArray(data) ? data[0] : null;
   if (
     bundle &&
@@ -324,12 +362,17 @@ async function isWrappedKeyTrusted(
 }
 
 async function syncDiariesAndMembers(session: SyncSession) {
-  const { data: memberRows, error } = await supabase
-    .from("diary_members")
-    .select(
-      "diary_id, role, wrapped_key, wrapped_by, wrapped_sig, key_epoch, member_blob, diaries(id, owner_id, meta_blob, key_epoch)",
-    )
-    .eq("user_id", session.userId);
+  const { data: memberRows, error } = await withSyncRequestTimeout(
+    (signal) =>
+      supabase
+        .from("diary_members")
+        .select(
+          "diary_id, role, wrapped_key, wrapped_by, wrapped_sig, key_epoch, member_blob, diaries(id, owner_id, meta_blob, key_epoch)",
+        )
+        .eq("user_id", session.userId)
+        .abortSignal(signal),
+    "Fetching diary memberships",
+  );
 
   if (error || !memberRows) return;
 
@@ -488,20 +531,25 @@ async function pushOfflineEntryQueue(session: FullSession) {
         ed25519Priv,
         mldsa65Priv,
       );
-      const { data, error } = await supabase
-        .from("entries")
-        .insert({
-          id: remoteEntryId,
-          diary_id: diary.remoteId,
-          author_id: currentUserId,
-          blob: blobHex,
-          sig,
-          key_epoch: entry.keyEpoch,
-          version: 1,
-          deleted: false,
-        })
-        .select("change_seq, version")
-        .single();
+      const { data, error } = await withSyncRequestTimeout(
+        (signal) =>
+          supabase
+            .from("entries")
+            .insert({
+              id: remoteEntryId,
+              diary_id: diary.remoteId,
+              author_id: currentUserId,
+              blob: blobHex,
+              sig,
+              key_epoch: entry.keyEpoch,
+              version: 1,
+              deleted: false,
+            })
+            .select("change_seq, version")
+            .abortSignal(signal)
+            .single(),
+        `Uploading entry ${remoteEntryId}`,
+      );
       if (error)
         console.warn(
           `[Sync] ${entry.syncState} ${remoteEntryId} failed:`,
@@ -554,17 +602,22 @@ async function pushOfflineEntryQueue(session: FullSession) {
         ed25519Priv,
         mldsa65Priv,
       );
-      const { data, error } = await supabase
-        .from("entries")
-        .update({
-          blob: blobHex,
-          version: nextVersion,
-          sig,
-        })
-        .eq("id", remoteEntryId)
-        .eq("version", entry.version)
-        .select("change_seq, version")
-        .single();
+      const { data, error } = await withSyncRequestTimeout(
+        (signal) =>
+          supabase
+            .from("entries")
+            .update({
+              blob: blobHex,
+              version: nextVersion,
+              sig,
+            })
+            .eq("id", remoteEntryId)
+            .eq("version", entry.version)
+            .select("change_seq, version")
+            .abortSignal(signal)
+            .single(),
+        `Updating entry ${remoteEntryId}`,
+      );
       if (error)
         console.warn(
           `[Sync] ${entry.syncState} ${remoteEntryId} failed:`,
@@ -599,13 +652,18 @@ async function pushOfflineEntryQueue(session: FullSession) {
         mldsa65Priv,
       );
 
-      const { data, error } = await supabase
-        .from("entries")
-        .update({ deleted: true, blob: "", version: nextVersion, sig })
-        .eq("id", remoteEntryId)
-        .eq("version", entry.version)
-        .select("change_seq, version")
-        .single();
+      const { data, error } = await withSyncRequestTimeout(
+        (signal) =>
+          supabase
+            .from("entries")
+            .update({ deleted: true, blob: "", version: nextVersion, sig })
+            .eq("id", remoteEntryId)
+            .eq("version", entry.version)
+            .select("change_seq, version")
+            .abortSignal(signal)
+            .single(),
+        `Deleting entry ${remoteEntryId}`,
+      );
       if (error)
         console.warn(
           `[Sync] ${entry.syncState} ${remoteEntryId} failed:`,
@@ -651,14 +709,19 @@ async function pullRemoteEntries(session: FullSession) {
 
     const cursor = Math.max(0, (diary.lastSyncedSeq || 0) - 50);
 
-    const { data: remoteEntries, error } = await supabase
-      .from("entries")
-      .select(
-        "id, diary_id, author_id, blob, sig, key_epoch, version, deleted, change_seq, created_at, updated_at",
-      )
-      .eq("diary_id", diary.remoteId)
-      .gt("change_seq", cursor)
-      .order("change_seq", { ascending: true });
+    const { data: remoteEntries, error } = await withSyncRequestTimeout(
+      (signal) =>
+        supabase
+          .from("entries")
+          .select(
+            "id, diary_id, author_id, blob, sig, key_epoch, version, deleted, change_seq, created_at, updated_at",
+          )
+          .eq("diary_id", diary.remoteId)
+          .gt("change_seq", cursor)
+          .order("change_seq", { ascending: true })
+          .abortSignal(signal),
+      `Fetching entries for diary ${diaryNo} of ${localDiaries.length}`,
+    );
 
     if (error || !remoteEntries || remoteEntries.length === 0) continue;
 
@@ -854,29 +917,51 @@ async function pullRemoteEntries(session: FullSession) {
 }
 
 async function pullInvites(currentUserId: string) {
-  const { data: invites, error } = await supabase
-    .from("diary_invites")
-    .select(
-      "id, diary_id, inviter_id, wrapped_key, wrapped_sig, preview_blob, key_epoch, created_at",
-    )
-    .eq("invitee_id", currentUserId);
+  const controller = new AbortController();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
 
-  if (error || !invites) return;
+  try {
+    const result = await Promise.race([
+      supabase
+        .from("diary_invites")
+        .select(
+          "id, diary_id, inviter_id, wrapped_key, wrapped_sig, preview_blob, key_epoch, created_at",
+        )
+        .eq("invitee_id", currentUserId)
+        .abortSignal(controller.signal),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          controller.abort();
+          reject(new Error("Fetching diary invites timed out."));
+        }, 15_000);
+      }),
+    ]);
 
-  for (const inv of invites) {
-    await db
-      .insert(diaryInvitesTable)
-      .values({
-        id: inv.id,
-        diaryRemoteId: inv.diary_id,
-        inviterId: inv.inviter_id,
-        wrappedKey: inv.wrapped_key,
-        wrappedSig: inv.wrapped_sig,
-        previewBlob: inv.preview_blob,
-        keyEpoch: inv.key_epoch,
-        createdAt: inv.created_at,
-      })
-      .onConflictDoNothing();
+    if (result.error) {
+      console.warn("[Sync] Could not fetch diary invites:", result.error.message);
+      return;
+    }
+    if (!result.data) return;
+
+    for (const inv of result.data) {
+      await db
+        .insert(diaryInvitesTable)
+        .values({
+          id: inv.id,
+          diaryRemoteId: inv.diary_id,
+          inviterId: inv.inviter_id,
+          wrappedKey: inv.wrapped_key,
+          wrappedSig: inv.wrapped_sig,
+          previewBlob: inv.preview_blob,
+          keyEpoch: inv.key_epoch,
+          createdAt: inv.created_at,
+        })
+        .onConflictDoNothing();
+    }
+  } catch (requestError) {
+    console.warn("[Sync] Could not fetch diary invites:", requestError);
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 }
 

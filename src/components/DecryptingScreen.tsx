@@ -32,22 +32,16 @@ export default function DecryptingScreen() {
     const { colors } = useTheme();
     const { label, fraction, phase, runs } = useSyncProgress();
     const { baseline, finish } = useContext(DecryptGateContext);
+    console.log({phase,baseline,runs})
 
-    const livePhase = phase === "done" && runs <= (baseline ?? runs) ? "idle" : phase;
+    const syncFinished =
+        phase === "done" && baseline !== null && runs > baseline;
+    const livePhase = phase === "done" && !syncFinished ? "idle" : phase;
     const targetIndex =
     livePhase === "entries" ? 2 : livePhase === "invites" ? 3 : livePhase === "done" ? 4 : 1;
     const [activeIndex, setActiveIndex] = useState(0);
-    //temp debug
-    useEffect(() => {
-      console.log("phase ", phase);
-      console.log("livePhase ", livePhase);
-      console.log("targetIndex ", targetIndex);
-      console.log("fraction ", fraction);
-      console.log("runs ", runs);
-      console.log("baseline ", baseline);
-      console.log("activeIndex ", activeIndex);
-    }, [phase,livePhase,targetIndex,fraction,runs,baseline, activeIndex])
     const enteredAt = useRef(Date.now());
+    const hasFinished = useRef(false);
     useEffect(() => {
         if (activeIndex >= targetIndex) return;
         const wait = Math.max(0, MIN_STEP_MS - (Date.now() - enteredAt.current));
@@ -59,10 +53,22 @@ export default function DecryptingScreen() {
     }, [activeIndex, targetIndex]);
 
     useEffect(() => {
-        if (activeIndex < STEPS.length) return;
-        const t = setTimeout(finish, MIN_STEP_MS);
+        if (!syncFinished || activeIndex < STEPS.length || hasFinished.current) {
+            console.log("does not fit")
+            console.log(!syncFinished)
+            console.log(activeIndex < STEPS.length)
+            console.log(hasFinished.current)
+            return;
+        }
+        hasFinished.current = true;
+        const t = setTimeout(() => {
+            //if (hasFinished.current) return;
+            //hasFinished.current = true;
+            finish();
+            console.log("finished")
+        }, MIN_STEP_MS);
         return () => clearTimeout(t);
-    }, [activeIndex, finish]);
+    }, [syncFinished, activeIndex, finish]);
 
     const peak = useRef(0);
     peak.current = Math.max(peak.current, Math.min(1, Math.max(0, fraction)));
@@ -94,7 +100,7 @@ export default function DecryptingScreen() {
                     const done = i < activeIndex;
                     const active = i === activeIndex;
                     return (
-                                    <View key={title} style={styles.stepRow}>
+                      <View key={title} style={styles.stepRow}>
               <View style={styles.stepIcon}>
                 {done ? (
                   <Ionicons
