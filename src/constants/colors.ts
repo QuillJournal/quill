@@ -55,6 +55,7 @@ export const colors = {
     onDangerContainer: "#93000A",
     SegmentedControl: "#E7E8EE",
     calendarBackground: "#fff",
+    streak: "#D97706",
   },
   dark: {
     background: "#111318",
@@ -85,6 +86,7 @@ export const colors = {
     onDangerContainer: "#FFDAD6",
     SegmentedControl: "#282A2F",
     calendarBackground: "#191C20",
+    streak: "#FBBF24",
   },
 };
 

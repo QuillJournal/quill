@@ -97,3 +97,7 @@ export const getWeekRange = (date: Date) => {
     lastDay: lastDay.format("MMM D"),
   };
 };
+
+export const addDays = (date: Date, days: number) => {
+  return dayjs(date).add(days, "D").toDate();
+};

@@ -4,6 +4,7 @@ import useCalendarCollapse from "@/src/hooks/useCalendarCollapse";
 import useTheme from "@/src/hooks/useTheme";
 import { EntryWithAuthor } from "@/src/types/entry";
 import {
+  addDays,
   addMonths,
   fromDateKey,
   getMonthWeeks,
@@ -13,7 +14,7 @@ import {
 } from "@/src/utils/dates";
 import { DatePicker } from "@quidone/react-native-wheel-picker";
 import { useEffect, useMemo, useState } from "react";
-import { View } from "react-native";
+import { Text, View } from "react-native";
 import { GestureDetector } from "react-native-gesture-handler";
 import Animated from "react-native-reanimated";
 import AppModal from "../ui/AppModal";
@@ -38,6 +39,7 @@ export default function Calendar({
   const [showPicker, setShowPicker] = useState(false);
 
   const today = useMemo(() => new Date(), []);
+
   const anchorDate = selectedDate ?? today;
   const anchorKey = toDateKey(anchorDate);
 
@@ -46,7 +48,20 @@ export default function Calendar({
   );
 
   const weeks = useMemo(() => getMonthWeeks(currentMonth, 0), [currentMonth]);
-
+  const journaledDays = useMemo(
+    () => new Set(entries.map((e) => e.entryDate)),
+    [entries],
+  );
+  const computeStreak = (dayKeys: Set<string>) => {
+    let cursor = dayKeys.has(toDateKey(today)) ? today : addDays(today, -1);
+    let streak = 0;
+    while (dayKeys.has(toDateKey(cursor))) {
+      streak++;
+      cursor = addDays(cursor, -1);
+    }
+    return streak;
+  };
+  const streak = computeStreak(journaledDays);
   const found = weeks.findIndex((w) => w.some((d) => isSameDay(d, anchorDate)));
   const selectedRow = found === -1 ? 0 : found;
 
@@ -108,6 +123,35 @@ export default function Calendar({
               />
             </Animated.View>
           </Animated.View>
+          <View
+            style={{
+              borderTopWidth: 1,
+              borderTopColor: colors.border,
+              flexDirection: "row",
+              gap: 10,
+              paddingTop: 10,
+            }}
+          >
+            <View style={{ flexDirection: "row", alignItems: "baseline" }}>
+              <View
+                style={{
+                  width: 10,
+                  height: 10,
+                  backgroundColor: colors.accent,
+                  borderRadius: 5,
+                  marginRight: 5,
+                }}
+              ></View>
+              <Text
+                style={{ color: colors.calendarText, fontWeight: 600 }}
+              >{`${journaledDays.size} days `}</Text>
+              <Text style={{ color: colors.textMuted }}>journaled</Text>
+            </View>
+            <Text style={{ color: colors.textMuted }}>•</Text>
+            <Text style={{ color: colors.streak }}>
+              {`${streak}-days`} streak
+            </Text>
+          </View>
           <View
             style={{
               justifyContent: "center",
