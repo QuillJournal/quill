@@ -26,36 +26,46 @@ const stickers = [
     
 ];
 type stickertype = {
+    id: number,
     x: number, 
     y: number, 
     dialtion: number, 
+    rotation: number, 
     index: number, 
 }
 function ActiveStickers({sticker}:{sticker:stickertype}){ 
-    const x = useSharedValue(0);
-    const y = useSharedValue(0);
+    const x = useSharedValue(sticker.x);
+    const y = useSharedValue(sticker.y);
     //
-    const startX = useSharedValue(0);
-    const startY = useSharedValue(0);
+    const startX = useSharedValue(sticker.x);
+    const startY = useSharedValue(sticker.y);
 
-    const dilation = useSharedValue(1);
+    const dilation = useSharedValue(sticker.dialtion);
     //
-    const startDialation = useSharedValue(1);
+    const startDialation = useSharedValue(sticker.dialtion);
+
+    const rotation = useSharedValue(sticker.rotation);
+    //
+    const startRotation = useSharedValue(sticker.rotation);
+
     const initialsticker = 100; 
     //moving 
-    const panStart = Gesture.Pan().onStart(() => {
+    const pan = Gesture.Pan().onStart(() => {
         startX.value = x.value
         startY.value = y.value
-    });
-    const pan = Gesture.Pan().onUpdate((event) => {
+    }).onUpdate((event) => {
         x.value =  startX.value + event.translationX;
         y.value =  startY.value +event.translationY;
     });
-    const pinchStart = Gesture.Pinch().onStart(() => {
+    const pinch = Gesture.Pinch().onStart(() => {
         startDialation.value = dilation.value
-    });
-    const pinch = Gesture.Pinch().onUpdate((event) => {
+    }).onUpdate((event) => {
         dilation.value = startDialation.value * event.scale
+    });
+    const rotate = Gesture.Rotation().onStart(() => {
+        startRotation.value = rotation.value
+    }).onUpdate((event) => {
+        rotation.value = startRotation.value + event.rotation
     });
     //resize + move
     const stickerstyle = useAnimatedStyle(() => {
@@ -65,15 +75,16 @@ function ActiveStickers({sticker}:{sticker:stickertype}){
         top: y.value ,
         width: initialsticker*dilation.value,
         height: initialsticker*dilation.value,
+        transform: [{rotate: `${rotation.value}rad`}] ///...radians...
         }
     })
     //
 
     return(
-        <GestureDetector gesture = {Gesture.Simultaneous(pan, panStart, pinch, pinchStart)}>
+        <GestureDetector gesture = {Gesture.Simultaneous(pan, pinch, rotate)}>
             <Animated.View style = {stickerstyle}> 
                 <Image 
-                    key = {sticker.index}
+                    key = {sticker.id}
                     source = {stickers[sticker.index]}
                     style = {{
                         width: "100%",
@@ -87,6 +98,9 @@ function ActiveStickers({sticker}:{sticker:stickertype}){
 }
 export default function Stickers(){
     const [activeStickersArray, setActiveStickersArray] = useState<stickertype[]>([]);
+    function getarray(){ 
+        return activeStickersArray
+    }
     const width:number = Dimensions.get("window").width;
     const height:number = Dimensions.get("window").height;
     //ANIMATION STUFF 
@@ -105,12 +119,9 @@ export default function Stickers(){
     const styles = StyleSheet.create({
         container: {
             inset: 0, 
-            position: "absolute",
-            zIndex: 100,
-            elevation: 100,
+            ...StyleSheet.absoluteFill, 
             pointerEvents: "box-none",
-            width: "100%",
-            height: "100%",
+            
         },
         bar:{
             position: "absolute",
@@ -130,12 +141,24 @@ export default function Stickers(){
             height: 100, 
         }
     })
+    function handlePress(index: number){ 
+        setActiveStickersArray(prev => [...prev, 
+        {
+            id: Date.now() + Math.random() + index,
+            x: width/2 -50, 
+            y: width/2 - 50, 
+            dialtion: 1, 
+            rotation: 0, 
+            index: index,
+        }
+    ]);
+    }
     function Active(){ 
         return(
-            <View>
+            <View pointerEvents = "box-none">
             {activeStickersArray.map((sticker) => 
                 <ActiveStickers 
-                key = {sticker.index} 
+                key = {sticker.id} 
                 sticker = {sticker}
                 />
             )}
@@ -145,8 +168,7 @@ export default function Stickers(){
     return(
         <View style = {styles.container}>
             {/* STICKERS */}
-            
-
+            {Active()}
 
             {/* BAR */}
             <Animated.View style = {[barstyle, styles.bar]} pointerEvents = "auto">
@@ -177,13 +199,8 @@ export default function Stickers(){
                     paddingHorizontal: -10,
                 }}
                 >
-                {stickers.map((image, index) => 
-                    <Pressable key = {index} onPress = {() => {setActiveStickersArray(prev => [...prev, {
-                        x: width/2, 
-                        y: width/2, 
-                        dialtion: 1, 
-                        index: index,
-                    }])}}>
+                {stickers.map((image, index:number) => 
+                    <Pressable key = {index} onPress = {() => handlePress(index)}>
                         <Image 
                             source = {image}
                             style = {{

@@ -20,7 +20,14 @@ export const getEntriesByDiaryId = async (
     counts: countByEntry.get(r.id) ?? { ...EMPTY_COUNTS },
   }));
 };
-
+type StickerType = {
+    id: number,
+    x: number, 
+    y: number, 
+    dialtion: number, 
+    rotation: number, 
+    index: number, 
+}
 export const saveEntry = async (
   diaryId: number,
   title: string,
@@ -29,6 +36,7 @@ export const saveEntry = async (
   authorId: string,
   mood: MoodKey | null = null,
   entryTime: string | null = null,
+  stickers: StickerType[]
 ): Promise<number> => {
   const remoteId = Crypto.randomUUID();
   const result = await db.insert(entries).values({

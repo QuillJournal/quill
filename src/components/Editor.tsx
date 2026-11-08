@@ -83,7 +83,14 @@ interface EditorProps {
 }
 
 const TOOLBAR_H = 50;
-
+type stickertype = {
+    id: number,
+    x: number, 
+    y: number, 
+    dialtion: number, 
+    rotation: number, 
+    index: number, 
+}
 export default function Editor({
   initialTitle,
   initialBody,
@@ -97,6 +104,7 @@ export default function Editor({
   onSave,
   onBack,
 }: EditorProps) {
+  const [stickers, setStickers] = useState<stickertype[]>([]);
   const [background, setBackground] = useState();
   const saveScale = useSharedValue(1);
   const saveStyle = useAnimatedStyle(() => ({
@@ -261,6 +269,7 @@ export default function Editor({
       overflow: hidden;
     }
     body, .ProseMirror {
+      padding: 12px, 20px; 
       font-family: 'Gabarito', sans-serif !important;
     }
     .ProseMirror { min-height: 240px; outline: none; }
@@ -314,6 +323,7 @@ export default function Editor({
       withSpring(1, { damping: 4, stiffness: 300 }),
     );
     play(celebrate);
+    setStickers(Stickers.getarray())
     const contentHtml = await editor.getHTML();
     setIsReadOnly(true);
     handedOffRef.current = true;
@@ -641,6 +651,8 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       backgroundColor: colors.backgroundopacity,
+      zIndex: 200, 
+      elevation: 200, 
     },
     backBtn: {
       paddingVertical: 4,
