@@ -1,3 +1,5 @@
+import {useColorScheme} from "react-native";
+export const mode = useColorScheme()
 const primitives = {
   inkMuted: "#44474E",
   frostMuted: "#C4C6D0",

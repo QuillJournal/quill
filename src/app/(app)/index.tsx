@@ -24,7 +24,6 @@ import { useState } from "react";
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import Stickers from "../../components/DecryptingScreen"
 
 export default function Home() {
   const { colors } = useTheme();
@@ -136,7 +135,6 @@ export default function Home() {
     <SafeAreaView style={{ flex: 1 }}>
       <Stack.Screen options={{ animation: "none" }} />
       <View style={styles.screen}>
-        <Stickers/>
         {isSyncing && (
           <View
             style={{

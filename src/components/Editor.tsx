@@ -6,7 +6,7 @@ import {
   Toolbar,
   useEditorBridge,
 } from "@10play/tentap-editor";
-import Stickers from "../components/DecryptingScreen"
+import Stickers from "../components/stickers"
 import { Ionicons } from "@expo/vector-icons";
 import { DatePicker } from "@quidone/react-native-wheel-picker";
 import dayjs from "dayjs";

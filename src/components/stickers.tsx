@@ -1,15 +1,17 @@
 import {
   View, 
   Image, 
-  Pressable
+  Pressable, 
+  StyleSheet
 } from "react-native";
+import { mode } from "@/src/constants/colors";
+import {MaterialCommunityIcons} from "@expo/vector-icons"
 import {Gesture, GestureDetector} from "react-native-gesture-handler"
 import Animated, {
     useSharedValue, 
     useAnimatedStyle,
     withSpring,
 } from "react-native-reanimated"
-import FloatingActionButton from "@/src/components/FloatingActionButton"
 import {useState} from "react"; 
 const stickers = [
     require("@/assets/images/mood-backgrounds/angry.jpg"),
@@ -22,7 +24,7 @@ const stickers = [
 ];
 export default function Stickers(){
     //ANIMATION STUFF 
-    const animation = useSharedValue(0); //0 close 1 open 
+    const animation = useSharedValue(0);
 
     const [activeStickers, setActiveStickers] = useState<number[]>([]);
     const [open, setOpen] = useState(false); 
@@ -64,14 +66,33 @@ export default function Stickers(){
     //
     const barstyle = useAnimatedStyle(() => {
         return{
-            opacity: animation.value,
-            transform: [{scale: animation.value}], 
+            width: withSpring(open? 100: 300,{
+                damping: 15, 
+                stiffness: 100 
+            }),
+        }
+    })
+    const styles = StyleSheet.create({
+        container: {
+            inset: 0, 
+            position: "absolute",
+            zIndex: 100,
+            elevation: 100,
+            pointerEvents: "box-none",
+            width: "100%",
+            height: "100%",
+        },
+        bar:{
             display: "flex",
             flexDirection: "row",
             alignItems: "center",
             justifyContent: "center", 
             gap: 10, 
-            pointerEvents: open? "auto": "none"
+            overflow: "hidden",
+            bottom: 30, 
+            right: 20, 
+            height: 100, 
+
         }
     })
     function Active(){ 
@@ -92,7 +113,7 @@ export default function Stickers(){
         );
     }
     return(
-        <View>
+        <View style = {styles.container}>
             {/* STICKERS */}
             <GestureDetector gesture = {Gesture.Simultaneous(pan, panStart, pinch, pinchStart)}>
                 {Active()}
@@ -100,15 +121,7 @@ export default function Stickers(){
 
 
             {/* BAR */}
-            <FloatingActionButton 
-                onPress={() => {
-                    const tempNext = !open
-                    setOpen(prev => !prev)
-                    animation.value = withSpring(tempNext? 1:0 , { damping: 15, stiffness: 100 });
-                }}
-                positioned={false}
-            />
-            <Animated.View style = {barstyle}>
+            <Animated.View style = {[barstyle, styles.bar]} pointerEvents = {open?"auto":"none"}>
                 {stickers.map((image, index) => 
                     <Pressable key = {index} onPress = {() => {setActiveStickers(prev => [...prev, index])}}>
                         <Image 
@@ -121,7 +134,19 @@ export default function Stickers(){
                         />
                     </Pressable>
                 )}
-            </Animated.View>
+                <Pressable 
+                    onPress={() => {
+                        const tempNext = !open
+                        setOpen(prev => !prev)
+                        animation.value = withSpring(tempNext? 1:0 , { damping: 15, stiffness: 100 });
+                    }}
+                >
+                    <MaterialCommunityIcons 
+                        name = {mode == "dark"? "sticker-plus":"sticker-plus-outline"}
+                        size = {25}
+                    />
+                </Pressable>
+            </Animated.View>  
         </View>
     );
 
