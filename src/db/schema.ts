@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, int, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { check, index, int, sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
 
 export const diariesTable = sqliteTable("diaries", {
   id: int().primaryKey({ autoIncrement: true }).notNull(),
@@ -62,6 +62,9 @@ export const appStateTable = sqliteTable(
     resumeDiaryId: int("resume_diary_id").references(() => diariesTable.id, {
       onDelete: "set null",
     }),
+    decryptGateCompleted: integer("decrypt_gate_completed",{
+      mode: "boolean"
+    }).notNull().default(false),
   },
   (t) => [check("app_state_singleton", sql`${t.id} = 1`)],
 );
