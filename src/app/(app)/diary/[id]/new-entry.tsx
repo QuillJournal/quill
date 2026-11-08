@@ -27,7 +27,10 @@ export default function NewEntryScreen() {
   const [rules, setRules] = useState<DiaryRules>(DEFAULT_RULES);
 
   useEffect(() => {
-    getDiaryById(diaryId).then((d) => setRules(parseRules(d?.rules)));
+    getDiaryById(diaryId).then((d) => {
+      console.log("[editor] rules=", d?.rules, "diaryId=", d?.id);
+      setRules(parseRules(d?.rules));
+    });
   }, [diaryId]);
 
   const handleSave = async (

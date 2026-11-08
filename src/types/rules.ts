@@ -87,7 +87,7 @@ export function checkRules(
 export function describeRules(rules: DiaryRules): string[] {
   const out: string[] = [];
   if (rules.requireMood) out.push("A mood on every entry");
-  if (rules.requirePhoto) out.push("A title on every entry");
+  if (rules.requireTitle) out.push("A title on every entry");
   if (rules.minBodyChars > 0)
     out.push(`At least ${rules.minBodyChars} characters of text`);
   if (rules.requirePhoto) out.push("At least on photo or video");

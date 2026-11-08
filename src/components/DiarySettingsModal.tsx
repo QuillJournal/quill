@@ -81,6 +81,7 @@ export default function DiarySettingsModal({
     }, [visible, diary?.id]);
 
     if (!diary) return null;
+    console.log("[settings] rules=", diary.rules, "diaryId=", diary.id, "owner=", diary.ownerId, "me=", session?.userId);
 
     const savedRules = parseRules(diary.rules);
     const rulesChanged = !sameRules(savedRules, rulesDraft);
@@ -474,114 +475,114 @@ function RuleRow({
     const { colors } = useTheme();
     return (
         <View
-      style={[
-        styles.ruleRow,
-        !last && { borderBottomWidth: 1, borderBottomColor: colors.border },
-      ]}
-    >
-      <Ionicons name={icon} size={20} color={colors.textMuted} />
-      <View style={{ flex: 1 }}>
-        <Text style={[styles.ruleLabel, { color: colors.text }]}>{label}</Text>
-        <Text style={[styles.hint, { color: colors.textMuted }]}>{sub}</Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        disabled={disabled}
-        trackColor={trackColor}
-    //    thumbColor={thumbColor}
-        ios_backgroundColor={ios_backgroundColor}
-      />
-    </View>
+            style={[
+                styles.ruleRow,
+                !last && { borderBottomWidth: 1, borderBottomColor: colors.border },
+            ]}
+        >
+            <Ionicons name={icon} size={20} color={colors.textMuted} />
+            <View style={{ flex: 1 }}>
+                <Text style={[styles.ruleLabel, { color: colors.text }]}>{label}</Text>
+                <Text style={[styles.hint, { color: colors.textMuted }]}>{sub}</Text>
+            </View>
+            <Switch
+                value={value}
+                onValueChange={onValueChange}
+                disabled={disabled}
+                trackColor={trackColor}
+                //    thumbColor={thumbColor}
+                ios_backgroundColor={ios_backgroundColor}
+            />
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     backHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  backBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: fontSizes.lg,
-    fontFamily: fonts.heading,
-    fontWeight: "700",
-  },
-  sectionHeader: {
-    fontSize: 11,
-    fontFamily: fonts.label,
-    fontWeight: "700",
-    letterSpacing: 0.8,
-  },
-  body: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.body,
-  },
-  hint: {
-    fontSize: 11,
-    fontFamily: fonts.body,
-    marginTop: 1,
-  },
-  card: {
-    borderRadius: radius.md,
-    borderWidth: 1,
-    paddingHorizontal: spacing.md,
-  },
-  ruleRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-  },
-  ruleLabel: {
-    fontSize: fontSizes.sm,
-    fontFamily: fonts.heading,
-    fontWeight: "600",
-  },
-  ruleLine: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: spacing.sm,
-  },
-  chipRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: spacing.sm,
-    paddingBottom: spacing.md,
-  },
-  chip: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
-  },
-  chipText: {
-    fontSize: 12,
-    fontFamily: fonts.label,
-    fontWeight: "600",
-  },
-  memberRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: spacing.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-  },
-  memberName: {
-    fontSize: fontSizes.md,
-    fontFamily: fonts.heading,
-    fontWeight: "700",
-  },
-  memberHandle: {
-    fontSize: fontSizes.xs,
-    fontFamily: fonts.body,
-    marginTop: 2,
-  },
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.sm,
+    },
+    backBtn: {
+        width: 34,
+        height: 34,
+        borderRadius: 17,
+        alignItems: "center",
+        justifyContent: "center",
+    },
+    headerTitle: {
+        fontSize: fontSizes.lg,
+        fontFamily: fonts.heading,
+        fontWeight: "700",
+    },
+    sectionHeader: {
+        fontSize: 11,
+        fontFamily: fonts.label,
+        fontWeight: "700",
+        letterSpacing: 0.8,
+    },
+    body: {
+        fontSize: fontSizes.sm,
+        fontFamily: fonts.body,
+    },
+    hint: {
+        fontSize: 11,
+        fontFamily: fonts.body,
+        marginTop: 1,
+    },
+    card: {
+        borderRadius: radius.md,
+        borderWidth: 1,
+        paddingHorizontal: spacing.md,
+    },
+    ruleRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.sm,
+        paddingVertical: spacing.md,
+    },
+    ruleLabel: {
+        fontSize: fontSizes.sm,
+        fontFamily: fonts.heading,
+        fontWeight: "600",
+    },
+    ruleLine: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: spacing.sm,
+    },
+    chipRow: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        gap: spacing.sm,
+        paddingBottom: spacing.md,
+    },
+    chip: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 999,
+        borderWidth: 1,
+    },
+    chipText: {
+        fontSize: 12,
+        fontFamily: fonts.label,
+        fontWeight: "600",
+    },
+    memberRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        padding: spacing.md,
+        borderRadius: radius.md,
+        borderWidth: 1,
+    },
+    memberName: {
+        fontSize: fontSizes.md,
+        fontFamily: fonts.heading,
+        fontWeight: "700",
+    },
+    memberHandle: {
+        fontSize: fontSizes.xs,
+        fontFamily: fonts.body,
+        marginTop: 2,
+    },
 });
