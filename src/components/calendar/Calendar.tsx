@@ -20,6 +20,7 @@ import AppModal from "../ui/AppModal";
 import CalendarHeader from "./CalendarHeader";
 import MonthGrid from "./MonthGrid";
 import NavButton from "./NavButton";
+
 type CalendarProps = {
   entries: EntryWithAuthor[];
   selectedDate: Date | null;
