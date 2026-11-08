@@ -6,6 +6,7 @@ import {
   Toolbar,
   useEditorBridge,
 } from "@10play/tentap-editor";
+import Stickers from "../components/DecryptingScreen"
 import { Ionicons } from "@expo/vector-icons";
 import { DatePicker } from "@quidone/react-native-wheel-picker";
 import dayjs from "dayjs";
@@ -463,7 +464,7 @@ export default function Editor({
                       animated
                       intro
                       introDelay={isReadOnly ? 300 : 0}
-                    /* onBgChange = {(newMood:MoodKey) => {
+                     onBgChange = {(newMood:MoodKey) => {
                      switch(newMood){
                        case "angry":
                          setBackground(require("@/assets/images/mood-backgrounds/angry.jpg"))
@@ -489,7 +490,7 @@ export default function Editor({
                        default:
                          break; 
                      }
-                   }}*/
+                   }}
                     />
                     <Text style={styles.chipText}>{MOODS[mood].label}</Text>
                   </>
@@ -616,6 +617,9 @@ export default function Editor({
             style={{ marginTop: 16 }}
           />
         </AppModal>
+      {!isReadOnly && 
+      <Stickers/>
+      }  
       </SafeAreaView>
     </ImageBackground>
   );

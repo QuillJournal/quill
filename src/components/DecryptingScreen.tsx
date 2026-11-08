@@ -36,8 +36,17 @@ export default function DecryptingScreen() {
     const livePhase = phase === "done" && runs <= (baseline ?? runs) ? "idle" : phase;
     const targetIndex =
     livePhase === "entries" ? 2 : livePhase === "invites" ? 3 : livePhase === "done" ? 4 : 1;
-
     const [activeIndex, setActiveIndex] = useState(0);
+    //temp debug
+    useEffect(() => {
+      console.log("phase ", phase);
+      console.log("livePhase ", livePhase);
+      console.log("targetIndex ", targetIndex);
+      console.log("fraction ", fraction);
+      console.log("runs ", runs);
+      console.log("baseline ", baseline);
+      console.log("activeIndex ", activeIndex);
+    }, [phase,livePhase,targetIndex,fraction,runs,baseline, activeIndex])
     const enteredAt = useRef(Date.now());
     useEffect(() => {
         if (activeIndex >= targetIndex) return;

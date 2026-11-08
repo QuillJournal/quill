@@ -1,9 +1,15 @@
 import {
   View, 
-  Image
+  Image, 
+  Pressable
 } from "react-native";
 import {Gesture, GestureDetector} from "react-native-gesture-handler"
-import Animated, {useSharedValue, useAnimatedStyle} from "react-native-reanimated"
+import Animated, {
+    useSharedValue, 
+    useAnimatedStyle,
+    withSpring,
+} from "react-native-reanimated"
+import FloatingActionButton from "@/src/components/FloatingActionButton"
 import {useState} from "react"; 
 const stickers = [
     require("@/assets/images/mood-backgrounds/angry.jpg"),
@@ -14,8 +20,12 @@ const stickers = [
     require("@/assets/images/mood-backgrounds/meh.jpg"),
     require("@/assets/images/mood-backgrounds/sad.jpg")
 ];
-export default function Stickers(){ 
-    const [activeStickers, setActiveStickers] = useState([]); 
+export default function Stickers(){
+    //ANIMATION STUFF 
+    const animation = useSharedValue(0); //0 close 1 open 
+
+    const [activeStickers, setActiveStickers] = useState<number[]>([]);
+    const [open, setOpen] = useState(false); 
     const x = useSharedValue(0);
     const y = useSharedValue(0);
     //
@@ -51,6 +61,19 @@ export default function Stickers(){
         height: initialsticker*dilation.value,
         }
     })
+    //
+    const barstyle = useAnimatedStyle(() => {
+        return{
+            opacity: animation.value,
+            transform: [{scale: animation.value}], 
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "center", 
+            gap: 10, 
+            pointerEvents: open? "auto": "none"
+        }
+    })
     function Active(){ 
         return(
         <Animated.View style = {stickerstyle}> 
@@ -77,8 +100,27 @@ export default function Stickers(){
 
 
             {/* BAR */}
-            <Animated.View>
-                
+            <FloatingActionButton 
+                onPress={() => {
+                    const tempNext = !open
+                    setOpen(prev => !prev)
+                    animation.value = withSpring(tempNext? 1:0 , { damping: 15, stiffness: 100 });
+                }}
+                positioned={false}
+            />
+            <Animated.View style = {barstyle}>
+                {stickers.map((image, index) => 
+                    <Pressable key = {index} onPress = {() => {setActiveStickers(prev => [...prev, index])}}>
+                        <Image 
+                            source = {image}
+                            style = {{
+                                width: 100,
+                                height: 100, 
+                                objectFit: "contain"
+                            }}                              
+                        />
+                    </Pressable>
+                )}
             </Animated.View>
         </View>
     );
