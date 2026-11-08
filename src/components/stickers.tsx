@@ -2,7 +2,9 @@ import {
   View, 
   Image, 
   Pressable, 
-  StyleSheet
+  StyleSheet, 
+  ScrollView, 
+  Dimensions,
 } from "react-native";
 import { mode } from "@/src/constants/colors";
 import {MaterialCommunityIcons} from "@expo/vector-icons"
@@ -20,14 +22,16 @@ const stickers = [
     require("@/assets/images/mood-backgrounds/calm.jpg"),
     require("@/assets/images/mood-backgrounds/happy.jpg"),
     require("@/assets/images/mood-backgrounds/meh.jpg"),
-    require("@/assets/images/mood-backgrounds/sad.jpg")
+    require("@/assets/images/mood-backgrounds/sad.jpg"),
+    
 ];
-export default function Stickers(){
-    //ANIMATION STUFF 
-    const animation = useSharedValue(0);
-
-    const [activeStickers, setActiveStickers] = useState<number[]>([]);
-    const [open, setOpen] = useState(false); 
+type stickertype = {
+    x: number, 
+    y: number, 
+    dialtion: number, 
+    index: number, 
+}
+function ActiveStickers({sticker}:{sticker:stickertype}){ 
     const x = useSharedValue(0);
     const y = useSharedValue(0);
     //
@@ -64,9 +68,35 @@ export default function Stickers(){
         }
     })
     //
+
+    return(
+        <GestureDetector gesture = {Gesture.Simultaneous(pan, panStart, pinch, pinchStart)}>
+            <Animated.View style = {stickerstyle}> 
+                <Image 
+                    key = {sticker.index}
+                    source = {stickers[sticker.index]}
+                    style = {{
+                        width: "100%",
+                        height: "100%", 
+                        objectFit: "contain"
+                    }}                              
+                />
+        </Animated.View>
+        </GestureDetector>
+    );
+}
+export default function Stickers(){
+    const [activeStickersArray, setActiveStickersArray] = useState<stickertype[]>([]);
+    const width:number = Dimensions.get("window").width;
+    const height:number = Dimensions.get("window").height;
+    //ANIMATION STUFF 
+    const animation = useSharedValue(0);
+
+
+    const [open, setOpen] = useState(false); 
     const barstyle = useAnimatedStyle(() => {
         return{
-            width: withSpring(open? 100: 300,{
+            width: withSpring(open? width-30: 50,{
                 damping: 15, 
                 stiffness: 100 
             }),
@@ -83,47 +113,77 @@ export default function Stickers(){
             height: "100%",
         },
         bar:{
+            position: "absolute",
             display: "flex",
             flexDirection: "row",
             alignItems: "center",
-            justifyContent: "center", 
-            gap: 10, 
+            justifyContent: "flex-start", 
             overflow: "hidden",
+            gap: 10, 
             bottom: 30, 
             right: 20, 
             height: 100, 
 
+        }, 
+        scroll:{
+            flex: 1, 
+            height: 100, 
         }
     })
     function Active(){ 
         return(
-        <Animated.View style = {stickerstyle}> 
-            {activeStickers.map((index) => 
-                <Image 
-                    key = {index}
-                    source = {stickers[index]}
-                    style = {{
-                        width: "100%",
-                        height: "100%", 
-                        objectFit: "contain"
-                    }}                              
+            <View>
+            {activeStickersArray.map((sticker) => 
+                <ActiveStickers 
+                key = {sticker.index} 
+                sticker = {sticker}
                 />
             )}
-        </Animated.View>
+        </View>
         );
     }
     return(
         <View style = {styles.container}>
             {/* STICKERS */}
-            <GestureDetector gesture = {Gesture.Simultaneous(pan, panStart, pinch, pinchStart)}>
-                {Active()}
-            </GestureDetector>
+            
 
 
             {/* BAR */}
-            <Animated.View style = {[barstyle, styles.bar]} pointerEvents = {open?"auto":"none"}>
+            <Animated.View style = {[barstyle, styles.bar]} pointerEvents = "auto">
+                <Pressable 
+                    onPress={() => {
+                        const tempNext = !open
+                        setOpen(prev => !prev)
+                        animation.value = withSpring(tempNext? 1:0 , { damping: 15, stiffness: 100 });
+                    }}
+                >
+                    <MaterialCommunityIcons 
+                        name = {mode == "dark"? open?"sticker-minus":"sticker-plus":open?"sticker-minus-outline":"sticker-plus-outline"}
+                        size = {25}
+                    />
+                </Pressable>
+                {open && 
+                <ScrollView
+                horizontal
+                nestedScrollEnabled
+                directionalLockEnabled
+                showsHorizontalScrollIndicator = {true}
+                style = {styles.scroll}
+                contentContainerStyle = {{
+                    display: "flex",
+                    flexDirection: "row", 
+                    alignItems: "center", 
+                    justifyContent: "center", 
+                    paddingHorizontal: -10,
+                }}
+                >
                 {stickers.map((image, index) => 
-                    <Pressable key = {index} onPress = {() => {setActiveStickers(prev => [...prev, index])}}>
+                    <Pressable key = {index} onPress = {() => {setActiveStickersArray(prev => [...prev, {
+                        x: width/2, 
+                        y: width/2, 
+                        dialtion: 1, 
+                        index: index,
+                    }])}}>
                         <Image 
                             source = {image}
                             style = {{
@@ -134,18 +194,8 @@ export default function Stickers(){
                         />
                     </Pressable>
                 )}
-                <Pressable 
-                    onPress={() => {
-                        const tempNext = !open
-                        setOpen(prev => !prev)
-                        animation.value = withSpring(tempNext? 1:0 , { damping: 15, stiffness: 100 });
-                    }}
-                >
-                    <MaterialCommunityIcons 
-                        name = {mode == "dark"? "sticker-plus":"sticker-plus-outline"}
-                        size = {25}
-                    />
-                </Pressable>
+                </ScrollView>
+                }
             </Animated.View>  
         </View>
     );
