@@ -11,7 +11,6 @@ import {
   DiaryMemberInfo,
   fetchDiaryMembers,
   lookupUserForInvite,
-  removeDiaryMember,
   sendDiaryInvite,
   updateMyMemberBlob
 } from "@/src/services/sharing";
@@ -23,23 +22,23 @@ import {
   FlatList,
   Image,
   Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
   StyleSheet,
   Switch,
   Text,
   TouchableOpacity,
   useColorScheme,
-  View,
+  View
 } from "react-native";
+import { getDiaryById } from "../db/diaries";
+import { rotateDiaryKey } from "../services/diaryAdmin";
 import { haptic } from "../services/haptics";
+import AppModal from "./ui/AppModal";
 
 interface DiaryMembersModalProps {
   visible: boolean;
   onClose: () => void;
   onInviteSent?: () => void | Promise<void>;
+  onDiaryChanged?: () => void;
   diary?: DiaryRow;
 }
 
@@ -47,6 +46,7 @@ export default function DiaryMembersModal({
   visible,
   onClose,
   onInviteSent,
+  onDiaryChanged,
   diary,
 }: DiaryMembersModalProps) {
   const { colors } = useTheme();
@@ -67,9 +67,10 @@ export default function DiaryMembersModal({
     if (!diary?.remoteId || !session) return;
     setLoading(true);
     try {
+      const fresh = (await getDiaryById(diary.id)) ?? diary;
       const list = await fetchDiaryMembers(
         diary.remoteId,
-        diary.keyEpoch,
+        fresh.keyEpoch,
         session,
       );
       setMembers(list);
@@ -108,20 +109,24 @@ export default function DiaryMembersModal({
 
   const handleRemoveMember = (m: DiaryMemberInfo) => {
     haptic.warning();
-    if (!diary?.remoteId) return;
+    if (!diary?.remoteId || !session) return;
     dialog.alert(
       `Remove @${m.username}?`,
-      "They'll lose access to this diary and won't be able to access any new entries.",
+      "They'll lose access to this diary and won't be able to access or read any new entries. All pending invites will also be cancelled as encryption keys are rotated.",
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Remove",
           style: "destructive",
           onPress: async () => {
+            setLoading(true);
             try {
-              await removeDiaryMember(diary.remoteId!, m.userId);
+              const fresh = (await getDiaryById(diary.id)) ?? diary;
+              await rotateDiaryKey(fresh, session, m.userId);
+              onDiaryChanged?.();
               await loadMembers();
             } catch (e: any) {
+              setLoading(false);
               dialog.alert("Remove failed", e.message || "Could not remove member.");
             }
           },
@@ -157,6 +162,7 @@ export default function DiaryMembersModal({
               setInviting(true);
               await sendDiaryInvite(diary.id, target, session);
               setInviteUsername("");
+              haptic.success();
               dialog.alert("Invite Sent", `@${target.username} has been invited.`);
               await onInviteSent?.();
             } catch (err: any) {
@@ -175,46 +181,25 @@ export default function DiaryMembersModal({
   };
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.backdrop}
-      >
-        {/* Tap outside anywhere on the dim backdrop to close */}
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-
-        <View
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <View style={[styles.handleBar, { backgroundColor: colors.border }]} />
-
-          <View style={styles.header}>
-            <View style={{ flex: 1 }}>
-              <View style={styles.titleRow}>
-                <View style={[styles.diaryDot, { backgroundColor: diaryAccent }]} />
-                <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-                  {diary?.name || "Shared Diary"}
-                </Text>
-              </View>
-              <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-                End-to-end encrypted • {members.length || 1}{" "}
-                {(members.length || 1) === 1 ? "member" : "members"}
-              </Text>
+    <AppModal
+    isOpen={visible}
+    onClose={onClose}
+    header={
+      <View style={styles.header}>
+        <View style={{flex: 1}}>
+          <View style={styles.titleRow}>
+            <View style={[styles.diaryDot, { backgroundColor: diaryAccent }]} />
+            <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+              {diary?.name || "Shared Diary"}
+            </Text>
             </View>
-            <TouchableOpacity
-              onPress={onClose}
-              style={[styles.closeBtn, { backgroundColor: colors.card }]}
-              hitSlop={12}
-            >
-              <Ionicons name="close" size={20} color={colors.text} />
-            </TouchableOpacity>
-          </View>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+              End-to-end encrypted • {members.length || 1}{" "}
+              {(members.length || 1) === 1 ? "member" : "members"}
+            </Text>
+        </View>
+        </View>
+    }>
 
           {isOwner && (
             <View
@@ -224,7 +209,7 @@ export default function DiaryMembersModal({
               ]}
             >
               <FormField
-                label="INVITE COLLABORATOR"
+                label="Invite Members"
                 value={inviteUsername}
                 onChangeText={(t) =>
                   setInviteUsername(t.toLowerCase().replace(/[^a-z0-9_]/g, ""))
@@ -259,13 +244,12 @@ export default function DiaryMembersModal({
               value={sharePhoto}
               onValueChange={handleToggleSharePhoto}
               trackColor={{ false: colors.border, true: diaryAccent }}
-              thumbColor={sharePhoto ? colors.background || '#FFFFFF' : '#F4F3F4'}
               ios_backgroundColor={colors.border}
             />
           </View>
 
           <Text style={[styles.sectionHeader, { color: colors.textMuted }]}>
-            MEMBERS
+            Members
           </Text>
 
           {loading ? (
@@ -426,9 +410,7 @@ export default function DiaryMembersModal({
               }}
             />
           )}
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        </AppModal>
   );
 }
 

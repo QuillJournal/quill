@@ -9,15 +9,15 @@ import {
   KeyboardAvoidingView,
   Modal,
   PanResponder,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 
 type AppModalProps = {
-  title: string;
+  title?: string;
+  header?: React.ReactNode;
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
@@ -31,6 +31,7 @@ const DISMISS_VELOCITY = 0.75;
 
 export default function AppModal({
   title,
+  header,
   isOpen,
   onClose,
   children,
@@ -93,7 +94,7 @@ export default function AppModal({
         if (gestureState.dy > 0) {
           translateY.setValue(gestureState.dy);
         } else {
-          translateY.setValue(0);
+          translateY.setValue(-Math.min(Math.sqrt(-gestureState.dy) * 2.5, 24));
         }
       },
       onPanResponderRelease: (_, gestureState) => {
@@ -125,7 +126,7 @@ export default function AppModal({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
         style={styles.keyboardContainer}
         pointerEvents={isOpen ? "auto" : "none"}
       >
@@ -146,6 +147,17 @@ export default function AppModal({
               },
             ]}
           >
+            <View
+            pointerEvents="none"
+            style={{
+              position: "absolute",
+              left: 0,
+              right: 0,
+              top: "100%",
+              height: 40,
+              backgroundColor: colors.surface,
+            }}
+            />
             <View {...panResponder.panHandlers} style={styles.dragZone}>
               <View
                 style={[
@@ -153,7 +165,9 @@ export default function AppModal({
                   { backgroundColor: colors.border },
                 ]}
               />
+              {header ?? (
               <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+              )}
             </View>
 
             {children}

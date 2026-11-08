@@ -2,9 +2,9 @@
   "expo": {
     "name": "Quill",
     "slug": "quill",
-    "version": "0.6.0",
+    "version": "0.7.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/logo.png",
     "scheme": "quill",
     "userInterfaceStyle": "automatic",
     "ios": {

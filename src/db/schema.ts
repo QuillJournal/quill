@@ -12,6 +12,8 @@ export const diariesTable = sqliteTable("diaries", {
   lastSyncedSeq: int("last_synced_seq").notNull().default(0),
   syncState: text("sync_state").notNull().default("synced"),
   lastOpenedAt: int("last_opened_at", { mode: "timestamp_ms" }),
+  rules: text("rules"),
+  rotationPending: int("rotation_pending").notNull().default(0),
   createdAt: int("created_at", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),

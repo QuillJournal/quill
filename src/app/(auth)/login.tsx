@@ -7,6 +7,7 @@ import { spacing } from "@/src/constants/spacings";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import useTheme from "@/src/hooks/useTheme";
+import { haptic } from "@/src/services/haptics";
 import { adoptVaultKey } from "@/src/services/profile";
 import { saveDerivedKey, saveVaultKey } from "@/src/services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "@/src/services/storage/SupabaseStorageAdapter";
@@ -129,6 +130,7 @@ export default function Auth() {
 
         if (!session) {
           dialog.alert("Check your inbox", "We sent a verification link to your email.");
+          haptic.success();
         }
       } else {
         const authData = await signIn(cleanEmail, authSecret);
@@ -286,6 +288,7 @@ export default function Auth() {
         "Check your inbox",
         "We've sent a reset link to your email. Open it on this phone, then enter your recovery key; the link alone can't unlock your diaries.",
       );
+      haptic.success();
     } catch (err: any) {
       dialog.alert("Reset Error", err.message || "Failed to send reset email.");
     } finally {

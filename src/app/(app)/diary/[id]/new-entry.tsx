@@ -2,6 +2,7 @@ import { dialog } from "@/src/components/Dialog/DialogProvider";
 import Editor from "@/src/components/Editor";
 import type { MoodKey } from "@/src/constants/moods";
 import { useUserSession } from "@/src/context/UserSessionContext";
+import { getDiaryById } from "@/src/db/diaries";
 import {
   createEntryWithMedia,
   PendingAttachment,
@@ -10,8 +11,10 @@ import {
   completeOnboarding,
   getOnboardingProgress
 } from "@/src/services/onboarding";
+import { DEFAULT_RULES, parseRules, type DiaryRules } from "@/src/types/rules";
 import { toDateKey } from "@/src/utils/dates";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function NewEntryScreen() {
@@ -21,6 +24,14 @@ export default function NewEntryScreen() {
   const entryDate = rawDate ?? toDateKey(new Date());
   const router = useRouter();
   const { session } = useUserSession();
+  const [rules, setRules] = useState<DiaryRules>(DEFAULT_RULES);
+
+  useEffect(() => {
+    getDiaryById(diaryId).then((d) => {
+      console.log("[editor] rules=", d?.rules, "diaryId=", d?.id);
+      setRules(parseRules(d?.rules));
+    });
+  }, [diaryId]);
 
   const handleSave = async (
     title: string,
@@ -75,6 +86,7 @@ export default function NewEntryScreen() {
       <Editor
         initialDate={entryDate}
         initialReadOnly={false}
+        rules={rules}
         onSave={handleSave}
         onBack={() => {
           router.back();
