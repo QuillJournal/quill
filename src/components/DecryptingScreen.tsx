@@ -32,6 +32,7 @@ export default function DecryptingScreen() {
     const { colors } = useTheme();
     const { label, fraction, phase, runs } = useSyncProgress();
     const { baseline, finish } = useContext(DecryptGateContext);
+    if (baseline === null) return null; 
     console.log({phase,baseline,runs})
 
     const syncFinished =

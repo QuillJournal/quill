@@ -22,21 +22,3 @@ export const setResumeDiaryId = (diaryId: number | null): void => {
     })
     .run();
 };
-//gate
-export const gateComplete = () => {
-  const row = db
-    .select({ completed: appState.decryptGateCompleted })
-    .from(appState)
-    .where(eq(appState.id, ROW_ID))
-    .get();
-  return row?.completed === true; 
-}
-export const setGateCompleted = (completed:boolean) => {
-  db.insert(appState)
-    .values({ id: ROW_ID, decryptGateCompleted: completed })
-    .onConflictDoUpdate({
-      target: appState.id,
-      set: { decryptGateCompleted: completed },
-    })
-    .run();
-}

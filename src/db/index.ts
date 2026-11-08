@@ -104,7 +104,6 @@ function ensureSchema(): void {
     CREATE TABLE IF NOT EXISTS app_state (
     id INTEGER PRIMARY KEY NOT NULL,
     resume_diary_id INTEGER REFERENCES diaries(id) ON DELETE SET NULL,
-    decrypt_gate_completed INTEGER NOT NULL DEFAULT 0,
     CONSTRAINT app_state_singleton CHECK(id = 1)
     );
 

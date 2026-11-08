@@ -135,6 +135,7 @@ function AppNavigator() {
       if (!newSession) {
         decryptGateDone.current = false;
         setDecryptBaseline(null);
+        setGateChecked(false)
         setIsAuthLoading(false);
         return;
       }
@@ -302,7 +303,6 @@ function AppNavigator() {
           });
         }
       } catch (e) {
-        console.log();
         console.error("ERROR: ", e);
       } finally {
         setIsAuthLoading(false);
@@ -316,6 +316,9 @@ function AppNavigator() {
    isFontsLoaded && isDbMigrated && !isAuthLoading && !isRecovering;
 
   const closeDecryptGate = useCallback(() => {
+    if(decryptGateDone.current){
+      return
+    };
     decryptGateDone.current = true;
     setGateChecked(true);
     setDecryptBaseline(null);
@@ -356,17 +359,17 @@ function AppNavigator() {
     };
   }, [isSignedIn, isNavReady]);*/
   useEffect(() => {
-    console.log({isNavReady,isSignedIn,gate:decryptGateDone.current})
     if (!isNavReady || !isSignedIn) return;
 
-    if (decryptGateDone.current) {
-      console.log("returning")
-      setGateChecked(true);
-      return;
-    }
     let cancelled = false;   
+    if(decryptGateDone.current){
+      setGateChecked(true);
+      setDecryptBaseline(null);
+      return;
+   }
     //
-    (async () => {
+    async function check() {
+      try{
       const [anyDiary] = await db
         .select({ id: diariesTable.id })
         .from(diariesTable)
@@ -376,24 +379,26 @@ function AppNavigator() {
         setDecryptBaseline(null);
         decryptGateDone.current =true;
         setGateChecked(true);
-        return
+        return;
       }
-    })().catch((e) => {
-      console.warn("Decrypt gate check failed: ", e);
-      if (!cancelled) setGateChecked(true);
-    });
-    return() => {
-      cancelled = true
-    };
     const baseline = getSyncRuns();
-    setDecryptBaseline(baseline);
+      if (cancelled) return;
+      console.log({baseline})
+      setDecryptBaseline(baseline);
+      setGateChecked(true);
+    }catch(e) {
+      console.warn("Decrypt gate check failed: ", e);
+      if (!cancelled){
+        setGateChecked(true);
+        setDecryptBaseline(null);
+      }
+    };
+  }
+  check()
+  return() => {
+    cancelled = true
+  };
   }, [isSignedIn, isNavReady]);
-
-  useEffect(() => {
-    if (decryptBaseline === null) return;
-    const t = setTimeout(closeDecryptGate, 60_000);
-    return () => clearTimeout(t);
-  }, [decryptBaseline, closeDecryptGate]);
 
   useEffect(() => {
     if (!isNavReady) return;
