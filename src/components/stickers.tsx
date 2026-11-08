@@ -4,7 +4,7 @@ import {
 } from "react-native";
 import {Gesture, GestureDetector} from "react-native-gesture-handler"
 import Animated, {useSharedValue, useAnimatedStyle} from "react-native-reanimated"
-import {useState} from "react"
+import {useState} from "react"; 
 const stickers = [
     require("@/assets/images/mood-backgrounds/angry.jpg"),
     require("@/assets/images/mood-backgrounds/anxious.jpg"),
@@ -15,22 +15,33 @@ const stickers = [
     require("@/assets/images/mood-backgrounds/sad.jpg")
 ];
 export default function Stickers(){ 
-    //moving 
-    const pan = Gesture.Pan().onUpdate((event) => {
-        x.value = event.absoluteX;
-        y.value = event.absoluteY;
-    });
-    const pinch = Gesture.Pinch().onUpdate((event) => {
-        dilation.value = event.scale
-    });
-
-    const image =stickers[0]
-    const initialsticker = 100; 
-
-    //resize + move
+    const [activeStickers, setActiveStickers] = useState([]); 
     const x = useSharedValue(0);
     const y = useSharedValue(0);
+    //
+    const startX = useSharedValue(0);
+    const startY = useSharedValue(0);
+
     const dilation = useSharedValue(1);
+    //
+    const startDialation = useSharedValue(1);
+    const initialsticker = 100; 
+    //moving 
+    const panStart = Gesture.Pan().onStart(() => {
+        startX.value = x.value
+        startY.value = y.value
+    });
+    const pan = Gesture.Pan().onUpdate((event) => {
+        x.value =  startX.value + event.translationX;
+        y.value =  startY.value +event.translationY;
+    });
+    const pinchStart = Gesture.Pinch().onStart(() => {
+        startDialation.value = dilation.value
+    });
+    const pinch = Gesture.Pinch().onUpdate((event) => {
+        dilation.value = startDialation.value * event.scale
+    });
+    //resize + move
     const stickerstyle = useAnimatedStyle(() => {
         return{
         position: "absolute" ,
@@ -40,11 +51,36 @@ export default function Stickers(){
         height: initialsticker*dilation.value,
         }
     })
-    return(
+    function Active(){ 
+        return(
         <Animated.View style = {stickerstyle}> 
-            <Image 
-                source = {image}
-            />
+            {activeStickers.map((index) => 
+                <Image 
+                    key = {index}
+                    source = {stickers[index]}
+                    style = {{
+                        width: "100%",
+                        height: "100%", 
+                        objectFit: "contain"
+                    }}                              
+                />
+            )}
         </Animated.View>
+        );
+    }
+    return(
+        <View>
+            {/* STICKERS */}
+            <GestureDetector gesture = {Gesture.Simultaneous(pan, panStart, pinch, pinchStart)}>
+                {Active()}
+            </GestureDetector>
+
+
+            {/* BAR */}
+            <Animated.View>
+                
+            </Animated.View>
+        </View>
     );
+
 }
