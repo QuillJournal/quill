@@ -5,7 +5,9 @@ import useTheme from "@/src/hooks/useTheme";
 import { haptic } from "@/src/services/haptics";
 import type { ViewProps } from "@/src/types/diary";
 import type { EntryWithAuthor } from "@/src/types/entry";
+import { isSameDay, toDateKey } from "@/src/utils/dates";
 import { isMine } from "@/src/utils/entry";
+import { useMemo, useRef, useState } from "react";
 import { FlatList, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Calendar from "../calendar/Calendar";
@@ -16,7 +18,6 @@ import TimelineEntryCard from "./TimelineEntryCard";
 
 export default function TimelineView({
   entries,
-  selectedDate,
   onSelectEntry,
   onDeleteEntry,
   diaryAccent,
@@ -24,8 +25,29 @@ export default function TimelineView({
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const insets = useSafeAreaInsets();
-
+  const [selectedDate, setSelectedDate] = useState<null | Date>(null);
   const { session } = useUserSession();
+  const listRef = useRef<FlatList>(null);
+
+  const indexByDay = useMemo(() => {
+    const byDay = new Map();
+    entries.forEach((entry, index) => {
+      if (!byDay.has(entry.entryDate)) byDay.set(entry.entryDate, index);
+    });
+    return byDay;
+  }, [entries]);
+
+  const handleDayPress = (date: Date) => {
+    haptic.press();
+    setSelectedDate((prev) => {
+      if (prev && isSameDay(prev, date)) return null;
+      return date;
+    });
+    const index = indexByDay.get(toDateKey(date));
+    if (index == undefined) return;
+    listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0 });
+  };
+
   const handleLongPress = (entry: EntryWithAuthor) => {
     if (!onDeleteEntry) return;
     if (!isMine(entry.authorId, session?.userId)) {
@@ -74,8 +96,13 @@ export default function TimelineView({
 
   return (
     <View style={{ flex: 1, gap: 40 }}>
-      <Calendar entries={entries} />
+      <Calendar
+        entries={entries}
+        onDayPress={handleDayPress}
+        selectedDate={selectedDate}
+      />
       <FlatList
+        ref={listRef}
         data={entries}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => renderCard(item)}

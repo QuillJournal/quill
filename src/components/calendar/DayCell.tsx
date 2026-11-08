@@ -51,7 +51,7 @@ export default function DayCell({
         >
           {day.getDate()}
         </Text>
-        {moodColor && !isSelected && (
+        {moodColor && (
           <View
             style={[
               styles.dot,
@@ -59,16 +59,6 @@ export default function DayCell({
                 backgroundColor: moodColor,
               },
             ]}
-          ></View>
-        )}
-        {moodColor && isSelected && (
-          <View
-            style={{
-              backgroundColor: moodColor,
-              width: 5,
-              height: 5,
-              borderRadius: 999,
-            }}
           ></View>
         )}
       </View>
@@ -91,7 +81,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 32,
     height: 32,
-    borderRadius: radius.sm,
+    borderRadius: radius.md + 5,
   },
   dot: {
     width: 8,

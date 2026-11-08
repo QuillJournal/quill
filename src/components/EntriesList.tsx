@@ -62,13 +62,7 @@ export default function EntriesList({
     timeline: TimelineView,
   };
   const [index, setIndex] = useState(2);
-  const handleDayPress = (date: Date) => {
-    haptic.press();
-    setSelectedDate((prev) => {
-      if (prev && isSameDay(prev, date)) return null;
-      return date;
-    });
-  };
+
   useEffect(() => {
     // 2 if there is 0 entries, 3 if there is one entry .
     if (entries.length === 0) {
