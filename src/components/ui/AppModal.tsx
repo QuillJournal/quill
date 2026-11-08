@@ -9,15 +9,15 @@ import {
   KeyboardAvoidingView,
   Modal,
   PanResponder,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
-  View,
+  View
 } from "react-native";
 
 type AppModalProps = {
-  title: string;
+  title?: string;
+  header?: React.ReactNode;
   isOpen: boolean;
   onClose: () => void;
   children: React.ReactNode;
@@ -31,6 +31,7 @@ const DISMISS_VELOCITY = 0.75;
 
 export default function AppModal({
   title,
+  header,
   isOpen,
   onClose,
   children,
@@ -125,7 +126,7 @@ export default function AppModal({
       onRequestClose={onClose}
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior="padding"
         style={styles.keyboardContainer}
         pointerEvents={isOpen ? "auto" : "none"}
       >
@@ -153,7 +154,9 @@ export default function AppModal({
                   { backgroundColor: colors.border },
                 ]}
               />
+              {header ?? (
               <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+              )}
             </View>
 
             {children}

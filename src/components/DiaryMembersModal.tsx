@@ -23,18 +23,15 @@ import {
   FlatList,
   Image,
   Keyboard,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  Pressable,
   StyleSheet,
   Switch,
   Text,
   TouchableOpacity,
   useColorScheme,
-  View,
+  View
 } from "react-native";
 import { haptic } from "../services/haptics";
+import AppModal from "./ui/AppModal";
 
 interface DiaryMembersModalProps {
   visible: boolean;
@@ -157,6 +154,7 @@ export default function DiaryMembersModal({
               setInviting(true);
               await sendDiaryInvite(diary.id, target, session);
               setInviteUsername("");
+              haptic.success();
               dialog.alert("Invite Sent", `@${target.username} has been invited.`);
               await onInviteSent?.();
             } catch (err: any) {
@@ -175,46 +173,25 @@ export default function DiaryMembersModal({
   };
 
   return (
-    <Modal visible={visible} animationType="fade" transparent onRequestClose={onClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-        style={styles.backdrop}
-      >
-        {/* Tap outside anywhere on the dim backdrop to close */}
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-
-        <View
-          style={[
-            styles.sheet,
-            {
-              backgroundColor: colors.surface,
-              borderColor: colors.border,
-            },
-          ]}
-        >
-          <View style={[styles.handleBar, { backgroundColor: colors.border }]} />
-
-          <View style={styles.header}>
-            <View style={{ flex: 1 }}>
-              <View style={styles.titleRow}>
-                <View style={[styles.diaryDot, { backgroundColor: diaryAccent }]} />
-                <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-                  {diary?.name || "Shared Diary"}
-                </Text>
-              </View>
-              <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-                End-to-end encrypted • {members.length || 1}{" "}
-                {(members.length || 1) === 1 ? "member" : "members"}
-              </Text>
+    <AppModal
+    isOpen={visible}
+    onClose={onClose}
+    header={
+      <View style={styles.header}>
+        <View style={{flex: 1}}>
+          <View style={styles.titleRow}>
+            <View style={[styles.diaryDot, { backgroundColor: diaryAccent }]} />
+            <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+              {diary?.name || "Shared Diary"}
+            </Text>
             </View>
-            <TouchableOpacity
-              onPress={onClose}
-              style={[styles.closeBtn, { backgroundColor: colors.card }]}
-              hitSlop={12}
-            >
-              <Ionicons name="close" size={20} color={colors.text} />
-            </TouchableOpacity>
-          </View>
+            <Text style={[styles.subtitle, { color: colors.textMuted }]}>
+              End-to-end encrypted • {members.length || 1}{" "}
+              {(members.length || 1) === 1 ? "member" : "members"}
+            </Text>
+        </View>
+        </View>
+    }>
 
           {isOwner && (
             <View
@@ -426,9 +403,7 @@ export default function DiaryMembersModal({
               }}
             />
           )}
-        </View>
-      </KeyboardAvoidingView>
-    </Modal>
+        </AppModal>
   );
 }
 

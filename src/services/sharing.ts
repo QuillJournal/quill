@@ -96,6 +96,10 @@ export async function lookupUserForInvite(
   if (error) throw new Error(error.message);
 
   const row = Array.isArray(data) ? data[0] : null;
+  if (username === session.username)
+    throw new Error(
+      `Inviting ${session.username}... oh wait, they're the diary owner! Can't invite yourself. The paradise is already yours. Try inviting some friends or family instead!`,
+    );
   if (!row) {
     throw new Error(
       "User not found or hasn't initialized encryption keys yet.",
