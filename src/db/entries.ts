@@ -4,7 +4,7 @@ import { db } from ".";
 import type { MoodKey } from "../constants/moods";
 import type { Entry, EntryWithCounts } from "../types/entry";
 import { EMPTY_COUNTS, getAttachmentCountsByDiaryId } from "./attachments";
-import { entriesTable as entries } from "./schema";
+import { entriesTable as entries, stickersTable } from "./schema";
 
 export const getEntriesByDiaryId = async (
   diaryId: number,
@@ -36,10 +36,11 @@ export const saveEntry = async (
   authorId: string,
   mood: MoodKey | null = null,
   entryTime: string | null = null,
-  stickers: StickerType[]
+  stickers: StickerType[] = []
 ): Promise<number> => {
   const remoteId = Crypto.randomUUID();
-  const result = await db.insert(entries).values({
+  return await db.transaction(async (transaction) => {
+  const result = await transaction.insert(entries).values({
     remoteId,
     diaryId,
     authorId,
@@ -53,7 +54,19 @@ export const saveEntry = async (
     deleted: 0,
     syncState: "pending_insert",
   });
-  return result.lastInsertRowId;
+  const entryId = result.lastInsertRowId;
+  await transaction.insert(stickersTable).values(
+    stickers.map((sticker) => ({
+      entryId,
+      x: sticker.x,
+      y: sticker.y, 
+      dialtion: sticker.dialtion,
+      rotation: sticker.rotation,
+      index: sticker.index,
+    })
+  ))
+  return entryId;
+  })
 };
 
 export const updateEntry = async (

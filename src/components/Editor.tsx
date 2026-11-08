@@ -323,11 +323,10 @@ export default function Editor({
       withSpring(1, { damping: 4, stiffness: 300 }),
     );
     play(celebrate);
-    setStickers(Stickers.getarray())
     const contentHtml = await editor.getHTML();
     setIsReadOnly(true);
     handedOffRef.current = true;
-    onSave(title, entryDate, contentHtml, { added, removedIds }, mood, entryTime);
+    onSave(title, entryDate, contentHtml, { added, removedIds }, mood, entryTime, stickers);
   };
 
   const handleStartEditing = () => {
@@ -628,7 +627,7 @@ export default function Editor({
           />
         </AppModal>
       {!isReadOnly && 
-      <Stickers/>
+      <Stickers stickers = {stickers} onChange = {setStickers}/>
       }  
       </SafeAreaView>
     </ImageBackground>

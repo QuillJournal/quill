@@ -33,7 +33,7 @@ type stickertype = {
     rotation: number, 
     index: number, 
 }
-function ActiveStickers({sticker}:{sticker:stickertype}){ 
+function ActiveStickers({sticker}:{sticker:stickertype}, {update}: {update:(value: stickertype) => void}){ 
     const x = useSharedValue(sticker.x);
     const y = useSharedValue(sticker.y);
     //
@@ -49,23 +49,34 @@ function ActiveStickers({sticker}:{sticker:stickertype}){
     const startRotation = useSharedValue(sticker.rotation);
 
     const initialsticker = 100; 
-    //moving 
+
+    //pan 
     const pan = Gesture.Pan().onStart(() => {
         startX.value = x.value
         startY.value = y.value
     }).onUpdate((event) => {
         x.value =  startX.value + event.translationX;
         y.value =  startY.value +event.translationY;
+    }).onEnd(() =>{
+        saveStickers()
     });
+
+    //pinch
     const pinch = Gesture.Pinch().onStart(() => {
         startDialation.value = dilation.value
     }).onUpdate((event) => {
         dilation.value = startDialation.value * event.scale
+    }).onEnd(() =>{
+        saveStickers()
     });
+
+    //rotate
     const rotate = Gesture.Rotation().onStart(() => {
         startRotation.value = rotation.value
     }).onUpdate((event) => {
         rotation.value = startRotation.value + event.rotation
+    }).onEnd(() =>{
+        saveStickers()
     });
     //resize + move
     const stickerstyle = useAnimatedStyle(() => {
@@ -79,7 +90,15 @@ function ActiveStickers({sticker}:{sticker:stickertype}){
         }
     })
     //
-
+    const saveStickers = () => {
+        update({
+            ...sticker,
+            x: x.value, 
+            y: y.value, 
+            dialtion: dilation.value, 
+            rotation: rotation.value, 
+        })
+    }
     return(
         <GestureDetector gesture = {Gesture.Simultaneous(pan, pinch, rotate)}>
             <Animated.View style = {stickerstyle}> 
@@ -96,8 +115,14 @@ function ActiveStickers({sticker}:{sticker:stickertype}){
         </GestureDetector>
     );
 }
-export default function Stickers(){
-    const [activeStickersArray, setActiveStickersArray] = useState<stickertype[]>([]);
+type StickerProps =  {
+    activeStickersArray: stickertype[];
+    onChange: (stickers:stickertype[]) => void;
+}
+export default function Stickers({
+    activeStickersArray,
+    onChange
+}:StickerProps){
     function getarray(){ 
         return activeStickersArray
     }
@@ -142,7 +167,7 @@ export default function Stickers(){
         }
     })
     function handlePress(index: number){ 
-        setActiveStickersArray(prev => [...prev, 
+        onChange([...activeStickersArray, 
         {
             id: Date.now() + Math.random() + index,
             x: width/2 -50, 

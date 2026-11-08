@@ -151,10 +151,7 @@ export const stickersTable = sqliteTable(
     entryId: int("entry_id")
       .references(() => entriesTable.id, { onDelete: "cascade" })
       .notNull(),
-    userId: text("user_id").notNull(),
  
-   
-    stickerIndex:text("sticker_index").notNull(),
     x: real("x").notNull(),
     y: real("y").notNull(), 
     dialtion: real("dialation").notNull(),
