@@ -5,6 +5,7 @@ import {
   StyleProp,
   StyleSheet,
   Text,
+  TextStyle,
   ViewStyle,
 } from "react-native";
 import { radius } from "../constants/radius";
@@ -19,7 +20,8 @@ type PillProps = {
   onPress?: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
-  style: StyleProp<ViewStyle>;
+  style?: StyleProp<ViewStyle>;
+  textStyle: StyleProp<TextStyle>;
   children?: React.ReactNode;
 };
 
@@ -31,6 +33,7 @@ export default function Pill({
   icon,
   iconColor,
   style,
+  textStyle,
   children,
 }: PillProps) {
   const { colors } = useTheme();
@@ -65,7 +68,7 @@ export default function Pill({
             color={iconColor ?? colors.textMuted}
           />
         )}
-        <Text style={styles.text}>{text}</Text>
+        <Text style={[styles.text, textStyle]}>{text}</Text>
         {children}
       </Animated.View>
     </Pressable>

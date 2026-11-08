@@ -8,6 +8,7 @@ import type { EntryWithAuthor } from "@/src/types/entry";
 import { isMine } from "@/src/utils/entry";
 import { FlatList, StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Calendar from "../calendar/Calendar";
 import { dialog } from "../Dialog/DialogProvider";
 import DateBadge from "./DateBadge";
 import EmptyState from "./EmptyState";
@@ -73,6 +74,7 @@ export default function TimelineView({
 
   return (
     <View style={{ flex: 1 }}>
+      <Calendar entries={entries} />
       <FlatList
         data={entries}
         keyExtractor={(item) => item.id.toString()}

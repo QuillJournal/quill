@@ -1,7 +1,8 @@
+import { radius } from "@/src/constants/radius";
 import { spacing } from "@/src/constants/spacings";
 import useCalendarCollapse from "@/src/hooks/useCalendarCollapse";
 import useTheme from "@/src/hooks/useTheme";
-import { Entry } from "@/src/types/entry";
+import { EntryWithAuthor } from "@/src/types/entry";
 import {
   addMonths,
   fromDateKey,
@@ -19,10 +20,8 @@ import AppModal from "../ui/AppModal";
 import CalendarHeader from "./CalendarHeader";
 import MonthGrid from "./MonthGrid";
 import NavButton from "./NavButton";
-import WeekHeader from "./WeekHeader";
-
 type CalendarProps = {
-  entries: Entry[];
+  entries: EntryWithAuthor[];
   selectedDate: Date | null;
   onDayPress: (date: Date) => void;
   onDayLongPress: (date: Date) => void;
@@ -66,6 +65,7 @@ export default function Calendar({
 
   const handlePrevMonth = () => setCurrentMonth((prev) => addMonths(prev, -1));
   const handleNextMonth = () => setCurrentMonth((prev) => addMonths(prev, 1));
+  const handleJumpToToday = () => setCurrentMonth(startOfMonth(today));
 
   const navButton = (
     <Animated.View style={chevronRotation}>
@@ -74,16 +74,23 @@ export default function Calendar({
   );
 
   return (
-    <View style={{ marginHorizontal: spacing.md }}>
-      <Animated.View style={headerStyle}>
-        <CalendarHeader
-          month={currentMonth}
-          onPrev={handlePrevMonth}
-          onNext={handleNextMonth}
-          onTitlePress={() => setShowPicker((prev) => !prev)}
-        />
-      </Animated.View>
-      <WeekHeader weekStartOn={0} />
+    <View
+      style={{
+        marginHorizontal: spacing.md,
+        backgroundColor: colors.surfaceHigh,
+        borderRadius: radius.lg,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+      }}
+    >
+      <CalendarHeader
+        month={currentMonth}
+        onJumpToToday={handleJumpToToday}
+        onPrev={handlePrevMonth}
+        onNext={handleNextMonth}
+        onTitlePress={() => setShowPicker((prev) => !prev)}
+      />
+      {/* <WeekHeader weekStartOn={0} /> */}
       <GestureDetector gesture={panGesture}>
         <View>
           <Animated.View style={[gridContainerStyle, { overflow: "hidden" }]}>
