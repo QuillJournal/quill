@@ -26,7 +26,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const JYOSHITA_ART: ImageSourcePropType[] = [require("@/assets/images/empty.png"), require("@/assets/images/logo.png")];
+const JYOSHITA_ART: ImageSourcePropType[] = [ require("@/assets/images/mood-backgrounds/calm.jpg"), require("@/assets/images/mood-backgrounds/happy.jpg"), require("@/assets/images/logo.png"),  require("@/assets/images/mood-backgrounds/meh.jpg"), require("@/assets/images/empty.png")];
 
 const version = Constants.nativeAppVersion ?? Constants.expoConfig?.version ?? "dev";
 const build = Constants.nativeBuildVersion;
@@ -385,7 +385,7 @@ export default function CreditsScreen() {
                             fontSize: fontSizes.md,
                         }}
                     >
-                        Made with ♡ by 3 people from Egypt, the US and India!
+                        Made with ❤ by 3 people from Egypt, the US and India!
                     </Text>
                 </Animated.View>
 

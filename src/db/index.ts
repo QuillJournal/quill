@@ -66,6 +66,8 @@ function ensureSchema(): void {
     last_synced_seq INTEGER NOT NULL DEFAULT 0,
     sync_state TEXT NOT NULL DEFAULT 'synced',
     last_opened_at INTEGER,
+    rules TEXT,
+    rotation_pending INTEGER NOT NULL DEFAULT 0,
     created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
     

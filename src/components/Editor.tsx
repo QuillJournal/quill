@@ -46,6 +46,7 @@ import {
 import { celebrate } from "../services/hapticPatterns";
 import { playEvents as play } from "../services/haptics";
 import type { Attachment } from "../types/attachment";
+import { checkRules, DEFAULT_RULES, type DiaryRules } from "../types/rules";
 import { fromDateKey, toDateKey } from "../utils/dates";
 import AttachMenu from "./AttachMenu";
 import AudioRow from "./AudioRow";
@@ -70,6 +71,7 @@ interface EditorProps {
   initialTime?: string;
   authorLabel?: string;
   canEdit?: boolean;
+  rules?: DiaryRules,
   onSave: (
     title: string,
     entryDate: string,
@@ -93,6 +95,7 @@ export default function Editor({
   initialTime,
   authorLabel,
   canEdit = true,
+  rules = DEFAULT_RULES,
   onSave,
   onBack,
 }: EditorProps) {
@@ -305,6 +308,25 @@ export default function Editor({
       dialog.alert(
         "Nothing to save",
         "Add a title, some text or a attachment before saving."
+      );
+      return;
+    }
+    const violation = checkRules(rules, {
+      mood,
+      title,
+      bodyText,
+      photoCount: visual.length,
+    });
+    if (violation) {
+      dialog.alert(
+        "Diary rule",
+        violation.message,
+        violation.field === "mood"
+        ? [
+          { text: "Cancel", style: "cancel" },
+          { text: "Pick a mood", onPress: openMoodPicker },
+        ]
+        : [{ text: "OK" }],
       );
       return;
     }

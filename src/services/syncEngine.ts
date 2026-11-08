@@ -1,4 +1,4 @@
-import { eq, or } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import * as Crypto from "expo-crypto";
 import { useEffect, useState } from "react";
 import { db } from "../db";
@@ -32,6 +32,7 @@ import {
   uploadEntryAttachments,
   type ManifestItem,
 } from "./attachmentSync";
+import { rotateDiaryKey } from "./diaryAdmin";
 import { checkAndPinBundle } from "./keyPins";
 
 let isSyncRunning = false;
@@ -119,6 +120,7 @@ export async function runSync(session: {
     await pushPendingDiaries(session);
     // sync remote diaries and memberships
     await syncDiariesAndMembers(session);
+    await rotatePendingDiaries(session);
     updateProgress({
       phase: "entries",
       label: "Decrypting your entries",
@@ -327,7 +329,7 @@ async function syncDiariesAndMembers(session: SyncSession) {
   const { data: memberRows, error } = await supabase
     .from("diary_members")
     .select(
-      "diary_id, role, wrapped_key, wrapped_by, wrapped_sig, key_epoch, member_blob, diaries(id, owner_id, meta_blob, key_epoch)",
+      "diary_id, role, wrapped_key, wrapped_by, wrapped_sig, key_epoch, member_blob, diaries(id, owner_id, meta_blob, key_epoch, rules_blob, key_history_blob, rotation_pending)",
     )
     .eq("user_id", session.userId);
 
@@ -364,17 +366,53 @@ async function syncDiariesAndMembers(session: SyncSession) {
     }
     const keyBytes = hexToBytes(keyHex);
     let meta = { name: "Untitled Diary", color: "cobalt" };
+    let metaOk = true;
     try {
       meta = decryptBlob(diary.meta_blob, keyBytes, {
         diaryId: diary.id,
         keyEpoch: diary.key_epoch,
       });
     } catch (e) {
+      metaOk = false;
       console.warn(
         `[Sync] Failed to decrypt meta blob for diary ${diary.id}: `,
         e,
       );
     }
+
+    if (diary.key_history_blob) {
+      try {
+        const history = decryptBlob<Record<string, string>>(
+          diary.key_history_blob,
+          keyBytes,
+          { diaryId: diary.id, keyEpoch: diary.key_epoch },
+        );
+        for (const [epoch, hex] of Object.entries(history)) {
+          if (!(await getDiaryKey(diary.id, Number(epoch)))) {
+            await saveDiaryKey(diary.id, hex, Number(epoch));
+          }
+        }
+      } catch (e) {
+        console.warn(`[Sync] Failed to read key history for ${diary.id}: `, e);
+      }
+    }
+
+    let rulesJson: string | null = null;
+    let rulesOk = true;
+    if (diary.rules_blob) {
+      try {
+        rulesJson = JSON.stringify(
+          decryptBlob(diary.rules_blob, keyBytes, {
+            diaryId: diary.id,
+            keyEpoch: diary.key_epoch,
+          }),
+        );
+      } catch (e) {
+        rulesOk = false;
+        console.warn(`[Sync] Failed to decrypt rules for ${diary.id}: `, e);
+      }
+    }
+    const rotationPending = diary.rotation_pending ? 1 : 0;
 
     const [existing] = await db
       .select()
@@ -388,8 +426,21 @@ async function syncDiariesAndMembers(session: SyncSession) {
         name: meta.name,
         color: meta.color,
         keyEpoch: diary.key_epoch,
+        rules: rulesJson,
+        rotationPending,
         syncState: "synced",
       });
+    } else if (existing.syncState === "synced") {
+      await db
+        .update(diariesTable)
+        .set({
+          ownerId: diary.owner_id,
+          keyEpoch: diary.key_epoch,
+          rotationPending,
+          ...(metaOk ? { name: meta.name, color: meta.color } : {}),
+          ...(rulesOk ? { rules: rulesJson } : {}),
+        })
+        .where(eq(diariesTable.id, existing.id));
     }
   }
   const remoteIds = new Set(memberRows.map((r) => r.diary_id));
@@ -397,6 +448,25 @@ async function syncDiariesAndMembers(session: SyncSession) {
   for (const d of locals) {
     if (d.remoteId && d.syncState === "synced" && !remoteIds.has(d.remoteId)) {
       await deleteDiaryWithMedia(d.id);
+    }
+  }
+}
+
+async function rotatePendingDiaries(session: FullSession) {
+  const mine = await db
+    .select()
+    .from(diariesTable)
+    .where(
+      and(
+        eq(diariesTable.ownerId, session.userId),
+        eq(diariesTable.rotationPending, 1),
+      ),
+    );
+  for (const d of mine) {
+    try {
+      await rotateDiaryKey(d, session);
+    } catch (e) {
+      console.warn(`[Sync] Key rotation failed for diary ${d.id}: `, e);
     }
   }
 }
@@ -422,6 +492,14 @@ async function pushOfflineEntryQueue(session: FullSession) {
       .where(eq(diariesTable.id, entry.diaryId));
 
     if (!diary || !diary.remoteId) continue;
+
+    if (entry.keyEpoch !== diary.keyEpoch) {
+      await db
+        .update(entriesTable)
+        .set({ keyEpoch: diary.keyEpoch })
+        .where(eq(entriesTable.id, entry.id));
+      entry.keyEpoch = diary.keyEpoch;
+    }
 
     const diaryKeyHex = await getDiaryKey(diary.remoteId, entry.keyEpoch);
     if (!diaryKeyHex) continue;
@@ -782,8 +860,20 @@ async function pullRemoteEntries(session: FullSession) {
         mood?: string | null;
         attachments?: ManifestItem[];
       };
+      let entryKey = diaryKey;
+      if (remote.key_epoch !== diary.keyEpoch) {
+        const oldHex = await getDiaryKey(diary.remoteId, remote.key_epoch);
+        if (!oldHex) {
+          console.warn(
+            `[Sync] Entry ${remote.id}: no key for epoch ${remote.key_epoch}, skipping.`,
+          );
+          continue;
+        }
+        entryKey = hexToBytes(oldHex);
+      }
+
       try {
-        payload = decryptBlob(remote.blob, diaryKey, {
+        payload = decryptBlob(remote.blob, entryKey, {
           diaryId: diary.remoteId,
           entryId: remote.id,
           keyEpoch: remote.key_epoch,

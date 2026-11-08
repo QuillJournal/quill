@@ -17,6 +17,7 @@ import {
   wrapDiaryKey,
 } from "../utils/crypto";
 import { supabase } from "../utils/supabase";
+import { haptic } from "./haptics";
 import { checkAndPinBundle } from "./keyPins";
 import { runSync } from "./syncEngine";
 
@@ -95,6 +96,10 @@ export async function lookupUserForInvite(
   if (error) throw new Error(error.message);
 
   const row = Array.isArray(data) ? data[0] : null;
+  if (username === session.username)
+    throw new Error(
+      `Inviting ${session.username}... oh wait, they're the diary owner! Can't invite yourself. The paradise is already yours. Try inviting some friends or family instead!`,
+    );
   if (!row) {
     throw new Error(
       "User not found or hasn't initialized encryption keys yet.",
@@ -337,6 +342,7 @@ export async function acceptDiaryInvite(
   });
   if (error) throw new Error(error.message);
 
+  haptic.success();
   await db.delete(diaryInvitesTable).where(eq(diaryInvitesTable.id, invite.id));
   await runSync({
     userId: session.userId,
