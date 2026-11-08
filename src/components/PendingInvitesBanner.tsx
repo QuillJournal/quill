@@ -15,6 +15,7 @@ import { useSyncStatus } from "@/src/services/syncEngine";
 import { Ionicons } from "@expo/vector-icons";
 import { useCallback, useEffect, useState } from "react";
 import { Image, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
+import { haptic } from "../services/haptics";
 
 export default function PendingInvitesBanner({ onJoined }: { onJoined: () => void }) {
     const { colors } = useTheme();
@@ -40,7 +41,14 @@ export default function PendingInvitesBanner({ onJoined }: { onJoined: () => voi
 
     const handleJoin = async (inv: DecryptedInvite) => {
         if (!session) return;
-        setBusyId(inv.id);
+        haptic.thud();
+        const confirmed = await dialog.confirm("Join diary?", "Please only accept diary invites from people you trust. The owner of the diary can remove you whenever they wish, and the entries you added won't be deleted if they do so, but you will lose access to the diary.", {
+            confirmText: "Join",
+            cancelText: "Cancel",
+            destructive: false,
+        });
+        if (confirmed) {
+            setBusyId(inv.id);
         try {
             const sharePhoto = Boolean(sharePhotoMap[inv.id]);
             await acceptDiaryInvite(inv, sharePhoto, session);
@@ -51,6 +59,11 @@ export default function PendingInvitesBanner({ onJoined }: { onJoined: () => voi
         } finally {
             setBusyId(null);
         }
+    } else {
+        // nothing :heart_eyes:
+        // waitt haptics yoo
+        haptic.press();
+    }
     };
 
     const handleDecline = async (inv: DecryptedInvite) => {

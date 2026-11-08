@@ -17,6 +17,7 @@ import {
   wrapDiaryKey,
 } from "../utils/crypto";
 import { supabase } from "../utils/supabase";
+import { haptic } from "./haptics";
 import { checkAndPinBundle } from "./keyPins";
 import { runSync } from "./syncEngine";
 
@@ -337,6 +338,7 @@ export async function acceptDiaryInvite(
   });
   if (error) throw new Error(error.message);
 
+  haptic.success();
   await db.delete(diaryInvitesTable).where(eq(diaryInvitesTable.id, invite.id));
   await runSync({
     userId: session.userId,
