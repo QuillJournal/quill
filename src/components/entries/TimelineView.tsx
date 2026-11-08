@@ -20,6 +20,7 @@ export default function TimelineView({
   entries,
   onSelectEntry,
   onDeleteEntry,
+  onNewEntry,
   diaryAccent,
 }: ViewProps) {
   const { colors } = useTheme();
@@ -46,6 +47,10 @@ export default function TimelineView({
     const index = indexByDay.get(toDateKey(date));
     if (index == undefined) return;
     listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0 });
+  };
+
+  const handleDayLongPress = (date: Date) => {
+    onNewEntry?.(date);
   };
 
   const handleLongPress = (entry: EntryWithAuthor) => {
@@ -99,6 +104,7 @@ export default function TimelineView({
       <Calendar
         entries={entries}
         onDayPress={handleDayPress}
+        onDayLongPress={handleDayLongPress}
         selectedDate={selectedDate}
       />
       <FlatList
