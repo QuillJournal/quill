@@ -4,6 +4,7 @@ import { isMoodKey, type MoodKey } from "@/src/constants/moods";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import { db } from "@/src/db";
 import { getAttachmentsByEntryId } from "@/src/db/attachments";
+import { getDiaryById } from "@/src/db/diaries";
 import { getEntryById } from "@/src/db/entries";
 import { diaryMembersTable } from "@/src/db/schema";
 import useTheme from "@/src/hooks/useTheme";
@@ -15,6 +16,7 @@ import { moodHaptics } from "@/src/services/moodHaptics";
 import { runSync } from "@/src/services/syncEngine";
 import { Attachment } from "@/src/types/attachment";
 import { Entry } from "@/src/types/entry";
+import { DEFAULT_RULES, parseRules, type DiaryRules } from "@/src/types/rules";
 import dayjs from "dayjs";
 import { eq } from "drizzle-orm";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -28,6 +30,7 @@ export default function EntryEditScreen() {
   const [entry, setEntry] = useState<Entry | null>();
   const [authorLabel, setAuthorLabel] = useState<string>("You");
   const [attachments, setAttachments] = useState<Attachment[]>();
+  const [rules, setRules] = useState<DiaryRules>(DEFAULT_RULES);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -38,6 +41,10 @@ export default function EntryEditScreen() {
       const loadedAttachments = await getAttachmentsByEntryId(Number(entryId));
       setEntry(loadedEntry);
       setAttachments(loadedAttachments);
+      if (loadedEntry) {
+        const d = await getDiaryById(loadedEntry.diaryId);
+        setRules(parseRules(d?.rules));
+      }
 
       if (loadedEntry?.authorId) {
         if (loadedEntry.authorId === session?.userId) {
@@ -138,6 +145,7 @@ export default function EntryEditScreen() {
         }
         authorLabel={authorLabel}
         canEdit={isAuthor}
+        rules={rules}
         initialReadOnly={true}
         onSave={handleSave}
         onBack={() => {

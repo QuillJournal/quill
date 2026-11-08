@@ -1,6 +1,6 @@
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import DiaryMembersModal from "@/src/components/DiaryMembersModal";
-import ViewMenuButton from "@/src/components/entries/ViewMenuButton";
+import DiarySettingsModal from "@/src/components/DiarySettingsModal";
 import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import TutorialTooltip from "@/src/components/TutorialTooltip";
@@ -56,6 +56,7 @@ export default function DiaryScreen() {
   const onboarding = useOnboarding();
   const [diaryRow, setDiaryRow] = useState<DiaryRow>();
   const [showMembers, setShowMembers] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const warnedPrivate = useRef(false);
   const { close, closing, reportReady } = useDiaryTransition();
   const isSyncing = useSyncStatus();
@@ -128,6 +129,15 @@ export default function DiaryScreen() {
       };
     }, [diaryId]),
   );
+
+  const reloadDiary = useCallback(async () => {
+    const diary = await getDiaryById(diaryId);
+    if (diary) setDiaryRow(diary);
+  }, [diaryId]);
+
+  useEffect(() => {
+    if (!isSyncing) reloadDiary();
+  }, [isSyncing, reloadDiary]);
 
   const handleAddEntry = (date?: Date) => {
     router.push({
@@ -238,6 +248,15 @@ export default function DiaryScreen() {
             </Text>
           </TouchableOpacity>
         </TutorialTooltip>
+        <TouchableOpacity
+        style={styles.iconButton}
+        onPress={() => setShowSettings(true)}
+        accessibilityRole="button"
+        accessibilityLabel="Diary settings"
+        hitSlop={12}
+        >
+          <Ionicons name="settings-outline" size={20} color={colors.textMuted} />
+        </TouchableOpacity>
       </View>
 
       <EntriesList
@@ -293,10 +312,18 @@ export default function DiaryScreen() {
         visible={showMembers}
         onClose={() => setShowMembers(false)}
         diary={diaryRow}
+        onDiaryChanged={reloadDiary}
         onInviteSent={() => {
           if (onboarding.isFirstTime && onboarding.progress.step === 2)
             nextOnboarding();
         }}
+      />
+      <DiarySettingsModal
+      visible={showSettings}
+      onClose={() => setShowSettings(false)}
+      diary={diaryRow}
+      onChanged={reloadDiary}
+      onGone={closeDiary}
       />
     </View>
   );

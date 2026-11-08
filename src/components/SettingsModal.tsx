@@ -689,7 +689,7 @@ export default function SettingsModal({
               </View>
               <SegmentedControl
                 options={[
-                  { label: "Now", value: "0" },
+                  { label: "ASAP", value: "0" },
                   { label: "15s", value: "15" },
                   { label: "30s", value: "30" },
                   { label: "1m", value: "60" },

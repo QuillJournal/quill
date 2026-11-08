@@ -11,7 +11,6 @@ import {
   DiaryMemberInfo,
   fetchDiaryMembers,
   lookupUserForInvite,
-  removeDiaryMember,
   sendDiaryInvite,
   updateMyMemberBlob
 } from "@/src/services/sharing";
@@ -30,6 +29,8 @@ import {
   useColorScheme,
   View
 } from "react-native";
+import { getDiaryById } from "../db/diaries";
+import { rotateDiaryKey } from "../services/diaryAdmin";
 import { haptic } from "../services/haptics";
 import AppModal from "./ui/AppModal";
 
@@ -37,6 +38,7 @@ interface DiaryMembersModalProps {
   visible: boolean;
   onClose: () => void;
   onInviteSent?: () => void | Promise<void>;
+  onDiaryChanged?: () => void;
   diary?: DiaryRow;
 }
 
@@ -44,6 +46,7 @@ export default function DiaryMembersModal({
   visible,
   onClose,
   onInviteSent,
+  onDiaryChanged,
   diary,
 }: DiaryMembersModalProps) {
   const { colors } = useTheme();
@@ -64,9 +67,10 @@ export default function DiaryMembersModal({
     if (!diary?.remoteId || !session) return;
     setLoading(true);
     try {
+      const fresh = (await getDiaryById(diary.id)) ?? diary;
       const list = await fetchDiaryMembers(
         diary.remoteId,
-        diary.keyEpoch,
+        fresh.keyEpoch,
         session,
       );
       setMembers(list);
@@ -105,20 +109,24 @@ export default function DiaryMembersModal({
 
   const handleRemoveMember = (m: DiaryMemberInfo) => {
     haptic.warning();
-    if (!diary?.remoteId) return;
+    if (!diary?.remoteId || !session) return;
     dialog.alert(
       `Remove @${m.username}?`,
-      "They'll lose access to this diary and won't be able to access any new entries.",
+      "They'll lose access to this diary and won't be able to access or read any new entries. All pending invites will also be cancelled as encryption keys are rotated.",
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Remove",
           style: "destructive",
           onPress: async () => {
+            setLoading(true);
             try {
-              await removeDiaryMember(diary.remoteId!, m.userId);
+              const fresh = (await getDiaryById(diary.id)) ?? diary;
+              await rotateDiaryKey(fresh, session, m.userId);
+              onDiaryChanged?.();
               await loadMembers();
             } catch (e: any) {
+              setLoading(false);
               dialog.alert("Remove failed", e.message || "Could not remove member.");
             }
           },

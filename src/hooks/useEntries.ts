@@ -1,5 +1,5 @@
 import { useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useUserSession } from "../context/UserSessionContext";
 import {
   deleteEntry as deleteEntryFromDb,
@@ -15,6 +15,8 @@ export default function useEntries(diaryId: number) {
   const [entries, setEntries] = useState<EntryWithAuthor[]>([]);
   const { session } = useUserSession();
   const diaryMembers = useDiaryMembers(diaryId);
+  const diaryMembersRef = useRef(diaryMembers);
+  diaryMembersRef.current = diaryMembers;
 
   const triggerSync = useCallback(async () => {
     if (session?.kemKeys && session?.signKeys) {
@@ -32,7 +34,7 @@ export default function useEntries(diaryId: number) {
       const isMe = isMine(e.authorId, session?.userId);
       const authorName = isMe
         ? session?.name || "You"
-        : diaryMembers.get(e.authorId) || "Collaborator";
+        : diaryMembersRef.current.get(e.authorId) || "Collaborator";
       return {
         ...e,
         authorName,
@@ -46,6 +48,10 @@ export default function useEntries(diaryId: number) {
     );
     setEntries(formatted);
   }, [diaryId, session?.userId, session?.name]);
+
+  useEffect(() => {
+    refresh();
+  }, [diaryMembers, refresh]);
 
   useFocusEffect(
     useCallback(() => {
