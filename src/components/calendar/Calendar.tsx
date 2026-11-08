@@ -77,10 +77,12 @@ export default function Calendar({
     <View
       style={{
         marginHorizontal: spacing.md,
-        backgroundColor: colors.surfaceHigh,
-        borderRadius: radius.lg,
+        backgroundColor: colors.calendarBackground,
+        borderWidth: 1,
         paddingVertical: 10,
         paddingHorizontal: 20,
+        borderColor: colors.surfaceHigh,
+        borderRadius: radius.lg,
       }}
     >
       <CalendarHeader

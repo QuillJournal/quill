@@ -35,7 +35,7 @@ export default function MonthHeader({
         }}
       >
         <Text
-          style={[styles.text, { color: colors.textOnSurface }]}
+          style={[styles.text, { color: colors.calendarText }]}
           maxFontSizeMultiplier={1.2}
         >
           {formatter.format(month)}

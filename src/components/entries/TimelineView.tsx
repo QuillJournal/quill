@@ -73,7 +73,7 @@ export default function TimelineView({
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, gap: 40 }}>
       <Calendar entries={entries} />
       <FlatList
         data={entries}

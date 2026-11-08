@@ -21,7 +21,7 @@ type PillProps = {
   icon?: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
   style?: StyleProp<ViewStyle>;
-  textStyle: StyleProp<TextStyle>;
+  textStyle?: StyleProp<TextStyle>;
   children?: React.ReactNode;
 };
 

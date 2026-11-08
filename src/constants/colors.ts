@@ -36,7 +36,7 @@ export const colors = {
     text: "#191C20",
     textMuted: "#44474E",
     textOnAccent: "#FFFFFF",
-    textOnSurface: "#1E2540",
+    calendarText: "#1E2540",
     accent: "#415F91",
     accentPressed: "#284777",
     accentContainer: "#D6E3FF",
@@ -54,6 +54,7 @@ export const colors = {
     dangerContainer: "#FFDAD6",
     onDangerContainer: "#93000A",
     SegmentedControl: "#E7E8EE",
+    calendarBackground: "#fff",
   },
   dark: {
     background: "#111318",
@@ -65,7 +66,7 @@ export const colors = {
     text: "#E2E2E9",
     textMuted: "#C4C6D0",
     textOnAccent: "#0A305F",
-    textOnSurface: "#E2E2E9",
+    calendarText: "#E2E2E9",
     accent: "#AAC7FF",
     accentPressed: "#86ACF0",
     accentContainer: "#284777",
@@ -83,6 +84,7 @@ export const colors = {
     dangerContainer: "#93000A",
     onDangerContainer: "#FFDAD6",
     SegmentedControl: "#282A2F",
+    calendarBackground: "#191C20",
   },
 };
 
