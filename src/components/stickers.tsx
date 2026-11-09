@@ -13,9 +13,9 @@ import {Gesture, GestureDetector} from "react-native-gesture-handler"
 import Animated, {
     useSharedValue, 
     useAnimatedStyle,
-    withSpring,
-    runOnJS
+    withSpring
 } from "react-native-reanimated"
+import {runOnJS} from "react-native-worklets"
 import {useState, useEffect} from "react"; 
 const stickers = [
     require("@/assets/images/mood-backgrounds/angry.jpg"),
@@ -51,6 +51,21 @@ function ActiveStickers({sticker,update}: {sticker:stickertype, update:(value: s
     const startRotation = useSharedValue(sticker.rotation);
 
     const initialsticker = 100; 
+
+    const saveStickers = (
+        newX:number,
+        newY: number,
+        newDialation:number,
+        newRotation: number,
+    ) => {
+        update({
+            ...sticker,
+            x: newX,
+            y: newY,
+            dialtion: newDialation,
+            rotation: newRotation,
+        })
+    }
 
     //pan 
     const pan = Gesture.Pan().onStart(() => {
@@ -106,25 +121,8 @@ function ActiveStickers({sticker,update}: {sticker:stickertype, update:(value: s
         transform: [{rotate: `${rotation.value}rad`}] ///...radians...
         }
     })
-    //
-    const saveStickers = (
-        newX:number, 
-        newY: number, 
-        newDialation:number, 
-        newRotation: number, 
-    ) => {
-        console.log("ENDED")
-        update({
-            ...sticker,
-            x: newX,
-            y: newY, 
-            dialtion: newDialation, 
-            rotation: newRotation, 
-        })
-        console.log("UPDATE CALLED")
-    }
     return(
-        <GestureDetector gesture = {Gesture.Simultaneous(pan)}>
+        <GestureDetector gesture = {Gesture.Simultaneous(pan, pinch, rotate)}>
             <Animated.View style = {stickerstyle}> 
                 <Image 
                     key = {sticker.id}
