@@ -29,9 +29,7 @@ export default function WeekStrip({
       day.getFullYear() == month.getFullYear()
     );
   };
-  const hasEntries = (day: Date): boolean => {
-    return entries.some((e) => e.entryDate === toDateKey(day));
-  };
+  const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const height = width / 7;
   const { isDark } = useTheme();
@@ -46,15 +44,17 @@ export default function WeekStrip({
     >
       {week.map((day: Date) => {
         const entry = entries.find((e) => e.entryDate === toDateKey(day));
-        const moodColor = entry?.mood
-          ? (moodColors[entry.mood as MoodKey]?.[isDark ? "dark" : "light"] ??
-            null)
-          : null;
+        const markColor = !entry
+          ? null
+          : entry.mood
+            ? (moodColors[entry.mood as MoodKey]?.[isDark ? "dark" : "light"] ??
+              colors.accent)
+            : colors.accent;
         return (
           <DayCell
             key={day.toISOString()}
             day={day}
-            moodColor={moodColor}
+            markColor={markColor}
             isCurrentMonth={isCurrentMonth(day)}
             isSelected={selectedDate ? isSameDay(day, selectedDate) : false}
             onPress={onDayPress}

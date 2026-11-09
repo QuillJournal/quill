@@ -1,4 +1,4 @@
-import { moodColors } from "@/src/constants/colors";
+import { colors, moodColors } from "@/src/constants/colors";
 import { radius } from "@/src/constants/radius";
 import useTheme from "@/src/hooks/useTheme";
 import { isSameDay } from "@/src/utils/dates";
@@ -6,8 +6,9 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type DayCellProps = {
   day: Date;
-  moodColor:
+  markColor:
     | (typeof moodColors)[keyof typeof moodColors]["dark" | "light"]
+    | (typeof colors)["dark" | "light"]["accent"]
     | null;
   isCurrentMonth: boolean;
   isSelected: boolean;
@@ -16,7 +17,7 @@ type DayCellProps = {
 };
 export default function DayCell({
   day,
-  moodColor,
+  markColor,
   isCurrentMonth,
   isSelected,
   onPress,
@@ -51,12 +52,12 @@ export default function DayCell({
         >
           {day.getDate()}
         </Text>
-        {moodColor && (
+        {markColor && (
           <View
             style={[
               styles.dot,
               {
-                backgroundColor: moodColor,
+                backgroundColor: markColor,
               },
             ]}
           ></View>
