@@ -7,6 +7,7 @@ import {
   useEditorBridge,
 } from "@10play/tentap-editor";
 import Stickers from "../components/stickers"
+import AlternateStickers from "../components/AlternateStickers"
 import { Ionicons } from "@expo/vector-icons";
 import { DatePicker } from "@quidone/react-native-wheel-picker";
 import dayjs from "dayjs";
@@ -636,6 +637,9 @@ export default function Editor({
         entryId = {entryId}
       />
       }  
+      {isReadOnly &&
+      <AlternateStickers entryId = {entryId}/>
+      }
       </SafeAreaView>
     </ImageBackground>
   );

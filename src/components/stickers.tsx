@@ -110,6 +110,14 @@ function ActiveStickers({sticker,update}: {sticker:stickertype, update:(value: s
             rotation.value,
         );
     });
+    //delete
+    const hold = Gesture.LongPress().minDuration(800)
+    .onStart(() => {
+        runOnJS(update)({
+            ...sticker,
+            id: -1,
+        });
+    });
     //resize + move
     const stickerstyle = useAnimatedStyle(() => {
         return{
@@ -122,7 +130,7 @@ function ActiveStickers({sticker,update}: {sticker:stickertype, update:(value: s
         }
     })
     return(
-        <GestureDetector gesture = {Gesture.Simultaneous(pan, pinch, rotate)}>
+        <GestureDetector gesture = {Gesture.Simultaneous(pan, pinch, rotate, hold)}>
             <Animated.View style = {stickerstyle}> 
                 <Image 
                     key = {sticker.id}
@@ -227,7 +235,9 @@ export default function Stickers({
                     key = {sticker.id} 
                     sticker = {sticker}
                     update = {(value:stickertype) => {
-                        const updated = activeStickersArray.map((stickerinner) =>
+                        const updated = value.id === -1?
+                        activeStickersArray.filter(stickerinner => stickerinner.id !== sticker.id):
+                        activeStickersArray.map((stickerinner) =>
                             stickerinner.id === value.id? value: stickerinner
                         );
                         onChange(updated)
