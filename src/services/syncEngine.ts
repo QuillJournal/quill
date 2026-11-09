@@ -364,14 +364,6 @@ async function isWrappedKeyTrusted(
 }
 
 async function syncDiariesAndMembers(session: SyncSession) {
-<<<<<<< HEAD
-  const { data: memberRows, error } = await supabase
-    .from("diary_members")
-    .select(
-      "diary_id, role, wrapped_key, wrapped_by, wrapped_sig, key_epoch, member_blob, diaries(id, owner_id, meta_blob, key_epoch, rules_blob, key_history_blob, rotation_pending)",
-    )
-    .eq("user_id", session.userId);
-=======
   const { data: memberRows, error } = await withSyncRequestTimeout(
     (signal) =>
       supabase
@@ -383,7 +375,6 @@ async function syncDiariesAndMembers(session: SyncSession) {
         .abortSignal(signal),
     "Fetching diary memberships",
   );
->>>>>>> test
 
   if (error || !memberRows) return;
 
