@@ -7,6 +7,7 @@ import { getAttachmentsByEntryId } from "@/src/db/attachments";
 import { getEntryById } from "@/src/db/entries";
 import { diaryMembersTable } from "@/src/db/schema";
 import useTheme from "@/src/hooks/useTheme";
+import {getStickersByEntryId} from "../../../../../db/stickerupdate"
 import {
   PendingAttachment,
   updateEntryWithMedia,
@@ -21,7 +22,17 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+type stickertype = {
+    id: number,
+    x: number, 
+    y: number, 
+    dialtion: number, 
+    rotation: number, 
+    index: number, 
+}
+
 export default function EntryEditScreen() {
+  const [stickers, setStickers] = useState<stickertype[]>([])
   const { entryId } = useLocalSearchParams();
   const { colors } = useTheme();
   const { session } = useUserSession();
@@ -34,6 +45,7 @@ export default function EntryEditScreen() {
   useEffect(() => {
     const loadEntry = async () => {
       setLoading(true);
+      setStickers(await getStickersByEntryId(Number(entryId)))
       const loadedEntry = await getEntryById(Number(entryId));
       const loadedAttachments = await getAttachmentsByEntryId(Number(entryId));
       setEntry(loadedEntry);
@@ -86,6 +98,7 @@ export default function EntryEditScreen() {
     media: { added: PendingAttachment[]; removedIds: number[] },
     mood: MoodKey | null,
     entryTime: string,
+    stickers: stickertype[]
   ) => {
     if (!isAuthor) {
       dialog.alert("Read Only", "Only the author of this entry can edit it.");
@@ -139,7 +152,7 @@ export default function EntryEditScreen() {
         authorLabel={authorLabel}
         canEdit={isAuthor}
         initialReadOnly={true}
-        onSave={handleSave}
+        entryId = {Number(entryId)}
         onBack={() => {
           router.back();
         }}

@@ -144,3 +144,4 @@ export const markEntryDirty = async (id: number): Promise<void> => {
 };
 
 export const getEntriesByDiaryIdWithAttachmentCounts = async () => {};
+

@@ -33,7 +33,7 @@ type stickertype = {
     rotation: number, 
     index: number, 
 }
-function ActiveStickers({sticker}:{sticker:stickertype}, {update}: {update:(value: stickertype) => void}){ 
+function ActiveStickers({sticker,update}: {sticker:stickertype, update:(value: stickertype) => void}){ 
     const x = useSharedValue(sticker.x);
     const y = useSharedValue(sticker.y);
     //
@@ -185,6 +185,13 @@ export default function Stickers({
                 <ActiveStickers 
                 key = {sticker.id} 
                 sticker = {sticker}
+                update = {(value:stickertype) => {
+                    onChange(
+                        activeStickersArray.map((stickerinner) =>
+                            stickerinner.id === value.id? value: stickerinner
+                        )
+                    );
+                }}
                 />
             )}
         </View>

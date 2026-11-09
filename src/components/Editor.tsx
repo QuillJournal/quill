@@ -104,7 +104,7 @@ export default function Editor({
   onSave,
   onBack,
 }: EditorProps) {
-  const [stickers, setStickers] = useState<stickertype[]>([]);
+  const [stickers, setStickers] = useState<stickertype>([])
   const [background, setBackground] = useState();
   const saveScale = useSharedValue(1);
   const saveStyle = useAnimatedStyle(() => ({
@@ -326,7 +326,8 @@ export default function Editor({
     const contentHtml = await editor.getHTML();
     setIsReadOnly(true);
     handedOffRef.current = true;
-    onSave(title, entryDate, contentHtml, { added, removedIds }, mood, entryTime, stickers);
+    
+    onSave(title, entryDate, contentHtml, { added, removedIds }, mood, entryTime);
   };
 
   const handleStartEditing = () => {
@@ -627,7 +628,10 @@ export default function Editor({
           />
         </AppModal>
       {!isReadOnly && 
-      <Stickers stickers = {stickers} onChange = {setStickers}/>
+      <Stickers 
+        activeStickersArray = {stickers} 
+        onChange = {setStickers}
+      />
       }  
       </SafeAreaView>
     </ImageBackground>
