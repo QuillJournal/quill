@@ -6,5 +6,5 @@ export default function DatePill() {
     month: "short",
     day: "2-digit",
   });
-  return <Pill text={today} />;
+  return <Pill text={today} isInteractive={false} />;
 }

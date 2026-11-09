@@ -5,7 +5,7 @@ import type { MoodKey } from "@/src/constants/moods";
 import useTheme from "@/src/hooks/useTheme";
 import { celebrate } from "@/src/services/hapticPatterns";
 import { haptic, playTimeline } from "@/src/services/haptics";
-import { useAuthLinkResult } from "@/src/utils/auth";
+import { clearAuthLinkResult, useAuthLinkResult } from "@/src/utils/auth";
 import { supabase } from "@/src/utils/supabase";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
@@ -80,6 +80,7 @@ export default function LoginCallBack() {
       );
     };
 
+    if (link?.kind === "pending") return;
     if (link) {
       void resolve();
       return () => {
@@ -169,7 +170,14 @@ export default function LoginCallBack() {
       </View>
 
       <Animated.View entering={FadeInDown.delay(450).springify()} style={{ padding: spacing.lg }}>
-        <Button label={view.cta} onPress={() => router.replace("/(auth)/login")} />
+        <Button
+          label={view.cta}
+          onPress={async () => {
+            const { data } = await supabase.auth.getSession();
+            clearAuthLinkResult();
+            if (!data.session) router.replace("/(auth)/login");
+          }}
+        />
       </Animated.View>
     </SafeAreaView>
   );

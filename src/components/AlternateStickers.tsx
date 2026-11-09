@@ -1,12 +1,12 @@
+import { useEffect, useState } from "react";
 import {
-  View, 
-  Image, 
+    Dimensions,
+    Image,
 
-  StyleSheet, 
-  Dimensions,
+    StyleSheet,
+    View,
 } from "react-native";
-import { getStickersByEntryId} from "../db/stickerupdate"
-import {useState, useEffect} from "react"; 
+import { getStickersByEntryId } from "../db/stickerupdate";
 const stickers = [
     require("@/assets/images/mood-backgrounds/angry.jpg"),
     require("@/assets/images/mood-backgrounds/anxious.jpg"),
@@ -44,15 +44,16 @@ function ActiveStickers({sticker}: {sticker:stickertype}){
         </View>
     );
 }
-export default function Stickers({entryId}:{entryId: number}){
+export default function Stickers({entryId}:{entryId?: number}){
     const width:number = Dimensions.get("window").width;
     const [stickers, setStickers] = useState<stickertype[]>([]); 
     useEffect(() => {
-        if (!entryId) return; 
+        if (!entryId) return;
+        const id = entryId; 
         //check for old ones 
         async function initialize(){
             try{
-                const stuff = await getStickersByEntryId(entryId)
+                const stuff = await getStickersByEntryId(id)
                 setStickers(stuff)
             }catch(error){
                 console.error("Error loading the stickers: ", error)

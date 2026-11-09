@@ -21,13 +21,13 @@ export const getEntriesByDiaryId = async (
   }));
 };
 type StickerType = {
-    id: number,
-    x: number, 
-    y: number, 
-    dialtion: number, 
-    rotation: number, 
-    index: number, 
-}
+  id: number;
+  x: number;
+  y: number;
+  dialtion: number;
+  rotation: number;
+  index: number;
+};
 export const saveEntry = async (
   diaryId: number,
   title: string,
@@ -36,37 +36,39 @@ export const saveEntry = async (
   authorId: string,
   mood: MoodKey | null = null,
   entryTime: string | null = null,
-  stickers: StickerType[] = []
+  stickers: StickerType[] = [],
 ): Promise<number> => {
   const remoteId = Crypto.randomUUID();
   return await db.transaction(async (transaction) => {
-  const result = await transaction.insert(entries).values({
-    remoteId,
-    diaryId,
-    authorId,
-    title,
-    entryDate,
-    body,
-    mood,
-    entryTime,
-    version: 1,
-    keyEpoch: 1,
-    deleted: 0,
-    syncState: "pending_insert",
+    const result = await transaction.insert(entries).values({
+      remoteId,
+      diaryId,
+      authorId,
+      title,
+      entryDate,
+      body,
+      mood,
+      entryTime,
+      version: 1,
+      keyEpoch: 1,
+      deleted: 0,
+      syncState: "pending_insert",
+    });
+    const entryId = result.lastInsertRowId;
+    if (stickers.length > 0) {
+      await transaction.insert(stickersTable).values(
+        stickers.map((sticker) => ({
+          entryId,
+          x: sticker.x,
+          y: sticker.y,
+          dialtion: sticker.dialtion,
+          rotation: sticker.rotation,
+          index: sticker.index,
+        })),
+      );
+    }
+    return entryId;
   });
-  const entryId = result.lastInsertRowId;
-  await transaction.insert(stickersTable).values(
-    stickers.map((sticker) => ({
-      entryId,
-      x: sticker.x,
-      y: sticker.y, 
-      dialtion: sticker.dialtion,
-      rotation: sticker.rotation,
-      index: sticker.index,
-    })
-  ))
-  return entryId;
-  })
 };
 
 export const updateEntry = async (
@@ -144,4 +146,3 @@ export const markEntryDirty = async (id: number): Promise<void> => {
 };
 
 export const getEntriesByDiaryIdWithAttachmentCounts = async () => {};
-

@@ -1,22 +1,22 @@
-import {
-  View, 
-  Image, 
-  Pressable, 
-  StyleSheet, 
-  ScrollView, 
-  Dimensions,
-} from "react-native";
-import {updateStickersByEntryId, getStickersByEntryId} from "../db/stickerupdate"
 import { mode } from "@/src/constants/colors";
-import {MaterialCommunityIcons} from "@expo/vector-icons"
-import {Gesture, GestureDetector} from "react-native-gesture-handler"
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useEffect, useState } from "react";
+import {
+    Dimensions,
+    Image,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    View,
+} from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
-    useSharedValue, 
     useAnimatedStyle,
+    useSharedValue,
     withSpring
-} from "react-native-reanimated"
-import {runOnJS} from "react-native-worklets"
-import {useState, useEffect} from "react"; 
+} from "react-native-reanimated";
+import { runOnJS } from "react-native-worklets";
+import { getStickersByEntryId, updateStickersByEntryId } from "../db/stickerupdate";
 const stickers = [
     require("@/assets/images/mood-backgrounds/angry.jpg"),
     require("@/assets/images/mood-backgrounds/anxious.jpg"),
@@ -148,7 +148,7 @@ function ActiveStickers({sticker,update}: {sticker:stickertype, update:(value: s
 type StickerProps =  {
     activeStickersArray: stickertype[];
     onChange: (stickers:stickertype[]) => void;
-    entryId: number;
+    entryId?: number;
 }
 export default function Stickers({
     activeStickersArray,
@@ -162,11 +162,12 @@ export default function Stickers({
 
     useEffect(() => {
         if (!entryId) return; 
+        const id = entryId;
         let active = true; 
         //check for old ones 
         async function initialize(){
             try{
-            const newStickers = await getStickersByEntryId(entryId)
+            const newStickers = await getStickersByEntryId(id)
             if(active){
                 onChange(newStickers)
             }

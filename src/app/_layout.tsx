@@ -63,7 +63,7 @@ import {
 } from "../services/storage/secureKeyStore";
 import { SupabaseStorageAdapter } from "../services/storage/SupabaseStorageAdapter";
 import { getSyncRuns } from "../services/syncEngine";
-import { getUserProfileRecord, isRecoveryMode, subscribeToAuthState, useRecoveryMode, } from "../utils/auth";
+import { getUserProfileRecord, isRecoveryMode, subscribeToAuthState, useAuthLinkResult, useRecoveryMode, } from "../utils/auth";
 import { decryptUserProfile, type DecryptedProfile } from "../utils/crypto";
 import {
   downloadAndDecryptPhoto,
@@ -107,6 +107,7 @@ function AppNavigator() {
   const [gateChecked, setGateChecked] = useState(false);
   const decryptGateDone = useRef(false);
   const isRecovering = useRecoveryMode();
+  const authLink = useAuthLinkResult();
 
   let cachedPhotoUri: string | null = null;
 
@@ -310,13 +311,13 @@ function AppNavigator() {
     });
     return () => unsubscribe();
   }, []);
-  console.log({decryptBaseline})
+  console.log({ decryptBaseline })
   const isSignedIn = supabaseSession !== null;
   const isNavReady =
-   isFontsLoaded && isDbMigrated && !isAuthLoading && !isRecovering;
+    isFontsLoaded && isDbMigrated && !isAuthLoading && !isRecovering;
 
   const closeDecryptGate = useCallback(() => {
-    if(decryptGateDone.current){
+    if (decryptGateDone.current) {
       return
     };
     decryptGateDone.current = true;
@@ -361,47 +362,48 @@ function AppNavigator() {
   useEffect(() => {
     if (!isNavReady || !isSignedIn) return;
 
-    let cancelled = false;   
-    if(decryptGateDone.current){
+    let cancelled = false;
+    if (decryptGateDone.current) {
       setGateChecked(true);
       setDecryptBaseline(null);
       return;
-   }
+    }
     //
     async function check() {
-      try{
-      const [anyDiary] = await db
-        .select({ id: diariesTable.id })
-        .from(diariesTable)
-        .limit(1);
-      if (cancelled) return;
-      if(anyDiary){
-        setDecryptBaseline(null);
-        decryptGateDone.current =true;
+      try {
+        const [anyDiary] = await db
+          .select({ id: diariesTable.id })
+          .from(diariesTable)
+          .limit(1);
+        if (cancelled) return;
+        if (anyDiary) {
+          setDecryptBaseline(null);
+          decryptGateDone.current = true;
+          setGateChecked(true);
+          return;
+        }
+        const baseline = getSyncRuns();
+        if (cancelled) return;
+        console.log({ baseline })
+        setDecryptBaseline(baseline);
         setGateChecked(true);
-        return;
-      }
-    const baseline = getSyncRuns();
-      if (cancelled) return;
-      console.log({baseline})
-      setDecryptBaseline(baseline);
-      setGateChecked(true);
-    }catch(e) {
-      console.warn("Decrypt gate check failed: ", e);
-      if (!cancelled){
-        setGateChecked(true);
-        setDecryptBaseline(null);
-      }
+      } catch (e) {
+        console.warn("Decrypt gate check failed: ", e);
+        if (!cancelled) {
+          setGateChecked(true);
+          setDecryptBaseline(null);
+        }
+      };
+    }
+    check()
+    return () => {
+      cancelled = true
     };
-  }
-  check()
-  return() => {
-    cancelled = true
-  };
   }, [isSignedIn, isNavReady]);
 
   useEffect(() => {
     if (!isNavReady) return;
+    if (authLink) return;
     if (!isSignedIn) {
       router.replace("/Intro");
       return;
@@ -415,7 +417,7 @@ function AppNavigator() {
     router.replace(
       resumeDiaryId === null ? "/(app)" : `/(app)/diary/${resumeDiaryId}`,
     );
-  }, [isSignedIn, isNavReady, gateChecked, decryptBaseline]);
+  }, [isSignedIn, isNavReady, gateChecked, decryptBaseline, authLink]);
 
   /*useEffect(() => {
     if (!isNavReady) return;
@@ -457,24 +459,29 @@ function AppNavigator() {
         >
           <DiaryTransitionProvider>
             <TutorialProvider>
-            <View style={{ flex: 1 }}>
-              <Stack
-                screenOptions={{
-                  contentStyle: { backgroundColor: colors.background },
-                  headerShown: false,
-                }}
-              >
-                <Stack.Screen name="(app)" />
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name = "Intro"/>
-                <Stack.Screen
-                  name="decrypting"
-                  options={{ animation: "fade", gestureEnabled: false }}
-                />
-              </Stack>
-              <TutorialHost />
-              <AppLockScreen />
-            </View>
+              <View style={{ flex: 1 }}>
+                <Stack
+                  screenOptions={{
+                    contentStyle: { backgroundColor: colors.background },
+                    headerShown: false,
+                  }}
+                >
+                  <Stack.Protected guard={isSignedIn}>
+                    <Stack.Screen name="(app)" />
+                    <Stack.Screen
+                      name="decrypting"
+                      options={{ animation: "fade", gestureEnabled: false }}
+                    />
+                  </Stack.Protected>
+                  <Stack.Protected guard={!isSignedIn || isRecovering}>
+                    <Stack.Screen name="Intro" />
+                    <Stack.Screen name="(auth)" />
+                  </Stack.Protected>
+                  <Stack.Screen name="login-callback" />
+                </Stack>
+                <TutorialHost />
+                <AppLockScreen />
+              </View>
             </TutorialProvider>
           </DiaryTransitionProvider>
         </DecryptGateContext.Provider>

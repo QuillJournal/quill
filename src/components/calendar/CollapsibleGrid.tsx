@@ -4,7 +4,15 @@ import NavButton from "./NavButton";
 import WeekHeader from "./WeekHeader";
 
 const ROW_H = 20;
-export default function CollapsibleGrid({ currentWeek, header, grid }) {
+export default function CollapsibleGrid({
+  currentWeek,
+  header,
+  grid,
+}: {
+  currentWeek: any;
+  header: React.ReactNode;
+  grid: React.ReactNode;
+}) {
   const [isExpanded, setIsExpanded] = useState(false);
   return (
     <View style={{ justifyContent: "space-around", overflow: "hidden" }}>

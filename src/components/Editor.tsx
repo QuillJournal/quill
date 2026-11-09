@@ -6,8 +6,6 @@ import {
   Toolbar,
   useEditorBridge,
 } from "@10play/tentap-editor";
-import Stickers from "../components/stickers"
-import AlternateStickers from "../components/AlternateStickers"
 import { Ionicons } from "@expo/vector-icons";
 import { DatePicker } from "@quidone/react-native-wheel-picker";
 import dayjs from "dayjs";
@@ -34,6 +32,8 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from "react-native-safe-area-context";
+import AlternateStickers from "../components/AlternateStickers";
+import Stickers from "../components/stickers";
 import { GabaritoFont } from "../constants/Gabarito";
 import { MOODS, type MoodKey } from "../constants/moods";
 import { fonts } from "../constants/typography";
@@ -74,7 +74,7 @@ interface EditorProps {
   authorLabel?: string;
   canEdit?: boolean;
   rules?: DiaryRules,
-  entryId: number
+  entryId?: number
   onSave: (
     title: string,
     entryDate: string,

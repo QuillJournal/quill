@@ -102,6 +102,7 @@ export function getAuthLinkError(): string | null {
 
 export type AuthLinkResult =
   | { kind: "success" }
+  | { kind: "pending" }
   | { kind: "error"; code: string | null };
 
 let authLinkResult: AuthLinkResult | null = null;
@@ -124,6 +125,10 @@ export function useAuthLinkResult(): AuthLinkResult | null {
   );
 }
 
+export function clearAuthLinkResult() {
+  setAuthLinkResult(null);
+}
+
 function getUrlPath(url: string): string {
   const withoutScheme = url.replace(/^[a-z][a-z0-9+.-]*:\/\//i, "");
   const [path] = withoutScheme.split(/[?#]/);
@@ -141,10 +146,14 @@ export async function handleAuthUrl(url: string) {
   if (isRecovery) setRecoveryMode(true);
   authLinkError = params.error_description ?? null;
   if (isCallback) {
+    const hasError =
+      params.error || params.error_code || params.error_description;
     setAuthLinkResult(
-      params.error || params.error_code || params.error_description
+      hasError
         ? { kind: "error", code: params.error_code ?? null }
-        : null,
+        : params.access_token && params.refresh_token
+          ? { kind: "pending" }
+          : null,
     );
   }
 
