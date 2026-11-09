@@ -10,7 +10,7 @@ import { formatEntryDate, fromDateKey } from "@/src/utils/dates";
 import { splitMedia } from "@/src/utils/media";
 import { Ionicons } from "@expo/vector-icons";
 import { useMemo } from "react";
-import { Animated, Pressable, StyleSheet, Text, View } from "react-native";
+import { Animated, Pressable, StyleProp, StyleSheet, Text, View, ViewStyle } from "react-native";
 import MediaThumb from "../MediaThumb";
 import MojiFace from "../MojiFace";
 import AuthorPill from "./AuthorPill";
@@ -23,6 +23,7 @@ type EntryCardProps = {
   onLongPress: (entry: EntryWithAuthor) => void;
   diaryAccent: string;
   isMe: boolean;
+  style: StyleProp<ViewStyle>
 };
 
 export default function EntryCard({
@@ -32,6 +33,7 @@ export default function EntryCard({
   onLongPress,
   diaryAccent,
   isMe,
+  style,
 }: EntryCardProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors, diaryAccent);
@@ -65,7 +67,7 @@ export default function EntryCard({
       onPressIn={() => animatePress(true)}
       onPressOut={() => animatePress(false)}
     >
-      <Animated.View style={[styles.card, { backgroundColor: animatedColor }]}>
+      <Animated.View style={[styles.card, { backgroundColor: animatedColor }, style]}>
         <View
           style={{
             flexDirection: "row",

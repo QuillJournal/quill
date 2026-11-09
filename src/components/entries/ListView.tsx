@@ -1,3 +1,4 @@
+import { radius } from "@/src/constants/radius";
 import { fontSizes, fonts } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import useEntrySearch from "@/src/hooks/useEntrySearch";
@@ -81,16 +82,40 @@ export default function ListView({
     );
   };
 
-  const renderCard = (entry: EntryWithAuthor) => (
-    <EntryCard
-      entry={entry}
-      media={media?.get(entry.id) ?? []}
-      onPress={() => onSelectEntry?.(entry)}
-      onLongPress={handleLongPress}
-      diaryAccent={diaryAccent}
-      isMe={isMine(entry.authorId, session?.userId)}
-    />
-  );
+  const renderCard = (
+    entry: EntryWithAuthor,
+    index: number,
+    lastIndex: number,
+  ) => {
+    let style = {};
+    if (index == 0) {
+      style = {
+        ...style,
+        ...{ borderTopRightRadius: radius.md, borderTopLeftRadius: radius.md },
+      };
+    }
+    if (index == lastIndex) {
+      style = {
+        ...style,
+        ...{
+          borderBottomRightRadius: radius.md,
+          borderBottomLeftRadius: radius.md,
+        },
+      };
+    }
+
+    return (
+      <EntryCard
+        entry={entry}
+        media={media?.get(entry.id) ?? []}
+        onPress={() => onSelectEntry?.(entry)}
+        onLongPress={handleLongPress}
+        diaryAccent={diaryAccent}
+        isMe={isMine(entry.authorId, session?.userId)}
+        style={style}
+      />
+    );
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -111,7 +136,9 @@ export default function ListView({
         style={{ flex: 1 }}
         sections={data}
         keyExtractor={(item) => item.id.toString()}
-        renderItem={({ item }) => renderCard(item)}
+        renderItem={({ item, index, section }) =>
+          renderCard(item, index, section.data.length - 1)
+        }
         renderSectionHeader={({ section }) => (
           <EntryWeekHeader title={section.title} subtitle={section.subtitle} />
         )}
