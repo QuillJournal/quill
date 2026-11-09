@@ -99,5 +99,5 @@ export const getWeekRange = (date: Date) => {
 };
 
 export const addDays = (date: Date, days: number) => {
-  return dayjs(date).add(days, "D").toDate();
+  return dayjs(date).add(days, "d").toDate();
 };

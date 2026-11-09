@@ -29,6 +29,16 @@ type CalendarProps = {
   onDayLongPress: (date: Date) => void;
 };
 
+const computeStreak = (dayKeys: Set<string>, today: Date) => {
+  let cursor = dayKeys.has(toDateKey(today)) ? today : addDays(today, -1);
+  let streak = 0;
+  while (dayKeys.has(toDateKey(cursor))) {
+    streak++;
+    cursor = addDays(cursor, -1);
+  }
+  return streak;
+};
+
 export default function Calendar({
   entries,
   selectedDate,
@@ -52,16 +62,11 @@ export default function Calendar({
     () => new Set(entries.map((e) => e.entryDate)),
     [entries],
   );
-  const computeStreak = (dayKeys: Set<string>) => {
-    let cursor = dayKeys.has(toDateKey(today)) ? today : addDays(today, -1);
-    let streak = 0;
-    while (dayKeys.has(toDateKey(cursor))) {
-      streak++;
-      cursor = addDays(cursor, -1);
-    }
-    return streak;
-  };
-  const streak = computeStreak(journaledDays);
+
+  const streak = useMemo(
+    () => computeStreak(journaledDays, today),
+    [journaledDays, today],
+  );
   const found = weeks.findIndex((w) => w.some((d) => isSameDay(d, anchorDate)));
   const selectedRow = found === -1 ? 0 : found;
 

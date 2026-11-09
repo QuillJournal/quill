@@ -46,7 +46,12 @@ export default function TimelineView({
     });
     const index = indexByDay.get(toDateKey(date));
     if (index == undefined) return;
-    listRef.current?.scrollToIndex({ index, animated: true, viewPosition: 0 });
+
+    listRef.current?.scrollToIndex({
+      index,
+      animated: true,
+      viewPosition: 0,
+    });
   };
 
   const handleDayLongPress = (date: Date) => {
@@ -117,6 +122,12 @@ export default function TimelineView({
           // room for the FAB + home indicator
           { paddingBottom: 110 + insets.bottom },
         ]}
+        onScrollToIndexFailed={({ index, averageItemLength }) =>
+          listRef.current?.scrollToOffset({
+            offset: index * averageItemLength,
+            animated: true,
+          })
+        }
         ListEmptyComponent={EmptyState}
       />
     </View>

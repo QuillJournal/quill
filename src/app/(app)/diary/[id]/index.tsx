@@ -1,6 +1,7 @@
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import DiaryMembersModal from "@/src/components/DiaryMembersModal";
 import DiarySettingsModal from "@/src/components/DiarySettingsModal";
+import ViewMenuButton from "@/src/components/entries/ViewMenuButton";
 import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import TutorialTooltip from "@/src/components/TutorialTooltip";
