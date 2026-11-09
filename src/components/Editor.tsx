@@ -108,7 +108,7 @@ export default function Editor({
   onBack,
 }: EditorProps) {
   const [stickers, setStickers] = useState<stickertype[]>([])
-  const [background, setBackground] = useState();
+  const [background, setBackground] = useState<any>(null);
   const saveScale = useSharedValue(1);
   const saveStyle = useAnimatedStyle(() => ({
     transform: [{ scale: saveScale.value }],
@@ -501,6 +501,7 @@ export default function Editor({
                          setBackground(require("@/assets/images/mood-backgrounds/sad.jpg"))
                          break;
                        default:
+                         setBackground(null);
                          break; 
                      }
                    }}
@@ -595,7 +596,35 @@ export default function Editor({
         <MoodPicker
           isOpen={showMoodPicker}
           value={mood}
-          onSelect={setMood}
+          onSelect={(newMood) => {
+            setMood(newMood)
+            switch(newMood){
+                       case "angry":
+                         setBackground(require("@/assets/images/mood-backgrounds/angry.jpg"))
+                         break;
+                       case "anxious":
+                         setBackground(require("@/assets/images/mood-backgrounds/anxious.jpg"))
+                         break;
+                       case "awesome":
+                         setBackground(require("@/assets/images/mood-backgrounds/awesome.jpg"))
+                         break;
+                       case "calm":
+                         setBackground(require("@/assets/images/mood-backgrounds/calm.jpg"))
+                         break;
+                       case "happy":
+                         setBackground(require("@/assets/images/mood-backgrounds/happy.jpg"))
+                         break;
+                       case "meh":
+                         setBackground(require("@/assets/images/mood-backgrounds/meh.jpg"))
+                         break;
+                       case "sad":
+                         setBackground(require("@/assets/images/mood-backgrounds/sad.jpg"))
+                         break;
+                       default:
+                         setBackground(null);
+                         break; 
+                     }
+          }}
           onClose={() => setShowMoodPicker(false)}
         />
         <AppModal
