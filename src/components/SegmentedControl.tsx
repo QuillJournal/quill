@@ -140,7 +140,7 @@ export default function SegmentedControl<T extends string>({
                 { justifyContent: isVertical ? "flex-start" : "center" },
               ]}
             >
-              <Ionicons name={o.icon} size={16} />
+              <Ionicons name={o.icon} size={16} color={colors.textMuted} />
               <Text
                 style={{
                   color,

@@ -182,9 +182,9 @@ export default function DiaryScreen() {
             </Text>
             {diaryMembers.size == 1 && (
               <Ionicons
-              name="lock-closed-outline"
-              size={16}
-              color={colors.textMuted}
+                name="lock-closed-outline"
+                size={16}
+                color={colors.textMuted}
               />
             )}
           </View>
@@ -200,13 +200,13 @@ export default function DiaryScreen() {
             )}
           </View>
         </View>
-            <ViewMenuButton
-              diaryAccent={diaryAccent}
-              showSwitcher={showSwitcher}
-              onPillPress={() => setShowSwitcher((prev) => !prev)}
-              selectedView={selectedView}
-              onSelectView={handleSelectView}
-              />
+        <ViewMenuButton
+          diaryAccent={diaryAccent}
+          showSwitcher={showSwitcher}
+          onPillPress={() => setShowSwitcher((prev) => !prev)}
+          selectedView={selectedView}
+          onSelectView={handleSelectView}
+        />
         <TutorialTooltip
           step={2}
           visible={
@@ -265,13 +265,17 @@ export default function DiaryScreen() {
           </TouchableOpacity>
         </TutorialTooltip>
         <TouchableOpacity
-        style={styles.iconButton}
-        onPress={() => setShowSettings(true)}
-        accessibilityRole="button"
-        accessibilityLabel="Diary settings"
-        hitSlop={12}
+          style={styles.iconButton}
+          onPress={() => setShowSettings(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Diary settings"
+          hitSlop={12}
         >
-          <Ionicons name="settings-outline" size={20} color={colors.textMuted} />
+          <Ionicons
+            name="settings-outline"
+            size={20}
+            color={colors.textMuted}
+          />
         </TouchableOpacity>
       </View>
 
@@ -335,11 +339,11 @@ export default function DiaryScreen() {
         }}
       />
       <DiarySettingsModal
-      visible={showSettings}
-      onClose={() => setShowSettings(false)}
-      diary={diaryRow}
-      onChanged={reloadDiary}
-      onGone={closeDiary}
+        visible={showSettings}
+        onClose={() => setShowSettings(false)}
+        diary={diaryRow}
+        onChanged={reloadDiary}
+        onGone={closeDiary}
       />
     </View>
   );

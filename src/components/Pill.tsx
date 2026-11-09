@@ -14,7 +14,7 @@ import usePressAnimation from "../hooks/usePressAnimation";
 import useTheme from "../hooks/useTheme";
 
 type PillProps = {
-  text: string;
+  text?: string;
   isInteractive: boolean;
   selected?: boolean;
   onPress?: () => void;
@@ -68,7 +68,7 @@ export default function Pill({
             color={iconColor ?? colors.textMuted}
           />
         )}
-        <Text style={[styles.text, textStyle]}>{text}</Text>
+        {text && <Text style={[styles.text, textStyle]}>{text}</Text>}
         {children}
       </Animated.View>
     </Pressable>
