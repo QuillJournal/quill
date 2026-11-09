@@ -23,6 +23,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+type stickertype = {
+    id: number,
+    x: number, 
+    y: number, 
+    dialtion: number, 
+    rotation: number, 
+    index: number, 
+}
+
 export default function EntryEditScreen() {
   const { entryId } = useLocalSearchParams();
   const { colors } = useTheme();
@@ -147,6 +156,7 @@ export default function EntryEditScreen() {
         canEdit={isAuthor}
         rules={rules}
         initialReadOnly={true}
+        entryId = {Number(entryId)}
         onSave={handleSave}
         onBack={() => {
           router.back();

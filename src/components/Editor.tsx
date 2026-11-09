@@ -6,6 +6,8 @@ import {
   Toolbar,
   useEditorBridge,
 } from "@10play/tentap-editor";
+import Stickers from "../components/stickers"
+import AlternateStickers from "../components/AlternateStickers"
 import { Ionicons } from "@expo/vector-icons";
 import { DatePicker } from "@quidone/react-native-wheel-picker";
 import dayjs from "dayjs";
@@ -72,6 +74,7 @@ interface EditorProps {
   authorLabel?: string;
   canEdit?: boolean;
   rules?: DiaryRules,
+  entryId: number
   onSave: (
     title: string,
     entryDate: string,
@@ -84,7 +87,14 @@ interface EditorProps {
 }
 
 const TOOLBAR_H = 50;
-
+type stickertype = {
+    id: number,
+    x: number, 
+    y: number, 
+    dialtion: number, 
+    rotation: number, 
+    index: number, 
+}
 export default function Editor({
   initialTitle,
   initialBody,
@@ -96,10 +106,12 @@ export default function Editor({
   authorLabel,
   canEdit = true,
   rules = DEFAULT_RULES,
+  entryId,
   onSave,
   onBack,
 }: EditorProps) {
-  const [background, setBackground] = useState();
+  const [stickers, setStickers] = useState<stickertype[]>([])
+  const [background, setBackground] = useState<any>(null);
   const saveScale = useSharedValue(1);
   const saveStyle = useAnimatedStyle(() => ({
     transform: [{ scale: saveScale.value }],
@@ -263,6 +275,7 @@ export default function Editor({
       overflow: hidden;
     }
     body, .ProseMirror {
+      padding: 12px, 20px; 
       font-family: 'Gabarito', sans-serif !important;
     }
     .ProseMirror { min-height: 240px; outline: none; }
@@ -338,6 +351,7 @@ export default function Editor({
     const contentHtml = await editor.getHTML();
     setIsReadOnly(true);
     handedOffRef.current = true;
+    
     onSave(title, entryDate, contentHtml, { added, removedIds }, mood, entryTime);
   };
 
@@ -485,7 +499,7 @@ export default function Editor({
                       animated
                       intro
                       introDelay={isReadOnly ? 300 : 0}
-                    /* onBgChange = {(newMood:MoodKey) => {
+                     onBgChange = {(newMood:MoodKey) => {
                      switch(newMood){
                        case "angry":
                          setBackground(require("@/assets/images/mood-backgrounds/angry.jpg"))
@@ -509,9 +523,10 @@ export default function Editor({
                          setBackground(require("@/assets/images/mood-backgrounds/sad.jpg"))
                          break;
                        default:
+                         setBackground(null);
                          break; 
                      }
-                   }}*/
+                   }}
                     />
                     <Text style={styles.chipText}>{MOODS[mood].label}</Text>
                   </>
@@ -603,7 +618,35 @@ export default function Editor({
         <MoodPicker
           isOpen={showMoodPicker}
           value={mood}
-          onSelect={setMood}
+          onSelect={(newMood) => {
+            setMood(newMood)
+            switch(newMood){
+                       case "angry":
+                         setBackground(require("@/assets/images/mood-backgrounds/angry.jpg"))
+                         break;
+                       case "anxious":
+                         setBackground(require("@/assets/images/mood-backgrounds/anxious.jpg"))
+                         break;
+                       case "awesome":
+                         setBackground(require("@/assets/images/mood-backgrounds/awesome.jpg"))
+                         break;
+                       case "calm":
+                         setBackground(require("@/assets/images/mood-backgrounds/calm.jpg"))
+                         break;
+                       case "happy":
+                         setBackground(require("@/assets/images/mood-backgrounds/happy.jpg"))
+                         break;
+                       case "meh":
+                         setBackground(require("@/assets/images/mood-backgrounds/meh.jpg"))
+                         break;
+                       case "sad":
+                         setBackground(require("@/assets/images/mood-backgrounds/sad.jpg"))
+                         break;
+                       default:
+                         setBackground(null);
+                         break; 
+                     }
+          }}
           onClose={() => setShowMoodPicker(false)}
         />
         <AppModal
@@ -638,6 +681,16 @@ export default function Editor({
             style={{ marginTop: 16 }}
           />
         </AppModal>
+      {!isReadOnly && 
+      <Stickers 
+        activeStickersArray = {stickers} 
+        onChange = {setStickers}
+        entryId = {entryId}
+      />
+      }  
+      {isReadOnly &&
+      <AlternateStickers entryId = {entryId}/>
+      }
       </SafeAreaView>
     </ImageBackground>
   );
@@ -659,6 +712,8 @@ const getStyles = (colors: ReturnType<typeof useTheme>["colors"]) =>
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
       backgroundColor: colors.backgroundopacity,
+      zIndex: 200, 
+      elevation: 200, 
     },
     backBtn: {
       paddingVertical: 4,

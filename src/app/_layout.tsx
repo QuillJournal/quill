@@ -135,6 +135,7 @@ function AppNavigator() {
       if (!newSession) {
         decryptGateDone.current = false;
         setDecryptBaseline(null);
+        setGateChecked(false)
         setIsAuthLoading(false);
         return;
       }
@@ -302,7 +303,6 @@ function AppNavigator() {
           });
         }
       } catch (e) {
-        console.log();
         console.error("ERROR: ", e);
       } finally {
         setIsAuthLoading(false);
@@ -310,17 +310,25 @@ function AppNavigator() {
     });
     return () => unsubscribe();
   }, []);
-
+  console.log({decryptBaseline})
   const isSignedIn = supabaseSession !== null;
   const isNavReady =
    isFontsLoaded && isDbMigrated && !isAuthLoading && !isRecovering;
 
   const closeDecryptGate = useCallback(() => {
+    if(decryptGateDone.current){
+      return
+    };
     decryptGateDone.current = true;
+    setGateChecked(true);
     setDecryptBaseline(null);
-  }, []);
+    const resumeDiaryId = getResumeDiaryId();
+    router.replace(
+      resumeDiaryId === null ? "/(app)" : `/(app)/diary/${resumeDiaryId}`,
+    );
+  }, [router]);
 
-  useEffect(() => {
+  /*useEffect(() => {
     if (!isNavReady) return;
     if (!isSignedIn) {
       setGateChecked(false);
@@ -338,8 +346,9 @@ function AppNavigator() {
         .from(diariesTable)
         .limit(1);
       if (cancelled) return;
-      if (anyDiary) decryptGateDone.current = true;
-      else setDecryptBaseline((prev) => prev ?? baseline);
+      //if (anyDiary) decryptGateDone.current = true;
+      //else setDecryptBaseline((prev) => prev ?? baseline);
+      setDecryptBaseline((prev) => prev ?? baseline)
       setGateChecked(true);
     })().catch((e) => {
       console.warn("Decrypt gate check failed: ", e);
@@ -348,13 +357,48 @@ function AppNavigator() {
     return () => {
       cancelled = true;
     };
-  }, [isSignedIn, isNavReady]);
-
+  }, [isSignedIn, isNavReady]);*/
   useEffect(() => {
-    if (decryptBaseline === null) return;
-    const t = setTimeout(closeDecryptGate, 60_000);
-    return () => clearTimeout(t);
-  }, [decryptBaseline, closeDecryptGate]);
+    if (!isNavReady || !isSignedIn) return;
+
+    let cancelled = false;   
+    if(decryptGateDone.current){
+      setGateChecked(true);
+      setDecryptBaseline(null);
+      return;
+   }
+    //
+    async function check() {
+      try{
+      const [anyDiary] = await db
+        .select({ id: diariesTable.id })
+        .from(diariesTable)
+        .limit(1);
+      if (cancelled) return;
+      if(anyDiary){
+        setDecryptBaseline(null);
+        decryptGateDone.current =true;
+        setGateChecked(true);
+        return;
+      }
+    const baseline = getSyncRuns();
+      if (cancelled) return;
+      console.log({baseline})
+      setDecryptBaseline(baseline);
+      setGateChecked(true);
+    }catch(e) {
+      console.warn("Decrypt gate check failed: ", e);
+      if (!cancelled){
+        setGateChecked(true);
+        setDecryptBaseline(null);
+      }
+    };
+  }
+  check()
+  return() => {
+    cancelled = true
+  };
+  }, [isSignedIn, isNavReady]);
 
   useEffect(() => {
     if (!isNavReady) return;

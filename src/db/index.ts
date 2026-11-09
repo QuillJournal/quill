@@ -132,6 +132,20 @@ function ensureSchema(): void {
   CREATE INDEX IF NOT EXISTS idx_entries_sync_state ON entries (sync_state);
   CREATE INDEX IF NOT EXISTS idx_entries_remote_id ON entries (remote_id);
 
+  
+  CREATE TABLE IF NOT EXISTS stickers (
+  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  entry_id INTEGER NOT NULL REFERENCES entries(id) ON DELETE CASCADE,
+
+  x REAL NOT NULL, 
+  y REAL NOT NULL, 
+  dialation REAL NOT NULL, 
+  rotation REAL NOT NULL, 
+  "index" INTEGER NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_stickers_entry ON stickers (entry_id);
+
   CREATE TABLE IF NOT EXISTS local_profile (
   user_id TEXT PRIMARY KEY NOT NULL,
   name TEXT NOT NULL,
