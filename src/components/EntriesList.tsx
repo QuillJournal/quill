@@ -2,7 +2,6 @@ import { resolveDiaryColor } from "@/src/constants/colors";
 import { fonts, fontSizes } from "@/src/constants/typography";
 import { useUserSession } from "@/src/context/UserSessionContext";
 import useTheme from "@/src/hooks/useTheme";
-import { haptic } from "@/src/services/haptics";
 import { useSyncStatus } from "@/src/services/syncEngine";
 import type { Entry, EntryWithAuthor } from "@/src/types/entry";
 import { useEffect, useState } from "react";
@@ -10,7 +9,6 @@ import { Dimensions, StyleSheet, useColorScheme, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Attachment } from "../types/attachment";
 import { ViewType } from "../types/diary";
-import { isSameDay } from "../utils/dates";
 import EmptyState from "./entries/EmptyState";
 import FeedView from "./entries/FeedView";
 import ListView from "./entries/ListView";
@@ -62,13 +60,7 @@ export default function EntriesList({
     timeline: TimelineView,
   };
   const [index, setIndex] = useState(2);
-  const handleDayPress = (date: Date) => {
-    haptic.press();
-    setSelectedDate((prev) => {
-      if (prev && isSameDay(prev, date)) return null;
-      return date;
-    });
-  };
+
   useEffect(() => {
     // 2 if there is 0 entries, 3 if there is one entry .
     if (entries.length === 0) {
@@ -78,9 +70,6 @@ export default function EntriesList({
     }
     //else user made two entries instead of following the path . handled in DiaryScreen.
   }, [entries.length]);
-  const handleDayLongPress = (date: Date) => {
-    onNewEntry(date);
-  };
 
   const ViewProps = {
     entries,
@@ -88,6 +77,7 @@ export default function EntriesList({
     selectedDate,
     onDeleteEntry,
     onSelectEntry,
+    onNewEntry,
     diaryAccent,
   };
   const SelectedComponent = VIEW_COMPONENTS[selectedView];

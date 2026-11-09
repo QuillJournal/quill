@@ -11,6 +11,7 @@ export type ViewProps = {
   media: Map<number, Attachment[]>;
   selectedDate: Date | null;
   onSelectEntry?: (entry: Entry) => void;
+  onNewEntry?: (date: Date) => void;
   onDeleteEntry?: (id: number) => void;
   diaryAccent: string;
 };

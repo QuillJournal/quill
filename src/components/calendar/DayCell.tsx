@@ -1,3 +1,4 @@
+import { moodColors } from "@/src/constants/colors";
 import { radius } from "@/src/constants/radius";
 import useTheme from "@/src/hooks/useTheme";
 import { isSameDay } from "@/src/utils/dates";
@@ -5,7 +6,9 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 type DayCellProps = {
   day: Date;
-  hasEntries: boolean;
+  moodColor:
+    | (typeof moodColors)[keyof typeof moodColors]["dark" | "light"]
+    | null;
   isCurrentMonth: boolean;
   isSelected: boolean;
   onPress: (day: Date) => void;
@@ -13,7 +16,7 @@ type DayCellProps = {
 };
 export default function DayCell({
   day,
-  hasEntries,
+  moodColor,
   isCurrentMonth,
   isSelected,
   onPress,
@@ -48,24 +51,14 @@ export default function DayCell({
         >
           {day.getDate()}
         </Text>
-        {hasEntries && !isSelected && (
+        {moodColor && (
           <View
             style={[
               styles.dot,
               {
-                backgroundColor: colors.accent,
+                backgroundColor: moodColor,
               },
             ]}
-          ></View>
-        )}
-        {hasEntries && isSelected && (
-          <View
-            style={{
-              backgroundColor: colors.textOnAccent,
-              width: 5,
-              height: 5,
-              borderRadius: 999,
-            }}
           ></View>
         )}
       </View>
@@ -88,13 +81,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     width: 32,
     height: 32,
-    borderRadius: radius.sm,
+    borderRadius: radius.md + 5,
   },
   dot: {
-    width: 6,
-    height: 6,
+    width: 8,
+    height: 8,
     borderRadius: 999,
     position: "absolute",
-    bottom: 0,
+    bottom: -10,
   },
 });

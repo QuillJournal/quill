@@ -5,6 +5,7 @@ import {
   StyleProp,
   StyleSheet,
   Text,
+  TextStyle,
   ViewStyle,
 } from "react-native";
 import { radius } from "../constants/radius";
@@ -13,13 +14,14 @@ import usePressAnimation from "../hooks/usePressAnimation";
 import useTheme from "../hooks/useTheme";
 
 type PillProps = {
-  text: string;
+  text?: string;
   isInteractive: boolean;
   selected?: boolean;
   onPress?: () => void;
   icon?: keyof typeof Ionicons.glyphMap;
   iconColor?: string;
-  style: StyleProp<ViewStyle>;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   children?: React.ReactNode;
 };
 
@@ -31,12 +33,12 @@ export default function Pill({
   icon,
   iconColor,
   style,
+  textStyle,
   children,
 }: PillProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
-  const fromColor = selected ? colors.cardPressed : colors.surface;
-  const toColor = selected ? colors.surface : colors.cardPressed;
+
   const { animatePress, animatedColor } = usePressAnimation(
     colors.surface,
     colors.cardPressed,
@@ -66,7 +68,7 @@ export default function Pill({
             color={iconColor ?? colors.textMuted}
           />
         )}
-        <Text style={styles.text}>{text}</Text>
+        {text && <Text style={[styles.text, textStyle]}>{text}</Text>}
         {children}
       </Animated.View>
     </Pressable>

@@ -30,25 +30,23 @@ export default function ViewMenuButton({
   return (
     <View style={styles.container}>
       <Pill
-        text={selectedOption?.label || "View"}
         icon={selectedOption?.icon}
         iconColor={diaryAccent}
         isInteractive={true}
         selected={showSwitcher == true}
         onPress={onPillPress}
-        style={{ width: 120, gap: 5 }}
+        style={{ gap: 4, paddingHorizontal: 10 }}
       >
         <Ionicons name="chevron-down" size={16} color={colors.textMuted} />
       </Pill>
       {showSwitcher && (
         <View
           style={{
-            flex: 1,
             position: "absolute",
             top: "75%",
             zIndex: 100,
-            left: 0,
-            right: 0,
+            alignItems: "center",
+            width: 150,
           }}
         >
           <SegmentedControl

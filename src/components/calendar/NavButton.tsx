@@ -16,8 +16,8 @@ export default function NavButton({
 }: NavIconProps) {
   const { colors } = useTheme();
   const { animatePress, animatedColor } = usePressAnimation(
-    colors.background,
-    colors.cardPressed,
+    colors.calendarBackground,
+    colors.surface,
   );
   return (
     <Pressable

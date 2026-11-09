@@ -1,6 +1,7 @@
 import { dialog } from "@/src/components/Dialog/DialogProvider";
 import DiaryMembersModal from "@/src/components/DiaryMembersModal";
 import DiarySettingsModal from "@/src/components/DiarySettingsModal";
+import ViewMenuButton from "@/src/components/entries/ViewMenuButton";
 import EntriesList from "@/src/components/EntriesList";
 import FloatingActionButton from "@/src/components/FloatingActionButton";
 import TutorialTooltip from "@/src/components/TutorialTooltip";
@@ -180,7 +181,11 @@ export default function DiaryScreen() {
               {diaryRow?.name}
             </Text>
             {diaryMembers.size == 1 && (
-              <Ionicons name="lock-closed-outline" size={16} color={colors.textMuted} />
+              <Ionicons
+                name="lock-closed-outline"
+                size={16}
+                color={colors.textMuted}
+              />
             )}
           </View>
           <View style={styles.subtitleRow}>
@@ -195,6 +200,13 @@ export default function DiaryScreen() {
             )}
           </View>
         </View>
+        <ViewMenuButton
+          diaryAccent={diaryAccent}
+          showSwitcher={showSwitcher}
+          onPillPress={() => setShowSwitcher((prev) => !prev)}
+          selectedView={selectedView}
+          onSelectView={handleSelectView}
+        />
         <TutorialTooltip
           step={2}
           visible={
@@ -242,20 +254,28 @@ export default function DiaryScreen() {
             accessibilityLabel="Diary members"
             hitSlop={12}
           >
-            <Ionicons name="people-outline" size={20} color={colors.textMuted} />
+            <Ionicons
+              name="people-outline"
+              size={20}
+              color={colors.textMuted}
+            />
             <Text style={styles.membersCount}>
               {Math.max(diaryMembers.size, 1)}
             </Text>
           </TouchableOpacity>
         </TutorialTooltip>
         <TouchableOpacity
-        style={styles.iconButton}
-        onPress={() => setShowSettings(true)}
-        accessibilityRole="button"
-        accessibilityLabel="Diary settings"
-        hitSlop={12}
+          style={styles.iconButton}
+          onPress={() => setShowSettings(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Diary settings"
+          hitSlop={12}
         >
-          <Ionicons name="settings-outline" size={20} color={colors.textMuted} />
+          <Ionicons
+            name="settings-outline"
+            size={20}
+            color={colors.textMuted}
+          />
         </TouchableOpacity>
       </View>
 
@@ -319,11 +339,11 @@ export default function DiaryScreen() {
         }}
       />
       <DiarySettingsModal
-      visible={showSettings}
-      onClose={() => setShowSettings(false)}
-      diary={diaryRow}
-      onChanged={reloadDiary}
-      onGone={closeDiary}
+        visible={showSettings}
+        onClose={() => setShowSettings(false)}
+        diary={diaryRow}
+        onChanged={reloadDiary}
+        onGone={closeDiary}
       />
     </View>
   );
