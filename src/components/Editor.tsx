@@ -71,6 +71,7 @@ interface EditorProps {
   initialTime?: string;
   authorLabel?: string;
   canEdit?: boolean;
+  entryId: number
   onSave: (
     title: string,
     entryDate: string,
@@ -101,10 +102,11 @@ export default function Editor({
   initialTime,
   authorLabel,
   canEdit = true,
+  entryId,
   onSave,
   onBack,
 }: EditorProps) {
-  const [stickers, setStickers] = useState<stickertype>([])
+  const [stickers, setStickers] = useState<stickertype[]>([])
   const [background, setBackground] = useState();
   const saveScale = useSharedValue(1);
   const saveStyle = useAnimatedStyle(() => ({
@@ -631,6 +633,7 @@ export default function Editor({
       <Stickers 
         activeStickersArray = {stickers} 
         onChange = {setStickers}
+        entryId = {entryId}
       />
       }  
       </SafeAreaView>

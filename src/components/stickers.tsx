@@ -6,6 +6,7 @@ import {
   ScrollView, 
   Dimensions,
 } from "react-native";
+import {updateStickersByEntryId, getStickersByEntryId} from "../db/stickerupdate"
 import { mode } from "@/src/constants/colors";
 import {MaterialCommunityIcons} from "@expo/vector-icons"
 import {Gesture, GestureDetector} from "react-native-gesture-handler"
@@ -13,8 +14,9 @@ import Animated, {
     useSharedValue, 
     useAnimatedStyle,
     withSpring,
+    runOnJS
 } from "react-native-reanimated"
-import {useState} from "react"; 
+import {useState, useEffect} from "react"; 
 const stickers = [
     require("@/assets/images/mood-backgrounds/angry.jpg"),
     require("@/assets/images/mood-backgrounds/anxious.jpg"),
@@ -58,7 +60,12 @@ function ActiveStickers({sticker,update}: {sticker:stickertype, update:(value: s
         x.value =  startX.value + event.translationX;
         y.value =  startY.value +event.translationY;
     }).onEnd(() =>{
-        saveStickers()
+        runOnJS(saveStickers)(
+            x.value, 
+            y.value, 
+            dilation.value, 
+            rotation.value, 
+        );
     });
 
     //pinch
@@ -67,7 +74,12 @@ function ActiveStickers({sticker,update}: {sticker:stickertype, update:(value: s
     }).onUpdate((event) => {
         dilation.value = startDialation.value * event.scale
     }).onEnd(() =>{
-        saveStickers()
+        runOnJS(saveStickers)(
+            x.value, 
+            y.value, 
+            dilation.value, 
+            rotation.value,
+        );
     });
 
     //rotate
@@ -76,7 +88,12 @@ function ActiveStickers({sticker,update}: {sticker:stickertype, update:(value: s
     }).onUpdate((event) => {
         rotation.value = startRotation.value + event.rotation
     }).onEnd(() =>{
-        saveStickers()
+        runOnJS(saveStickers)(
+            x.value, 
+            y.value, 
+            dilation.value, 
+            rotation.value,
+        );
     });
     //resize + move
     const stickerstyle = useAnimatedStyle(() => {
@@ -90,17 +107,24 @@ function ActiveStickers({sticker,update}: {sticker:stickertype, update:(value: s
         }
     })
     //
-    const saveStickers = () => {
+    const saveStickers = (
+        newX:number, 
+        newY: number, 
+        newDialation:number, 
+        newRotation: number, 
+    ) => {
+        console.log("ENDED")
         update({
             ...sticker,
-            x: x.value, 
-            y: y.value, 
-            dialtion: dilation.value, 
-            rotation: rotation.value, 
+            x: newX,
+            y: newY, 
+            dialtion: newDialation, 
+            rotation: newRotation, 
         })
+        console.log("UPDATE CALLED")
     }
     return(
-        <GestureDetector gesture = {Gesture.Simultaneous(pan, pinch, rotate)}>
+        <GestureDetector gesture = {Gesture.Simultaneous(pan)}>
             <Animated.View style = {stickerstyle}> 
                 <Image 
                     key = {sticker.id}
@@ -118,19 +142,38 @@ function ActiveStickers({sticker,update}: {sticker:stickertype, update:(value: s
 type StickerProps =  {
     activeStickersArray: stickertype[];
     onChange: (stickers:stickertype[]) => void;
+    entryId: number;
 }
 export default function Stickers({
     activeStickersArray,
-    onChange
+    onChange,
+    entryId
 }:StickerProps){
-    function getarray(){ 
-        return activeStickersArray
-    }
     const width:number = Dimensions.get("window").width;
     const height:number = Dimensions.get("window").height;
     //ANIMATION STUFF 
     const animation = useSharedValue(0);
 
+    useEffect(() => {
+        if (!entryId) return; 
+        let active = true; 
+        //check for old ones 
+        async function initialize(){
+            try{
+            const newStickers = await getStickersByEntryId(entryId)
+            if(active){
+                onChange(newStickers)
+            }
+            }catch(error){
+                console.error("Error loading the stickers: ", error)
+            }
+
+        }
+        initialize()
+        return() => {
+            active = false
+        }
+    },[entryId,onChange])
 
     const [open, setOpen] = useState(false); 
     const barstyle = useAnimatedStyle(() => {
@@ -181,19 +224,23 @@ export default function Stickers({
     function Active(){ 
         return(
             <View pointerEvents = "box-none">
-            {activeStickersArray.map((sticker) => 
-                <ActiveStickers 
-                key = {sticker.id} 
-                sticker = {sticker}
-                update = {(value:stickertype) => {
-                    onChange(
-                        activeStickersArray.map((stickerinner) =>
+                {activeStickersArray.map((sticker) => (
+                    <ActiveStickers 
+                    key = {sticker.id} 
+                    sticker = {sticker}
+                    update = {(value:stickertype) => {
+                        const updated = activeStickersArray.map((stickerinner) =>
                             stickerinner.id === value.id? value: stickerinner
-                        )
-                    );
-                }}
-                />
-            )}
+                        );
+                        onChange(updated)
+                        if (entryId){
+                            updateStickersByEntryId(entryId,updated).catch(err => {
+                                console.error("Error saving your stickers: ", err)
+                            });
+                        }
+                    }}
+                    />
+            ))}
         </View>
         );
     }

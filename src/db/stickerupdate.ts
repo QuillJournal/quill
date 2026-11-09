@@ -9,9 +9,6 @@ type stickertype = {
     rotation: number, 
     index: number, 
 }
-export const SaveStickers = async (stickery: stickertype[], entryId: number): Promise<void> => {
-    await updateStickersByEntryId(entryId,stickery)
-}
 export const getStickersByEntryId = async (entryId: number): Promise<stickertype[]> => {
   const allRows = await db.select().from(stickersTable).where(eq(stickersTable.entryId, entryId));
   return allRows.map((row) => ({
